@@ -10,7 +10,7 @@ Living record of the V3 redesign of damiandc.com. Everything decided so far is w
 | Hero ASCII portrait | **Settled.** Full spec in [`hero-portrait.md`](hero-portrait.md); reference prototype in [`spike/`](spike/). |
 | Projects, Timeline, Lens, Contact, quiet sections, `/services` | **Settled** (see `decisions.md`). |
 | Copy refresh | **Approved.** Final copy in [`copy.md`](copy.md). |
-| Written design → plan → build | Not started. Nothing gets built until the full design is approved. |
+| Written design → plan → build | Design consolidated in [`design.md`](design.md); builder review running, then approval. Nothing gets built until approved. |
 
 ## How V3 ships
 
