@@ -37,7 +37,7 @@ const LATE_MS = 2500; // the site-wide slow-load cut-off (see EagerReveal)
 const rgbVar = (styles, name) => styles.getPropertyValue(name).trim().split(/\s+/).map(Number);
 const css = ([r, g, b]) => `rgb(${r},${g},${b})`;
 
-function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEnd }) {
+function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, onWaveEnd }) {
   const ctx = canvas.getContext("2d");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const { font, cw, ch } = cellSize();
@@ -50,9 +50,9 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
   const lensCtx = lensCv.getContext("2d");
   const flickUntil = new Map(); // cell → [expiry ms, glyph]
   let idleStart = performance.now();
-  const waveStart = performance.now();
+  let waveStart = performance.now();
   let waving = wave;
-  let raf = 0, running = false, onScreen = true;
+  let raf = 0, running = false, onScreen = true, destroyed = false, layoutToken = 0;
 
   const setFont = (c) => {
     c.font = `700 ${font}px ${family}`;
@@ -68,9 +68,23 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
   }
 
   // Samples the image at SUPERSAMPLE× the cell grid and builds the field.
-  function layout() {
+  // The downscale happens in createImageBitmap, off the main thread — doing
+  // it with drawImage made the pixel readback a ~65 ms task on a slow phone.
+  // Resolves false when the stage size hasn't changed or a newer layout won.
+  async function layout() {
     const r = wrapper.getBoundingClientRect();
-    if (!r.width || !r.height) return;
+    if (!r.width || !r.height || (r.width === W && r.height === H)) return false;
+    const token = ++layoutToken;
+    const c = Math.floor(r.width / cw), rw = Math.floor(r.height / ch);
+    const bitmap = await createImageBitmap(blob, {
+      resizeWidth: c * SUPERSAMPLE,
+      resizeHeight: rw * SUPERSAMPLE,
+      resizeQuality: "high",
+    });
+    if (token !== layoutToken || destroyed) {
+      bitmap.close();
+      return false;
+    }
     dpr = Math.min(2, window.devicePixelRatio || 1);
     W = r.width;
     H = r.height;
@@ -78,15 +92,15 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
     canvas.height = Math.round(H * dpr);
     lensCv.width = canvas.width;
     lensCv.height = canvas.height;
-    cols = Math.floor(W / cw);
-    rows = Math.floor(H / ch);
+    cols = c;
+    rows = rw;
     n = cols * rows;
     const sample = document.createElement("canvas");
-    sample.width = cols * SUPERSAMPLE;
-    sample.height = rows * SUPERSAMPLE;
+    sample.width = bitmap.width;
+    sample.height = bitmap.height;
     const sx = sample.getContext("2d", { willReadFrequently: true });
-    sx.imageSmoothingQuality = "high";
-    sx.drawImage(img, 0, 0, sample.width, sample.height);
+    sx.drawImage(bitmap, 0, 0);
+    bitmap.close();
     field = buildField(sx.getImageData(0, 0, sample.width, sample.height).data, cols, rows, SUPERSAMPLE);
     fade = new Float32Array(n);
     reveal = new Float32Array(n);
@@ -104,7 +118,7 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
     fm.putImageData(fd, 0, 0);
     flickUntil.clear();
     onLayout(cols, rows);
-    buildRest();
+    return true;
   }
 
   // One cell of the finished portrait.
@@ -134,7 +148,7 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(rest, 0, 0);
+    if (rest) ctx.drawImage(rest, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     setFont(ctx);
   }
@@ -225,7 +239,7 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
     lensCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     lensCtx.globalCompositeOperation = "source-over";
     lensCtx.clearRect(0, 0, W, H);
-    lensCtx.drawImage(img, 0, 0, W, H);
+    lensCtx.drawImage(photo, 0, 0, W, H);
     lensCtx.globalCompositeOperation = "destination-in";
     lensCtx.drawImage(fadeMask, 0, 0, W, H);
     lensCtx.fillStyle = lensGradient(lensCtx);
@@ -301,43 +315,61 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
   const redraw = () => (running ? drawFrame(performance.now()) : blitRest());
 
   // ---- lifecycle ------------------------------------------------------------
-  readTheme();
-  layout();
-  if (waving) drawWave(0);
-  else blitRest();
-
-  let pending = 0;
+  let pending = 0, restTimer = 0;
   const ro = new ResizeObserver(() => {
     cancelAnimationFrame(pending);
-    pending = requestAnimationFrame(() => {
-      layout();
+    pending = requestAnimationFrame(async () => {
+      if (!(await layout())) return;
+      buildRest();
       redraw();
     });
   });
-  ro.observe(wrapper);
+  // Only a real theme flip rebuilds — other <html> class changes (the
+  // cursor's js-cursor) must not.
   const mo = new MutationObserver(() => {
+    const wasDark = dark;
     readTheme();
+    if (dark === wasDark) return;
     buildRest();
     redraw();
   });
-  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
   const io = new IntersectionObserver(([e]) => {
     onScreen = e.isIntersecting;
     sync();
   });
-  io.observe(wrapper);
-  document.addEventListener("visibilitychange", sync);
-  if (!reduced) for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn);
-  sync();
+
+  // First layout, then the rest canvas in a task of its own (a timeout, not a
+  // rAF — rAF callbacks share one task with the loop's first frame), so no
+  // single task blocks the main thread for long on a slow phone. The loop,
+  // observers and pointer listeners only start once there is a field.
+  const ready = (async () => {
+    readTheme();
+    await layout();
+    if (destroyed) return;
+    waveStart = performance.now();
+    restTimer = setTimeout(() => {
+      buildRest();
+      if (!running) blitRest();
+    }, 0);
+    ro.observe(wrapper);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    io.observe(wrapper);
+    document.addEventListener("visibilitychange", sync);
+    if (!reduced) for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn);
+    sync();
+  })();
 
   return {
+    ready,
     faceViewportPoint() {
       const r = wrapper.getBoundingClientRect();
       return { x: r.left + r.width * FACE.u, y: r.top + r.height * FACE.v };
     },
     destroy() {
+      destroyed = true;
       cancelAnimationFrame(raf);
       cancelAnimationFrame(pending);
+      clearTimeout(restTimer);
       ro.disconnect();
       mo.disconnect();
       io.disconnect();
@@ -356,24 +388,31 @@ export default function HeroPortrait({ className = "" }) {
   useEffect(() => {
     let portrait = null;
     let cancelled = false;
-    const img = new Image();
-    img.src = SRC;
     // next/font hashes the family name, so read the real one from its variable.
     const family = getComputedStyle(document.documentElement).getPropertyValue("--font-jetbrains-mono").trim() || "monospace";
-    Promise.all([img.decode(), document.fonts.load(`700 6px ${family}`)])
-      .then(() => {
+    // Fetched as a blob so every decode and resize runs in createImageBitmap,
+    // off the main thread. `photo` is the full-colour image for the lens.
+    const blob = fetch(SRC).then((r) => {
+      if (!r.ok) throw new Error(`portrait ${r.status}`);
+      return r.blob();
+    });
+    Promise.all([blob, blob.then((b) => createImageBitmap(b)), document.fonts.load(`700 6px ${family}`)])
+      .then(async ([b, photo]) => {
         if (cancelled) return;
         const play = shouldPlayLoader();
         const wave = play && performance.now() <= LATE_MS;
         portrait = createPortrait({
           wrapper: wrapperRef.current,
           canvas: canvasRef.current,
-          img,
+          blob: b,
+          photo,
           family,
           onLayout: (cols, rows) => setGrid(`${cols} × ${rows}`),
           wave,
           onWaveEnd: () => setState("static"),
         });
+        await portrait.ready;
+        if (cancelled) return;
         if (wave) heroWave.start(performance.now(), portrait.faceViewportPoint());
         setState(wave ? "wave" : play ? "skipped" : "static");
       })

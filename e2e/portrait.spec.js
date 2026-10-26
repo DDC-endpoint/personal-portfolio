@@ -60,3 +60,28 @@ test("resize relays out", async ({ page }) => {
   await expect(label).not.toHaveText(first);
   await expect(label).toHaveText(/^PORTRAIT · \d+ × \d+ CELLS$/i);
 });
+
+test("portrait builds once per load", async ({ page }) => {
+  // Perf guard: a full load creates exactly 4 canvases (field sample, fade
+  // mask, rest, lens) and samples pixels once. A resize-observer first fire
+  // or the cursor's html class must not trigger a rebuild.
+  await page.addInitScript(() => {
+    window.__canvases = 0;
+    window.__samples = 0;
+    const create = Document.prototype.createElement;
+    Document.prototype.createElement = function (tag, ...rest) {
+      if (String(tag).toLowerCase() === "canvas") window.__canvases++;
+      return create.call(this, tag, ...rest);
+    };
+    const get = CanvasRenderingContext2D.prototype.getImageData;
+    CanvasRenderingContext2D.prototype.getImageData = function (...a) {
+      window.__samples++;
+      return get.apply(this, a);
+    };
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await page.mouse.move(700, 450);
+  await page.waitForTimeout(1000);
+  expect(await page.evaluate(() => [window.__canvases, window.__samples])).toEqual([4, 1]);
+});

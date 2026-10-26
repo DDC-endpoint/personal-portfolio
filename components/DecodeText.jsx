@@ -8,7 +8,10 @@ import { heroWave } from "@/lib/heroWave";
 // the first frame. Only if the hero wave starts does each letter drop to
 // faint noise, scramble for its last 220 ms and land as the wave front
 // reaches it — written straight to the DOM, never through React state.
-// Words are nowrap spans, so a line only breaks between words mid-decode.
+// Words are nowrap spans, so a line only breaks between words mid-decode,
+// and each letter's box is frozen at its real width while it holds noise —
+// serif noise glyphs are wider or narrower than the letter and would reflow
+// the line every tick (layout shift).
 
 export default function DecodeText({ as: Tag = "span", text, className = "", ...rest }) {
   const ref = useRef(null);
@@ -19,8 +22,13 @@ export default function DecodeText({ as: Tag = "span", text, className = "", ...
     const off = heroWave.subscribe(({ t0, origin }) => {
       const letters = [...root.querySelectorAll("[data-ch]")].map((el) => {
         const r = el.getBoundingClientRect();
-        return { el, ch: el.textContent, delay: letterDelay(Math.hypot(r.left - origin.x, r.top - origin.y), window.innerWidth), done: false };
+        return { el, ch: el.textContent, width: r.width, delay: letterDelay(Math.hypot(r.left - origin.x, r.top - origin.y), window.innerWidth), done: false };
       });
+      for (const l of letters) {
+        l.el.style.display = "inline-block";
+        l.el.style.width = `${l.width}px`;
+        l.el.style.textAlign = "center";
+      }
       root.setAttribute("aria-busy", "true");
       let last = -Infinity;
       const step = (now) => {
@@ -32,7 +40,7 @@ export default function DecodeText({ as: Tag = "span", text, className = "", ...
             const phase = letterPhase(now - t0, l.delay);
             if (phase === "final") {
               l.el.textContent = l.ch;
-              l.el.style.opacity = "";
+              l.el.style.cssText = "";
               l.done = true;
               continue;
             }

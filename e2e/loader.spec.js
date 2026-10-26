@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 
+// First-visit checks depend on load timing: the loader is skipped by design
+// when the page is ready later than 2.5 s, which an unminified dev build
+// under parallel workers occasionally is. Retry rather than loosen the gate.
+test.describe.configure({ retries: 2 });
+
 const KICKER = "Creative Technologist · Freelance Web Designer";
 const portrait = (page) => page.locator("[data-portrait]");
 const kicker = (page) => page.locator("[data-hero-kicker]");
@@ -61,4 +66,18 @@ test("no IntroStamp", async ({ page, request }) => {
   await page.goto("/");
   await expect(page.locator(".intro-stamp")).toHaveCount(0);
   expect(await (await request.get("/")).text()).not.toContain("intro-stamp");
+});
+
+test("the hero decode never shifts layout", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__cls = 0;
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
+  await expect(kicker(page)).toHaveText(KICKER, { timeout: 4000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", "static");
+  expect(await page.evaluate(() => window.__cls)).toBeLessThan(0.01);
 });
