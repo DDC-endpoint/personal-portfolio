@@ -1,6 +1,6 @@
 # V3 Phase 3 Implementation Plan: Timeline, Lens and Contact
 
-> **Status: written 2026-10-27, waiting for Damian's review. Nothing is built yet.** Start at Task 1 on branch `v3-phase-3` once he approves. If he changes anything, update this plan and [`decisions.md`](decisions.md) first.
+> **Status: approved by Damian on 2026-10-27, unchanged. The build is in progress on branch `v3-phase-3`.** Progress is tracked in the commits and in the git-ignored ledger `.superpowers/sdd/plan-phase-3/progress.md`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

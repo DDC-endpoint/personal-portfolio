@@ -153,6 +153,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Builder's calls:**
   - The Contact card grows by `clip-path`, so layout never reflows and the links are always in the DOM.
   - The Lens viewer is a modal dialog with a focus trap. It reuses the site's scroll lock (`body` overflow, as in `Nav`).
+- **Plan approved (Damian, 2026-10-27).** He approved `plan-phase-3.md` as written and kept all three of its open calls: the Contact card grows by `clip-path`, the viewer reuses the `Nav` scroll lock, and the Head Prefect entry reads "Led the student body as Head Prefect in the year after my A-Levels." The build starts at Task 1.
 
 ## Phase 1 review (2026-10-27)
 
