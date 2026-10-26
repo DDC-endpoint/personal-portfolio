@@ -30,7 +30,7 @@
   .hl { position:absolute; inset:-1px; width:calc(100% + 2px); height:calc(100% + 2px); pointer-events:none; overflow:visible; }
   .hl rect { fill:none; stroke:var(--electric); stroke-width:1.5; vector-effect:non-scaling-stroke;
              stroke-dasharray:1 1; stroke-dashoffset:1; transition:stroke-dashoffset .6s cubic-bezier(.65,0,.35,1); }
-  figure:hover .hl rect, figure:focus-visible .hl rect { stroke-dashoffset:0; }
+  figure:hover .hl rect, figure:focus-visible .hl rect, figure.tapped .hl rect { stroke-dashoffset:0; }
   figcaption { position:absolute; inset:auto 0 0 0; padding:2.2rem .7rem .6rem; display:flex; justify-content:space-between; align-items:end; gap:.5rem;
                font:400 9px 'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; color:#F6F6F1; line-height:1.4;
                background:linear-gradient(to top, rgba(11,31,58,.72), rgba(11,31,58,0)); }
@@ -57,6 +57,15 @@
     .grid > * { grid-area:auto !important; }
     .grid > .big { grid-column:span 2 !important; grid-row:span 2 !important; }
     .grid > .note { grid-column:span 2 !important; grid-row:span 1 !important; }
+    /* phones: captions move into the mat under the photo, so nothing overlaps an image */
+    .grid { grid-auto-rows:auto; }
+    .grid > .big { grid-row:span 1 !important; }
+    .ph { height:auto; overflow:visible; }
+    .ph img { position:static; aspect-ratio:3/4; height:auto; }
+    figcaption { position:static; background:none; color:var(--ink-faint); padding:.55rem 0 .1rem; font-size:8.5px; }
+    figcaption b { color:var(--ink-soft); opacity:1; }
+    .big figcaption { padding:.6rem 0 .1rem; font-size:9px; }
+    .hl rect { transition-duration:.35s; }
     .foot { flex-direction:column; align-items:flex-start; gap:1rem; }
   }
 </style>
@@ -84,6 +93,8 @@ document.getElementById('grid').innerHTML = photos.map(([file, cap, when, big], 
   const n = String(i + 1).padStart(2, '0');
   return `<figure class="p${n}${big ? ' big' : ''}" tabindex="0"><div class="ph"><img src="gal/${file}.jpg" alt="${cap}" loading="lazy"><figcaption><span><b>Frame ${n}</b>${cap}</span><span>${when}</span></figcaption></div><svg class="hl" aria-hidden="true"><rect x="0" y="0" width="100%" height="100%" pathLength="1"/></svg></figure>`;
 }).join('') + `<div class="note"><div class="count">10 <i>frames</i></div><div><p>2025 – 2026 · Sri Lanka<br>Private account. Request access for the full feed.</p><a href="#">@nothing._.ddc ↗</a></div></div>`;
+// touch: quick trace, then (in production) open the viewer
+document.querySelectorAll('figure').forEach((f) => f.addEventListener('click', () => { f.classList.add('tapped'); setTimeout(() => f.classList.remove('tapped'), 900); }));
 </script>
 </body>
 </html>

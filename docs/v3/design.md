@@ -196,13 +196,13 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
   - **Captions:** a mono overlay on a navy gradient at the bottom of each tile: `FRAME NN` + caption on the left, month on the right.
     - On desktop with hover they are hidden at rest and slide up on hover. That keeps the grid clean and stops them clashing with the camera frame baked into Frame 01, which stays as is (Damian).
-    - On touch and mobile they are always visible.
+    - On phones they move **below the photo, into the mat** (small mono, ink-faint), so nothing overlaps an image, including Frame 01's camera frame (Damian).
   - **Frame (Damian):** each tile has a hairline `rule` border with an ivory mat around the photo (8 px; 10 px on hero tiles), echoing the live site's cards. Captions stay as the hover overlay inside the photo. The text tile gets the same border.
   - **Hover (Damian):**
     - No zoom and no lift.
-    - A **highlighter** line traces the frame: an electric-blue 1.5 px stroke draws clockwise from the top-left around the border in about 0.6 s (`cubic-bezier(.65,0,.35,1)`), and draws back when the pointer leaves. Keyboard focus triggers it too.
+    - A **highlighter** line traces the frame: an electric-blue 1.5 px stroke draws clockwise from the top-left around the border in about 0.6 s (`cubic-bezier(.65,0,.35,1)`), and draws back when the pointer leaves. Keyboard focus triggers it too. On touch, a tap runs a quick 0.35 s trace and then opens the full-screen viewer (Damian).
     - In the prototype it's an SVG `rect` with `pathLength=1`, animating `stroke-dashoffset` from 1 to 0.
-  - **Mobile:** two columns. Hero tiles span both columns at 2×2 and the text tile spans the full width.
+  - **Mobile:** two columns. Hero tiles and the text tile span both columns, and each tile's height follows its photo plus the caption underneath.
   - The 4 existing photos are in `public/photography/`. The 6 new originals are in `assets/photography-originals/` (gitignored) and must go through `npm run optimize-photos` before commit.
 - **Caption:** place + month (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number, in mono.
 - **Develop:**
