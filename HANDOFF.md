@@ -299,7 +299,7 @@ Plan: `docs/v3/plan-phase-1.md`; spec: `docs/v3/design.md` + `docs/v3/hero-portr
 - **Lens:** over the portrait, the cursor ring (`.cursor-ring.is-lens`, 240 px) grows into a lens over the full-colour photo. On touch, dragging moves a canvas-drawn lens.
 - **Decode language:** the 8 § labels on Home decode on entry. Mono buttons (the hero SERVICES buttons, "Request CV") scramble on hover and focus. Underlined links (nav, "Services & pricing") don't (Damian). `/services` gets these in Phase 4.
 - **Lighthouse (prod builds, devtools throttling):** at parity with `main`. Desktop scores 100, and mobile is 79–81 with LCP about 2.1 s on both.
-- **Known, pre-existing (also on `main`):** under reduced motion, `SplitLines` in About causes a hydration mismatch (React #418).
+- **Fixed on `v3`, still live on `main`:** under reduced motion, components that branched markup on framer's `useReducedMotion()` (`SplitLines`, `Parallax`, `Timeline`, `ScrollProgress`) failed hydration (React #418), and the rebuild reset the theme to light. They now use `lib/useReducedMotion.js`, a hydration-safe hook. Any new component that changes its markup for reduced motion must use it too. The fix reaches the live site when `v3` merges to `main` (see `docs/v3/README.md` → "Before `v3` merges to `main`").
 
 ---
 

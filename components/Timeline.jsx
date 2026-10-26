@@ -1,5 +1,6 @@
 "use client";
-import { motion, useScroll, useSpring, useMotionValueEvent, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useEffect, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";

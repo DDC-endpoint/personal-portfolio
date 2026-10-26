@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+// A finished portrait: after the wave ("static"), or straight away when the
+// load was too slow for one ("skipped" — a cold dev build sometimes is).
+const FINISHED = /^(static|skipped)$/;
+
 const portrait = (page) => page.locator("[data-portrait]");
 
 // Where the face is: (0.5, 0.38) of the stage, in page coordinates.
@@ -22,7 +26,7 @@ const warmAt = (page, { x, y }) =>
 test("ring grows into the lens", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const p = await face(page);
   await page.mouse.move(p.x - 40, p.y);
   await page.mouse.move(p.x, p.y, { steps: 5 });
@@ -37,7 +41,7 @@ test("ring grows into the lens", async ({ page }, info) => {
 test("lens reveals colour", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const p = await face(page);
   expect(await warmAt(page, p)).toBe(0);
   await page.mouse.move(p.x - 40, p.y);
@@ -49,7 +53,7 @@ test("lens reveals colour", async ({ page }, info) => {
 test("touch drag moves the lens", async ({ page }, info) => {
   test.skip(info.project.name !== "mobile");
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await portrait(page).scrollIntoViewIfNeeded();
   const p = await face(page);
   const fire = (type, x, y) =>
@@ -68,7 +72,7 @@ test("reduced motion has no lens", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const p = await face(page);
   await page.mouse.move(p.x - 40, p.y);
   await page.mouse.move(p.x, p.y, { steps: 5 });
@@ -80,7 +84,7 @@ test("reduced motion has no lens", async ({ page }, info) => {
 test("the cursor dot disappears inside the lens", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const p = await face(page);
   const dot = page.locator(".cursor-dot");
   await page.mouse.move(p.x - 40, p.y);
@@ -93,7 +97,7 @@ test("the cursor dot disappears inside the lens", async ({ page }, info) => {
 test("hovering the cell-count label doesn't grow the ring", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await page.locator("[data-portrait-label]").hover();
   await page.waitForTimeout(300);
   await expect(page.locator(".cursor-ring")).not.toHaveClass(/is-lens/);
@@ -110,7 +114,7 @@ test("with the lens off the portrait stops measuring itself", async ({ page }, i
     };
   });
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const p = await face(page);
   await page.mouse.move(p.x - 40, p.y);
   await page.mouse.move(p.x, p.y, { steps: 5 });
@@ -126,7 +130,7 @@ test("forced colours has no lens", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   await page.emulateMedia({ forcedColors: "active" });
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const p = await face(page);
   await page.mouse.move(p.x - 40, p.y);
   await page.mouse.move(p.x, p.y, { steps: 5 });

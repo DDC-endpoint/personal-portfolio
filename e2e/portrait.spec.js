@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+
+// A finished portrait: after the wave ("static"), or straight away when the
+// load was too slow for one ("skipped" — a cold dev build sometimes is).
+const FINISHED = /^(static|skipped)$/;
 import { trackErrors } from "./helpers";
 
 test.beforeEach(async ({ page }, info) => {
@@ -20,7 +24,7 @@ const paint = (page) =>
 
 test("portrait draws and labels itself", async ({ page }) => {
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await expect(page.locator("[data-portrait-label]")).toHaveText(/^PORTRAIT · \d+ × \d+ CELLS$/i);
   expect((await paint(page)).n).toBeGreaterThan(1000);
 });
@@ -39,7 +43,7 @@ test("image failure leaves hero intact", async ({ page }) => {
 test("theme toggle recolours", async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const before = await paint(page);
   await page.getByRole("button", { name: /Switch to (dark|light) mode/ }).click();
   await page.waitForTimeout(300);
@@ -51,7 +55,7 @@ test("theme toggle recolours", async ({ page }) => {
 
 test("resize relays out", async ({ page }) => {
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   const label = page.locator("[data-portrait-label]");
   const first = await label.textContent();
   await page.setViewportSize({ width: 1024, height: 768 });
@@ -78,7 +82,7 @@ test("portrait builds once per load", async ({ page }) => {
     };
   });
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await page.mouse.move(700, 450);
   await page.waitForTimeout(1000);
   expect(await page.evaluate(() => [window.__canvases, window.__samples])).toEqual([4, 1]);
@@ -133,7 +137,7 @@ async function reference(browser, theme) {
   const ref = await browser.newPage({ viewport: { width: 1440, height: 900 }, forcedColors: "active" });
   await ref.addInitScript((t) => localStorage.setItem("theme", t), theme);
   await ref.goto("/");
-  await expect(portrait(ref)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(ref)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await ref.waitForTimeout(300);
   const sig = await signature(ref);
   await ref.close();
@@ -150,7 +154,7 @@ test("a theme switch during the first layout still recolours", async ({ page, br
   await page.goto("/");
   await page.waitForFunction(() => window.__inLayout === true); // inside the delayed first layout
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await page.waitForTimeout(300);
   const toggled = await signature(page);
   const dark = await reference(browser, "dark");
@@ -164,13 +168,13 @@ test("a browser that ignores resize options still draws the portrait", async ({ 
     window.createImageBitmap = (src) => orig(src); // drops resizeWidth/Height
   });
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await page.waitForTimeout(300);
   const ignored = await paint(page);
 
   const ref = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await ref.goto("/");
-  await expect(portrait(ref)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(ref)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await ref.waitForTimeout(300);
   const normal = await paint(ref);
   await ref.close();
@@ -190,7 +194,7 @@ test("the lens photo is released when a mount is abandoned", async ({ page }) =>
     };
   });
   await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await page.waitForTimeout(300);
   const live = await page.evaluate(() => window.__photos.filter((b) => b.width > 0).length);
   expect(live).toBe(1);

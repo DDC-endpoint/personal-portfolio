@@ -21,6 +21,10 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 2. Pushing needs Damian's OK, because `v3` has never been pushed. With it: `git push -u origin v3`, `git push -u origin v3-phase-1`, then open a PR into **`v3`**.
 3. Write the Phase 2 plan (Projects) with `superpowers:writing-plans` and save it as `docs/v3/plan-phase-2.md`.
 
+## Before `v3` merges to `main`
+
+- **Ships a live-site bug fix (2026-10-27).** On damiandc.com today, visitors with reduced motion get a React hydration error (#418), and React rebuilds the page, which resets them to light mode. It's fixed on `v3` (`lib/useReducedMotion.js`), not on `main`, by Damian's choice, so the live site keeps the bug until `v3` merges. Mention it in the `v3` → `main` PR and check it on the live site after the redeploy: turn on reduced motion, choose dark mode, and reload `/` and `/services`.
+
 ## How V3 ships
 
 1. `v3` is the integration branch, cut from `main` at `8cad99b`, just after PR #3.
