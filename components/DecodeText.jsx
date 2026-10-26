@@ -12,12 +12,17 @@ import { heroWave } from "@/lib/heroWave";
 // and each letter's box is frozen at its real width while it holds noise —
 // serif noise glyphs are wider or narrower than the letter and would reflow
 // the line every tick (layout shift).
+// While letters hold noise, assistive tech reads a static sr-only copy and
+// the letters are aria-hidden. The copy is `hidden` the rest of the time, so
+// the accessible text (and what crawlers index) is the real letters, once.
 
 export default function DecodeText({ as: Tag = "span", text, className = "", ...rest }) {
   const ref = useRef(null);
 
   useEffect(() => {
     const root = ref.current;
+    const letterBox = root.querySelector("[data-letters]");
+    const srCopy = root.querySelector("[data-sr-copy]");
     let raf = 0;
     const off = heroWave.subscribe(({ t0, origin }) => {
       const letters = [...root.querySelectorAll("[data-ch]")].map((el) => {
@@ -30,6 +35,8 @@ export default function DecodeText({ as: Tag = "span", text, className = "", ...
         l.el.style.textAlign = "center";
       }
       root.setAttribute("aria-busy", "true");
+      letterBox.setAttribute("aria-hidden", "true");
+      srCopy.hidden = false;
       let last = -Infinity;
       const step = (now) => {
         if (now - last >= TICK_MS) {
@@ -50,6 +57,8 @@ export default function DecodeText({ as: Tag = "span", text, className = "", ...
           }
           if (!pending) {
             root.removeAttribute("aria-busy");
+            letterBox.removeAttribute("aria-hidden");
+            srCopy.hidden = true;
             return;
           }
         }
@@ -65,19 +74,24 @@ export default function DecodeText({ as: Tag = "span", text, className = "", ...
 
   return (
     <Tag ref={ref} className={className} {...rest}>
-      {splitWords(text).map((token, i) =>
-        isDecodable(token[0]) ? (
-          <span key={i} className="whitespace-nowrap">
-            {[...token].map((ch, j) => (
-              <span key={j} data-ch>
-                {ch}
-              </span>
-            ))}
-          </span>
-        ) : (
-          token
-        )
-      )}
+      <span data-letters>
+        {splitWords(text).map((token, i) =>
+          isDecodable(token[0]) ? (
+            <span key={i} className="whitespace-nowrap">
+              {[...token].map((ch, j) => (
+                <span key={j} data-ch>
+                  {ch}
+                </span>
+              ))}
+            </span>
+          ) : (
+            token
+          )
+        )}
+      </span>
+      <span data-sr-copy className="sr-only" hidden>
+        {text}
+      </span>
     </Tag>
   );
 }

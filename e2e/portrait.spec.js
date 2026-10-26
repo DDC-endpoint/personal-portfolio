@@ -85,3 +85,20 @@ test("portrait builds once per load", async ({ page }) => {
   await page.waitForTimeout(1000);
   expect(await page.evaluate(() => [window.__canvases, window.__samples])).toEqual([4, 1]);
 });
+
+test("a zero-size stage never kills the loop", async ({ page }) => {
+  // At md+ with a viewport under 190px tall the stage width computes to 0.
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.setViewportSize({ width: 1024, height: 170 });
+  await page.goto("/");
+  await page.waitForTimeout(1500);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator("[data-portrait-label]")).toHaveText(/^PORTRAIT · \d+ × \d+ CELLS$/i, { timeout: 5000 });
+  // the idle loop is alive: the flicker changes pixels frame to frame
+  const frame = () => page.locator("[data-portrait] canvas").evaluate((c) => c.toDataURL());
+  const a = await frame();
+  await page.waitForTimeout(400);
+  expect(await frame()).not.toEqual(a);
+  expect(errors).toEqual([]);
+});

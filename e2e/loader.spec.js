@@ -8,6 +8,8 @@ test.describe.configure({ retries: 2 });
 const KICKER = "Creative Technologist · Freelance Web Designer";
 const portrait = (page) => page.locator("[data-portrait]");
 const kicker = (page) => page.locator("[data-hero-kicker]");
+// The visible letters (the kicker also holds a hidden sr-only copy).
+const letters = (page) => kicker(page).locator("[data-letters]");
 
 // Records every data-state the portrait passes through, from the first paint.
 async function recordStates(page) {
@@ -24,7 +26,7 @@ test("first visit plays the wave, a reload in the same session is static", async
   await page.goto("/");
   await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
   await expect(kicker(page)).toHaveAttribute("aria-busy", "true");
-  await expect(kicker(page)).toHaveText(KICKER, { timeout: 4000 });
+  await expect(letters(page)).toHaveText(KICKER, { timeout: 4000 });
   await expect(kicker(page)).not.toHaveAttribute("aria-busy");
   await expect(portrait(page)).toHaveAttribute("data-state", "static");
 
@@ -33,7 +35,7 @@ test("first visit plays the wave, a reload in the same session is static", async
   await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
   await page.waitForTimeout(500);
   expect(await page.evaluate(() => window.__states)).not.toContain("wave");
-  await expect(kicker(page)).toHaveText(KICKER);
+  await expect(letters(page)).toHaveText(KICKER);
 });
 
 test("slow image skips the wave", async ({ page }) => {
@@ -50,7 +52,7 @@ test("slow image skips the wave", async ({ page }) => {
   );
   await page.goto("/");
   await expect(portrait(page)).toHaveAttribute("data-state", "skipped", { timeout: 10000 });
-  await expect(kicker(page)).toHaveText(KICKER);
+  await expect(letters(page)).toHaveText(KICKER);
   expect(busy).toBe(false);
 });
 
@@ -77,7 +79,31 @@ test("the hero decode never shifts layout", async ({ page }) => {
   });
   await page.goto("/");
   await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
-  await expect(kicker(page)).toHaveText(KICKER, { timeout: 4000 });
+  await expect(letters(page)).toHaveText(KICKER, { timeout: 4000 });
   await expect(portrait(page)).toHaveAttribute("data-state", "static");
   expect(await page.evaluate(() => window.__cls)).toBeLessThan(0.01);
+});
+
+test("screen readers get the real hero text mid-decode", async ({ page }) => {
+  await page.goto("/");
+  await expect(kicker(page)).toHaveAttribute("aria-busy", "true", { timeout: 10000 });
+  const snap = await page.locator("#top").ariaSnapshot();
+  expect(snap).toContain(KICKER);
+  expect(snap).toMatch(/heading "Damian\s*de\s*Cruz\." \[level=1\]/);
+});
+
+test("a hidden tab doesn't spend the session's loader", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "visibilityState", { get: () => "hidden" });
+    Object.defineProperty(document, "hidden", { get: () => true });
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  expect(await page.evaluate(() => sessionStorage.getItem("ddc:loader-played"))).toBeNull();
+});
+
+test("landing below the hero doesn't spend the session's loader", async ({ page }) => {
+  await page.goto("/#about");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  expect(await page.evaluate(() => sessionStorage.getItem("ddc:loader-played"))).toBeNull();
 });

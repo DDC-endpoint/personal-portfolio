@@ -263,6 +263,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   }
 
   function drawFrame(now) {
+    if (!field) return; // no layout yet (e.g. a zero-size stage)
     if (waving) {
       const t = (now - waveStart) / 1000;
       if (t < LOADER_S) drawWave(t);
@@ -297,9 +298,11 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   };
   const pointerEvents = { pointerenter: lensOn, pointerdown: lensOn, pointermove: aim, pointerleave: lensOff, pointercancel: lensOff, pointerup: lensUp };
 
+  // The next frame is booked before drawing, so one bad frame can never
+  // stop the loop for the rest of the page's life.
   const tick = (now) => {
-    drawFrame(now);
     raf = requestAnimationFrame(tick);
+    drawFrame(now);
   };
   function sync() {
     const should = !reduced && onScreen && document.visibilityState === "visible";
@@ -399,7 +402,12 @@ export default function HeroPortrait({ className = "" }) {
     Promise.all([blob, blob.then((b) => createImageBitmap(b)), document.fonts.load(`700 6px ${family}`)])
       .then(async ([b, photo]) => {
         if (cancelled) return;
-        const play = shouldPlayLoader();
+        // Nobody would see the wave from a background tab or a landing below
+        // the hero (/#work), so don't play it — and don't ask the gate, which
+        // would spend the session's one loader on it.
+        const r = wrapperRef.current.getBoundingClientRect();
+        const seen = document.visibilityState === "visible" && r.bottom > 0 && r.top < window.innerHeight;
+        const play = seen && shouldPlayLoader();
         const wave = play && performance.now() <= LATE_MS;
         portrait = createPortrait({
           wrapper: wrapperRef.current,
