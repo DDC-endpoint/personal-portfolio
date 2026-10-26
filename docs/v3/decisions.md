@@ -110,6 +110,39 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Facts to include:** Damian is now in **second year** of the BSc (Hons) Computer Science at IIT; new upcoming projects (Interact District 3220, ai-studio); Aloys Travels URL change.
 - Real copy only, no fake metrics.
 
+## Phase 2 planning (2026-10-27)
+
+- **Pin engine (Damian):** CSS `position: sticky` plus framer-motion `useScroll`, not GSAP ScrollTrigger. It works with Lenis as is and keeps GSAP out of the Home bundle (it stays lab-only).
+- **Card decode (Damian):** a glyph-grid canvas over the card. Noise characters sweep in, then clear cell by cell to reveal the screenshot, and the sweep reverses on leave. It uses the same noise set as the hero.
+- **Screenshots (Damian):** captured with Playwright at 1440×900 (top of page), with banners dismissed, and converted to WebP. This Portfolio is captured from the V3 hero in local dev, after the curtain. Damian sees the set before it is committed.
+- **Merge (Damian):** `v3-phase-2` merges into `v3` locally, like Phase 1. No push.
+- **Interact District 3220** returned 404 on 2026-10-27, which is consistent with its upcoming status.
+
+## Phase 2 build rulings (2026-10-27)
+
+- **Screenshot gate deferred, not skipped (builder).** The capture script is committed. The six WebPs stay uncommitted until Damian approves them.
+- **Capture prep (builder):**
+  - Aloys Travels' hero is a crossfading slideshow, so the capture waits for a slide change, then 2.5 s.
+  - The portfolio shot hides the custom cursor and the Next dev badge.
+- **Touch activation (builder):** devices ≥ 768 px without hover use nearest-to-centre activation in the strip too.
+- **Intro copy now (builder):** "Six projects out in the world, two more on the way…" The old "one more in motion" contradicted the two upcoming cards.
+- **Input modality (review fix).** Only keyboard focus scrolls the strip; a click's focus must not move the card away. A Tab press makes focus win over a parked mouse until the pointer moves.
+- **Pin gated on JS (review fix).** It is gated on `html.js`, so no-JS visitors get the plain list.
+- **The end card counts (builder).** It is a nearest-to-centre candidate, so centring it leaves no project card active, and focusing its link scrolls it into view.
+- **Card links (review fix).** Each card link's description is its blurb (`aria-describedby`), so screen readers hear what the project is.
+- **Review minors, all fixed at Damian's request (2026-10-27):**
+  - The tags and blurb stay while the screenshot does, not only while the card is active.
+  - Under reduced motion the skeleton stays under the screenshot, so a failed image still shows it.
+  - The pointer hit-test stops while the track is off screen.
+  - The track height comes from `STRIP.PIN_SCREENS` (a `--pin-track` custom property).
+  - Heights are in `svh`, and the layout reads the sticky viewport's own height, so mobile toolbars don't re-lay out the strip.
+  - An e2e test re-hovers mid-dissolve.
+  - The decode never starts after unmount.
+  - A touch on a fine-pointer device switches to nearest-to-centre until the mouse moves.
+- **The EndCard still types into its React-rendered text node (builder).** That is the same idiom as `useScramble` in `Scramble.jsx`, and the domain never changes.
+- **"Start a project" scrambles only its letters (Damian).** The arrow sits outside the scramble, like the hero's SERVICES arrow, so the button never changes width.
+- **Screenshots approved (Damian, 2026-10-27).** All six are committed with no metadata. Phase 2 is merged into `v3` locally.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.

@@ -1,232 +1,249 @@
 "use client";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useScroll } from "framer-motion";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
-import GlitchField from "./GlitchField";
-import { EASE } from "@/lib/motion";
 import { DecodeLabel } from "./Scramble";
+import ProjectCard from "./projects/ProjectCard";
+import EndCard from "./projects/EndCard";
+import { PROJECTS } from "@/lib/projects";
+import { STRIP, stripLayout, cardPosition, stripOffset, progressForCard, nearestToCentre } from "@/lib/strip";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
-const projects = [
-  {
-    n: "01",
-    title: "This Portfolio",
-    year: "2026",
-    blurb:
-      "The site you're reading now — built with Next.js, Tailwind, and Framer Motion as a living journal of my work.",
-    tags: ["Next.js", "Framer Motion", "Design"],
-    href: "#top",
-    status: "live",
-  },
-  {
-    n: "02",
-    title: "Personal Dashboard",
-    year: "2026",
-    blurb:
-      "A self-updating homepage — RSS aggregation, reading queue, and a dashboard I open every morning.",
-    tags: ["HTML/CSS/JS", "Static Site", "GitHub Pages"],
-    href: "https://enderguardian25.github.io/personal-dashboard/",
-    status: "live",
-  },
-  {
-    n: "03",
-    title: "Spades Solutions",
-    year: "2026",
-    blurb:
-      "Website for a growing solutions company — a sharp, professional presence built to convert.",
-    tags: ["Client Work", "Business", "Design"],
-    href: "https://enderguardian25.github.io/spades-solutions/index.html",
-    status: "live",
-  },
-  {
-    n: "04",
-    title: "Aloys Travels",
-    year: "2026",
-    blurb:
-      "Web presence for a travel company — clean booking flows and an inviting design that sells the journey.",
-    tags: ["Client Work", "Travel", "Design"],
-    href: "https://aloys-travels.pages.dev/",
-    status: "live",
-  },
-  {
-    n: "05",
-    title: "Danella De Cruz",
-    year: "2026",
-    blurb:
-      "Portfolio and booking site for a Colombo cover artist — a clean, expressive stage for her music, story, and performance schedule.",
-    tags: ["Next.js", "Client Work", "Music"],
-    href: "https://danelladc.com",
-    status: "live",
-  },
-  {
-    n: "06",
-    title: "Kahatagaha Graphite",
-    year: "2026",
-    blurb:
-      "Two home-page concepts for a Sri Lankan crystalline graphite producer — one dark and technical, one light and editorial, drawn from the same content and eleven material grades.",
-    tags: ["HTML/CSS/JS", "Concept", "Design"],
-    href: "https://enderguardian25.github.io/kgll-website/",
-    status: "live",
-  },
-  {
-    n: "07",
-    title: "Coursework Archive",
-    year: "2026 →",
-    blurb:
-      "A growing index of university coursework, write-ups, and small lab projects.",
-    tags: ["Archive", "Writing"],
-    href: "#",
-    status: "soon",
-  },
-];
+// § 04 Selected Work (docs/v3/design.md → 5. Projects).
+//
+// Desktop (≥ md, motion allowed): the track is 4 screens tall and its
+// viewport is sticky, so the section pins for 3 screens of scroll while
+// framer's useScroll slides the strip of cards along a 12° path
+// (lib/strip.js). Below md, under reduced motion and without JS, the same
+// cards are a plain vertical list. The pin itself is CSS (js:motion-safe:md:,
+// the `js` class set pre-paint by the layout's inline script), so the server
+// HTML is right for everyone; only the card positions need JS. Heights are
+// in svh, so mobile browser toolbars showing and hiding never re-lay it out.
+//
+// One card is active at a time, and only it decodes:
+//   fine pointer: the card under the pointer, re-checked as the strip scrolls
+//                 under a resting pointer (Damian's stationary-hover rule)
+//   touch:        the card nearest the centre of the screen (also on a
+//                 fine-pointer device, after a touch, until the mouse moves)
+//   keyboard:     the focused card; in the strip, Tab focus scrolls it into view
+// Input modality decides between the last two: a Tab press hands control to
+// focus (a parked mouse no longer counts) until the pointer next moves, and
+// only keyboard focus scrolls the strip, so a click (whose mousedown also
+// focuses the card) never moves the card out from under the pointer.
+// The viewport is overflow: clip, not hidden, so the browser's own focus
+// scrolling can never shift it sideways.
 
-function Card({ p, i }) {
-  const isSoon = p.status === "soon";
-  const isExternal = !isSoon && p.href.startsWith("http");
-
-  // Live cards are links; "soon" cards render as a non-interactive, dimmed div.
-  const Wrapper = isSoon ? motion.div : motion.a;
-  // Both card types share a staggered scroll entrance; the stagger is capped
-  // so below-the-fold cards (which trigger on their own scroll entry) don't
-  // inherit long queued delays. Soon cards must LAND at 0.75 — the inline
-  // opacity framer writes would otherwise override the opacity-75 class and
-  // un-dim them.
-  const entrance = {
-    initial: { opacity: 0, y: 24 },
-    whileInView: { opacity: isSoon ? 0.75 : 1, y: 0 },
-    viewport: { once: true, margin: "-60px" },
-    transition: { duration: 0.9, ease: EASE, delay: Math.min(i, 2) * 0.08 },
-  };
-  const wrapperProps = isSoon
-    ? { ...entrance, className: "relative overflow-hidden block border-t border-rule py-10 md:py-14 first:border-t-0 opacity-75 cursor-default select-none" }
-    : {
-        ...entrance,
-        href: p.href,
-        target: isExternal ? "_blank" : undefined,
-        rel: isExternal ? "noopener noreferrer" : undefined,
-        "data-hover": true,
-        className: "group relative overflow-hidden block border-t border-rule py-10 md:py-14 first:border-t-0",
-      };
-
-  return (
-    <Wrapper {...wrapperProps}>
-      {isSoon && (
-        <GlitchField className="absolute inset-0 text-ink-soft" />
-      )}
-      {!isSoon && (
-        // Hover fill: mist sweeps up from the bottom edge. Transform-only —
-        // scale, not background transition — so the theme-flicker rule is safe.
-        <span
-          aria-hidden
-          className="absolute inset-0 bg-mist origin-bottom scale-y-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-y-100"
-        />
-      )}
-      <div className="relative z-10 grid grid-cols-12 gap-6 items-start">
-        <div className="col-span-12 md:col-span-1">
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">
-            ({p.n})
-          </span>
-        </div>
-
-        <div className="col-span-12 md:col-span-6">
-          <h3
-            className={`font-display text-5xl md:text-7xl leading-[0.9] tracking-tight text-ink ${
-              isSoon ? "" : "transition-colors duration-500 group-hover:text-electric"
-            }`}
-          >
-            {p.title}
-            {isSoon && (
-              <sup className="ml-3 align-top font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft not-italic">
-                soon
-              </sup>
-            )}
-          </h3>
-          <p className="mt-5 md:mt-7 max-w-md text-base md:text-lg leading-relaxed text-ink-soft">
-            {p.blurb}
-          </p>
-        </div>
-
-        <div className="col-span-12 md:col-span-3 md:col-start-8 flex flex-wrap gap-2">
-          {p.tags.map((t) => (
-            <span
-              key={t}
-              className="font-mono text-[10px] uppercase tracking-[0.15em] px-3 py-1.5 border border-rule rounded-full text-ink-soft"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-
-        <div className="col-span-12 md:col-span-2 md:text-right">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">
-            {p.year}
-          </div>
-          <div className="mt-2 flex md:justify-end items-center gap-2">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isSoon ? "bg-ink-soft/30" : "bg-electric animate-pulse"
-              }`}
-            />
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-soft">
-              {isSoon ? "in sketch" : "live"}
-            </span>
-          </div>
-          {!isSoon && (
-            <div className="mt-4 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink group-hover:text-electric transition">
-              {isExternal ? "Visit" : "You're here"}&nbsp;
-              {/* Arrow redraws itself on hover: stroke-dashoffset 1 → 0 over the
-                  path, plus a small nudge so motion still reads in forced-colors. */}
-              <svg
-                aria-hidden="true"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="inline-block transition-transform duration-500 group-hover:translate-x-0.5"
-              >
-                <path
-                  d={isExternal ? "M3 11 L11 3 M4.5 3 H11 V9.5" : "M7 12 V2 M3 6 L7 2 L11 6"}
-                  pathLength="1"
-                  className="[stroke-dasharray:1] [stroke-dashoffset:1] group-hover:[stroke-dashoffset:0] [@media(hover:none)]:[stroke-dashoffset:0] transition-[stroke-dashoffset] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
-      </div>
-    </Wrapper>
-  );
-}
+const COUNT = PROJECTS.length + 1; // + the end card
+const FINE = "(hover: hover) and (pointer: fine)";
+const WIDE = "(min-width: 768px)";
+// The track: one screen of sticky viewport plus PIN_SCREENS of scroll.
+const TRACK_STYLE = { "--pin-track": `${(1 + STRIP.PIN_SCREENS) * 100}svh` };
+const STACK_ITEM = "w-[86%] even:ml-auto md:w-full md:max-w-3xl md:ml-[25%] md:even:ml-[25%]";
 
 export default function Projects() {
-  return (
-    <section id="work" className="relative px-6 md:px-10 py-32 md:py-44 border-t border-rule">
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 md:col-span-3">
-          <div className="md:sticky md:top-32">
-            <DecodeLabel className="section-label">§ 04 — Selected Work</DecodeLabel>
-          </div>
-        </div>
+  const trackRef = useRef(null);
+  const stripRef = useRef(null);
+  const reduced = useReducedMotion();
+  const reducedRef = useRef(false);
+  const layoutRef = useRef(null);
+  const pointer = useRef(null);
+  const focused = useRef(null);
+  const keyboard = useRef(false);
+  const touch = useRef(false);
+  const viewportRef = useRef(null);
+  const raf = useRef(0);
+  const [layout, setLayout] = useState(null);
+  const [active, setActive] = useState(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const { scrollYProgress } = useScroll({ target: trackRef, offset: ["start start", "end end"] });
 
+  const place = useCallback(
+    (p) => {
+      const L = layoutRef.current;
+      const o = L ? stripOffset(p, L) : { x: 0, y: 0 };
+      x.set(o.x);
+      y.set(o.y);
+    },
+    [x, y]
+  );
+
+  // Which card should be active right now.
+  const pick = useCallback(() => {
+    const strip = stripRef.current, track = trackRef.current;
+    if (reducedRef.current || !strip || !track) return null;
+    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    const t = track.getBoundingClientRect();
+    if (t.bottom <= 0 || t.top >= vh) return focused.current;
+    if (window.matchMedia(FINE).matches && !touch.current) {
+      const pt = pointer.current;
+      const el = pt && document.elementFromPoint(pt.x, pt.y)?.closest("[data-card]");
+      if (el && strip.contains(el)) return Number(el.dataset.card);
+      return focused.current;
+    }
+    // The end card is a candidate too: when it is nearest, no project card is.
+    const items = [...strip.querySelectorAll("[data-card], [data-end-card]")];
+    const inStrip = !!layoutRef.current;
+    const centres = items.map((c) => {
+      const r = c.getBoundingClientRect();
+      return inStrip ? r.left + r.width / 2 : r.top + r.height / 2;
+    });
+    const i = nearestToCentre(centres, inStrip ? vw : vh);
+    if (i < 0) return focused.current;
+    return items[i].dataset.card === undefined ? null : Number(items[i].dataset.card);
+  }, []);
+
+  const schedule = useCallback(() => {
+    if (raf.current) return;
+    raf.current = requestAnimationFrame(() => {
+      raf.current = 0;
+      setActive(pick());
+    });
+  }, [pick]);
+
+  // Strip layout: only on wide screens with motion allowed.
+  useEffect(() => {
+    reducedRef.current = reduced;
+    const wide = window.matchMedia(WIDE);
+    const measure = () => {
+      const L =
+        wide.matches && !reduced
+          ? stripLayout({
+              vw: document.documentElement.clientWidth,
+              vh: viewportRef.current?.clientHeight || window.innerHeight,
+              count: COUNT,
+            })
+          : null;
+      layoutRef.current = L;
+      setLayout(L);
+      place(scrollYProgress.get());
+      schedule();
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    wide.addEventListener("change", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      wide.removeEventListener("change", measure);
+    };
+  }, [reduced, place, schedule, scrollYProgress]);
+
+  // Scroll moves the strip; pointer and scroll both re-pick the active card.
+  useEffect(() => {
+    const unsub = scrollYProgress.on("change", (p) => {
+      place(p);
+      schedule();
+    });
+    const onMove = (e) => {
+      if (e.pointerType === "touch") return;
+      keyboard.current = false;
+      touch.current = false;
+      pointer.current = { x: e.clientX, y: e.clientY };
+      schedule();
+    };
+    const onPointerDown = (e) => {
+      keyboard.current = false;
+      if (e.pointerType === "touch") {
+        touch.current = true;
+        pointer.current = null;
+        schedule();
+      }
+    };
+    const onKey = (e) => {
+      if (e.key !== "Tab") return;
+      keyboard.current = true;
+      pointer.current = null;
+      schedule();
+    };
+    const onLeave = () => {
+      pointer.current = null;
+      schedule();
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true, capture: true });
+    window.addEventListener("keydown", onKey, { capture: true });
+    window.addEventListener("scroll", schedule, { passive: true });
+    document.documentElement.addEventListener("mouseleave", onLeave);
+    return () => {
+      unsub();
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      window.removeEventListener("keydown", onKey, { capture: true });
+      window.removeEventListener("scroll", schedule);
+      document.documentElement.removeEventListener("mouseleave", onLeave);
+      cancelAnimationFrame(raf.current);
+      raf.current = 0;
+    };
+  }, [scrollYProgress, place, schedule]);
+
+  // In the strip, brings item i (a card, or the end card) to its leading slot
+  // when it was reached by keyboard.
+  const scrollStripTo = useCallback((i) => {
+    const L = layoutRef.current, track = trackRef.current;
+    if (!L || !track || !keyboard.current) return;
+    const top = track.getBoundingClientRect().top + window.scrollY;
+    const p = progressForCard(i, L);
+    window.scrollTo({ top: top + p * (track.offsetHeight - window.innerHeight), behavior: "instant" });
+  }, []);
+
+  const onFocusCard = useCallback(
+    (i) => {
+      focused.current = i;
+      scrollStripTo(i);
+      schedule();
+    },
+    [scrollStripTo, schedule]
+  );
+
+  const onBlur = (e) => {
+    if (e.relatedTarget?.closest?.("[data-card]")) return; // the next card's focus takes over
+    focused.current = null;
+    schedule();
+  };
+
+  const at = (i) => {
+    if (!layout) return { className: STACK_ITEM };
+    const { left, top } = cardPosition(i, layout);
+    return { style: { position: "absolute", left, top, width: layout.cardW } };
+  };
+
+  return (
+    <section id="work" className="relative border-t border-rule">
+      <div className="grid grid-cols-12 gap-6 px-6 pt-32 md:px-10 md:pt-44">
+        <div className="col-span-12 md:col-span-3">
+          <DecodeLabel className="section-label">§ 04 — Selected Work</DecodeLabel>
+        </div>
         <div className="col-span-12 md:col-span-9 md:col-start-4">
           <SplitLines as="h2" className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight text-ink">
             A small but <span className="italic text-electric">growing</span> shelf.
           </SplitLines>
           <Reveal delay={0.1}>
             <p className="mt-6 max-w-xl text-base md:text-lg text-ink-soft">
-              Six projects out in the world. One more in motion. This shelf will keep growing
-              year over year — bookmark it.
+              Six projects out in the world, two more on the way. The shelf keeps growing, so check back.
             </p>
           </Reveal>
+        </div>
+      </div>
 
-          <div className="mt-16 md:mt-24">
-            {projects.map((p, i) => (
-              <Card key={p.n} p={p} i={i} />
+      <div ref={trackRef} data-strip-track style={TRACK_STYLE} className="relative mt-16 md:mt-24 js:motion-safe:md:h-(--pin-track)">
+        <div
+          ref={viewportRef}
+          data-strip-viewport
+          className="js:motion-safe:md:sticky js:motion-safe:md:top-0 js:motion-safe:md:h-svh js:motion-safe:md:overflow-clip"
+        >
+          <motion.div
+            ref={stripRef}
+            data-strip
+            onBlur={onBlur}
+            style={layout ? { x, y } : undefined}
+            className={layout ? "absolute left-0 top-0" : "flex flex-col gap-16 px-4 pb-32 md:gap-24 md:px-10 md:pb-44"}
+          >
+            {PROJECTS.map((p, i) => (
+              <ProjectCard key={p.slug} project={p} index={i} active={active === i} onFocusCard={onFocusCard} {...at(i)} />
             ))}
-          </div>
+            <EndCard onFocus={() => scrollStripTo(PROJECTS.length)} {...at(PROJECTS.length)} />
+          </motion.div>
         </div>
       </div>
     </section>
