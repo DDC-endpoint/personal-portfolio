@@ -3,6 +3,8 @@
 @custom-variant dark (&:is(.dark *));
 /* Set pre-paint by the inline script in (site)/layout.jsx when JS runs. */
 @custom-variant js (&:is(.js *));
+/* md+ with a real hover: the Lens captions hide at rest only here. */
+@custom-variant can-hover (@media (hover: hover) and (min-width: 48rem));
 
 @theme {
   --color-ivory: rgb(var(--c-ivory));
