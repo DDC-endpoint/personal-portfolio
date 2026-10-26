@@ -84,13 +84,13 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 
 ## Lens — photo gallery (wow #4)
 
-- **Layout (Damian, revised 2026-10-26):** a **small grid**: 10 equal tiles, five across × two rows on desktop and two columns on mobile, with alternate columns nudged down. This replaces the earlier editorial asymmetric grid with mixed-size photos, which Damian found too big ("massive pictures").
+- **Layout (Damian, revised twice on 2026-10-26):** a compact mixed-size grid. There are 6 columns of small 3:4 tiles, two 2×2 hero tiles (Sigiriya, Storm light) and a text tile with the Instagram link. Captions appear on hover on desktop. Damian rejected two earlier versions: the big editorial spread ("massive pictures") and the equal five-across grid (wanted mixed sizes that look cleaner). Frame 01's baked-in camera frame stays.
 - **Wow:** each photo "develops" from a blue halftone into full colour as it scrolls into view.
 - **Viewer (Damian):** click opens a full-screen viewer expanding from the photo's spot; arrow keys / swipe for next, Esc or click to close.
 - **More photos (Damian):** Damian will add more; design the grid for 6–10 photos. New originals go in `assets/photography-originals/` and through `npm run optimize-photos` (EXIF stripped) before commit.
 - **Halftone (Damian):** round electric-blue dots sized by tone, like a print screen, resolving into the full-colour photo.
 - **Replay (Damian):** develops **every time** it scrolls into view; scrolling away returns it to halftone.
-- **Photos, order and captions (Damian, 2026-10-26):** 10 photos (4 existing + 6 new), order curated by Claude for size, colour and day/night rhythm, with captions chosen by Damian. The full table is in `design.md` → Lens.
+- **Photos, order and captions (Damian, 2026-10-26):** 10 photos (4 existing + 6 new), with captions chosen by Damian. Placement was curated by Claude for colour and day/night rhythm. The full table is in `design.md` → Lens.
 - **Caption (Damian):** place + month as now (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number.
 
 ## Contact (wow #5)

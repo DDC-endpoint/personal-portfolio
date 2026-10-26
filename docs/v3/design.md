@@ -173,29 +173,33 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 ### 8. Lens: "Off-duty, through glass" (wow)
 
-- **Layout (Damian, revised):** a **small grid** of equal tiles, not big magazine-sized photos.
+- **Layout (Damian, revised twice):** a **compact mixed-size grid**. Smaller than the first editorial spread (Damian found it "massive"), with more rhythm than equal tiles. Reference: `spike/gallery-mockup.html`.
+  - **Desktop:**
+    - A 6-column grid, max width about 1100 px, right-aligned under the section text, with a 14 px gap.
+    - Rows are sized so each single tile is 3:4.
+    - Two **2×2 hero tiles** plus eight single tiles, and a 2×1 **text tile** that closes the grid.
+  - **Placement and captions (frame numbers follow reading order):**
 
-  - **The set (Damian, 2026-10-26):** 10 photos, all 3:4 portrait. The 4 already in `public/photography/` stay, and 6 new originals are in `assets/photography-originals/` (gitignored; they go through `npm run optimize-photos` before commit). Curated order and captions:
+    | Frame | Cell(s) | File | Caption |
+    |---|---|---|---|
+    | 01 | rows 1–2, cols 1–2 (hero) | IMG_20260503_071804386 | Sigiriya, from Pidurangala · May 2026 |
+    | 02 | row 1, col 3 | IMG_20260415_173730095 | Small tenant · Apr 2026 |
+    | 03 | row 1, col 4 | IMG_20250511_192659821 | Architecture at nightfall · May 2025 |
+    | 04 | rows 1–2, cols 5–6 (hero) | IMG_20260912_173751573 | Storm light · Sep 2026 |
+    | 05 | row 2, col 3 | IMG_20260117_104051821 | Pink in the green · Jan 2026 |
+    | 06 | row 2, col 4 | IMG_20250905_165813446 | Thalpe, low tide · Sep 2025 |
+    | 07 | row 3, col 1 | IMG_20260117_182647746 | A dahlia after dark, Nuwara Eliya · Jan 2026 |
+    | 08 | row 3, col 2 | IMG_20260113_070907135 | Above the mist, Sigiriya · Jan 2026 |
+    | 09 | row 3, col 3 | IMG_20251010_181954209 | Colombo skyline, blue hour · Oct 2025 |
+    | 10 | row 3, col 4 | IMG_20260120_081200993 | Getting lost up Ella Rock · Jan 2026 |
+    | — | row 3, cols 5–6 | text tile | "10 *frames*" · "2025 – 2026 · Sri Lanka" · "Private account. Request access for the full feed." · @nothing._.ddc ↗ |
 
-    | Frame | File | Caption |
-    |---|---|---|
-    | 01 | IMG_20260503_071804386 | Sigiriya, from Pidurangala · May 2026 |
-    | 02 | IMG_20260415_173730095 | Small tenant · Apr 2026 |
-    | 03 | IMG_20250511_192659821 | Architecture at nightfall · May 2025 |
-    | 04 | IMG_20250905_165813446 | Thalpe, low tide · Sep 2025 |
-    | 05 | IMG_20260117_104051821 | Pink in the green · Jan 2026 |
-    | 06 | IMG_20260113_070907135 | Above the mist, Sigiriya · Jan 2026 |
-    | 07 | IMG_20260117_182647746 | A dahlia after dark, Nuwara Eliya · Jan 2026 |
-    | 08 | IMG_20260120_081200993 | Getting lost up Ella Rock · Jan 2026 |
-    | 09 | IMG_20251010_181954209 | Colombo skyline, blue hour · Oct 2025 |
-    | 10 | IMG_20260912_173751573 | Storm light · Sep 2026 |
-
-  - **Desktop grid:** 10 equal 3:4 tiles, **five columns × two rows**, max width about 1200 px, right-aligned under the section text.
-    - Every other column sits 2.5 rem lower, for a light stagger.
-    - Captions sit in three mono lines under each tile: `FRAME NN`, the caption, then the month.
-  - **Mobile:** two columns, with every other one nudged down 1.5 rem.
-  - The full-size view comes from the full-screen viewer on click. The develop effect plays per tile.
-  - Reference: `spike/gallery-mockup.html`.
+  - **Captions:** a mono overlay on a navy gradient at the bottom of each tile: `FRAME NN` + caption on the left, month on the right.
+    - On desktop with hover they are hidden at rest and slide up on hover. That keeps the grid clean and stops them clashing with the camera frame baked into Frame 01, which stays as is (Damian).
+    - On touch and mobile they are always visible.
+  - **Hover:** the image scales to 1.04 inside its tile.
+  - **Mobile:** two columns. Hero tiles span both columns at 2×2 and the text tile spans the full width.
+  - The 4 existing photos are in `public/photography/`. The 6 new originals are in `assets/photography-originals/` (gitignored) and must go through `npm run optimize-photos` before commit.
 - **Caption:** place + month (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number, in mono.
 - **Develop:**
   - Each photo starts as a halftone of round electric-blue dots sized by tone, and resolves into full colour as it scrolls into view.
