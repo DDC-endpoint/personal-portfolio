@@ -15,15 +15,21 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 // Desktop (≥ md, motion allowed): the track is 4 screens tall and its
 // viewport is sticky, so the section pins for 3 screens of scroll while
 // framer's useScroll slides the strip of cards along a 12° path
-// (lib/strip.js). Below md, and under reduced motion, the same cards are a
-// plain vertical list. The pin itself is CSS (motion-safe:md:), so the
-// server HTML is right for everyone; only the card positions need JS.
+// (lib/strip.js). Below md, under reduced motion and without JS, the same
+// cards are a plain vertical list. The pin itself is CSS (js:motion-safe:md:,
+// the `js` class set pre-paint by the layout's inline script), so the server
+// HTML is right for everyone; only the card positions need JS. The 400vh
+// track is 1 + STRIP.PIN_SCREENS screens; keep the two in step.
 //
 // One card is active at a time, and only it decodes:
 //   fine pointer: the card under the pointer, re-checked as the strip scrolls
 //                 under a resting pointer (Damian's stationary-hover rule)
 //   touch:        the card nearest the centre of the screen
-//   keyboard:     the focused card; in the strip, focusing scrolls it into view
+//   keyboard:     the focused card; in the strip, Tab focus scrolls it into view
+// Input modality decides between the last two: a Tab press hands control to
+// focus (a parked mouse no longer counts) until the pointer next moves, and
+// only keyboard focus scrolls the strip, so a click (whose mousedown also
+// focuses the card) never moves the card out from under the pointer.
 // The viewport is overflow: clip, not hidden, so the browser's own focus
 // scrolling can never shift it sideways.
 
@@ -40,6 +46,7 @@ export default function Projects() {
   const layoutRef = useRef(null);
   const pointer = useRef(null);
   const focused = useRef(null);
+  const keyboard = useRef(false);
   const raf = useRef(0);
   const [layout, setLayout] = useState(null);
   const [active, setActive] = useState(null);
@@ -121,7 +128,17 @@ export default function Projects() {
     });
     const onMove = (e) => {
       if (e.pointerType === "touch") return;
+      keyboard.current = false;
       pointer.current = { x: e.clientX, y: e.clientY };
+      schedule();
+    };
+    const onPointerDown = () => {
+      keyboard.current = false;
+    };
+    const onKey = (e) => {
+      if (e.key !== "Tab") return;
+      keyboard.current = true;
+      pointer.current = null;
       schedule();
     };
     const onLeave = () => {
@@ -129,11 +146,15 @@ export default function Projects() {
       schedule();
     };
     window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true, capture: true });
+    window.addEventListener("keydown", onKey, { capture: true });
     window.addEventListener("scroll", schedule, { passive: true });
     document.documentElement.addEventListener("mouseleave", onLeave);
     return () => {
       unsub();
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      window.removeEventListener("keydown", onKey, { capture: true });
       window.removeEventListener("scroll", schedule);
       document.documentElement.removeEventListener("mouseleave", onLeave);
       cancelAnimationFrame(raf.current);
@@ -141,10 +162,11 @@ export default function Projects() {
     };
   }, [scrollYProgress, place, schedule]);
 
-  // In the strip, brings item i (a card, or the end card) to its leading slot.
+  // In the strip, brings item i (a card, or the end card) to its leading slot
+  // when it was reached by keyboard.
   const scrollStripTo = useCallback((i) => {
     const L = layoutRef.current, track = trackRef.current;
-    if (!L || !track) return;
+    if (!L || !track || !keyboard.current) return;
     const top = track.getBoundingClientRect().top + window.scrollY;
     const p = progressForCard(i, L);
     window.scrollTo({ top: top + p * (track.offsetHeight - window.innerHeight), behavior: "instant" });
@@ -189,10 +211,10 @@ export default function Projects() {
         </div>
       </div>
 
-      <div ref={trackRef} data-strip-track className="relative mt-16 md:mt-24 motion-safe:md:h-[400vh]">
+      <div ref={trackRef} data-strip-track className="relative mt-16 md:mt-24 js:motion-safe:md:h-[400vh]">
         <div
           data-strip-viewport
-          className="motion-safe:md:sticky motion-safe:md:top-0 motion-safe:md:h-screen motion-safe:md:overflow-clip"
+          className="js:motion-safe:md:sticky js:motion-safe:md:top-0 js:motion-safe:md:h-screen js:motion-safe:md:overflow-clip"
         >
           <motion.div
             ref={stripRef}

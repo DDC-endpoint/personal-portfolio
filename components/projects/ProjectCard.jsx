@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import BrowserFrame from "./BrowserFrame";
 import { SKELETONS } from "./skeletons";
 import { useCardDecode } from "./useCardDecode";
@@ -21,6 +21,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
   const loadingRef = useRef(null);
+  const blurbId = useId();
   const live = p.status === "live";
   const Skeleton = SKELETONS[p.skeleton];
 
@@ -74,7 +75,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
           )}
         </span>
       </div>
-      <p className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 motion-reduce:opacity-100">
+      <p id={blurbId} className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 motion-reduce:opacity-100">
         {p.blurb}
       </p>
     </>
@@ -96,6 +97,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
       target={p.self ? undefined : "_blank"}
       rel={p.self ? undefined : "noopener noreferrer"}
       aria-label={`${p.title}, ${p.year} ${p.self ? "(back to top)" : "(opens in a new tab)"}`}
+      aria-describedby={blurbId}
       onFocus={() => onFocusCard?.(index)}
       className={`${shared.className} rounded-md outline-offset-8 focus-visible:outline-2 focus-visible:outline-electric`}
     >

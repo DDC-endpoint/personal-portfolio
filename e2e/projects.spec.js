@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { trackErrors } from "./helpers";
-import { card, decodeState, scrollToCard, scrollToProgress, trackInfo, visibleCentre, CARD_COUNT } from "./projectsHelpers";
+import { card, decodeState, hydrated, scrollToCard, scrollToProgress, trackInfo, visibleCentre, CARD_COUNT } from "./projectsHelpers";
 
 const LABELS = [
   "01 — This Portfolio — 2026",
@@ -72,6 +72,7 @@ test.describe("desktop", () => {
 
   test("tab reaches off-screen cards", async ({ page }) => {
     await page.goto("/");
+    await hydrated(page);
     await card(page, 0).focus();
     for (let i = 0; i < 5; i++) await page.keyboard.press("Tab");
     await expect(card(page, 5)).toBeFocused();
@@ -84,6 +85,7 @@ test.describe("desktop", () => {
 
   test("tabbing past the last card brings the end card into view", async ({ page }) => {
     await page.goto("/");
+    await hydrated(page);
     await card(page, 5).focus();
     await page.keyboard.press("Tab");
     const link = page.locator('[data-end-card] a[href="#contact"]');
@@ -91,6 +93,47 @@ test.describe("desktop", () => {
     await page.waitForTimeout(300);
     const { vw, vh } = await trackInfo(page);
     expect(inViewport(await link.boundingBox(), vw, vh)).toBe(true);
+  });
+
+  test("clicking a card that isn't leading opens it without moving the strip", async ({ page }) => {
+    await page.goto("/");
+    await scrollToCard(page, 1);
+    const before = await page.evaluate(() => window.scrollY);
+    const { x, y } = await visibleCentre(card(page, 2).locator("[data-shot-area]"));
+    const [popup] = await Promise.all([page.context().waitForEvent("page"), page.mouse.click(x, y)]);
+    await popup.waitForURL(/^https:\/\/aloys-travels\.com/, { timeout: 20000 });
+    expect(await page.evaluate(() => window.scrollY)).toBe(before);
+  });
+
+  test("keyboard focus wins over a parked mouse", async ({ page }) => {
+    await page.goto("/");
+    await hydrated(page);
+    await page.mouse.move(1150, 300);
+    await card(page, 0).focus();
+    await page.keyboard.press("Tab");
+    await expect(card(page, 1)).toBeFocused();
+    await page.waitForTimeout(800); // settled: the strip has scrolled under the parked pointer
+    expect(await card(page, 1).getAttribute("data-active")).toBe("true");
+    expect(await card(page, 2).getAttribute("data-active")).toBe("false");
+    await expect.poll(() => decodeState(card(page, 1)), { timeout: 5000 }).toBe("shot");
+  });
+
+  test("without JS the strip is a plain list", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    await page.goto("/");
+    const pos = await page.locator("[data-strip-viewport]").evaluate((el) => getComputedStyle(el).position);
+    expect(pos).not.toBe("sticky");
+    await context.close();
+  });
+
+  test("screen readers get the blurb as the card's description", async ({ page }) => {
+    await page.goto("/");
+    const id = await card(page, 2).getAttribute("aria-describedby");
+    expect(id).toBeTruthy();
+    await expect(page.locator(`[id="${id}"]`)).toHaveText(
+      "Website for a travel company: clean booking flows and a design that sells the journey."
+    );
   });
 
   test("enter opens the site", async ({ page }) => {

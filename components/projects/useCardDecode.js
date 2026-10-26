@@ -34,11 +34,11 @@ export function useCardDecode({ active, rootRef, canvasRef, imgRef, hasShot }) {
     let progress = 0, target = 0, raf = 0, last = 0, lastTick = 0, delay = 0;
     let failed = false, wanted = false, colours = null;
 
-    const resize = () => {
-      const r = canvas.getBoundingClientRect();
+    // Sized from the observer entry, so it never forces a layout of its own.
+    const resize = ([entry]) => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = r.width;
-      H = r.height;
+      W = entry.contentRect.width;
+      H = entry.contentRect.height;
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

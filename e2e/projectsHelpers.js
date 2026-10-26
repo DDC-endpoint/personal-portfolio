@@ -5,6 +5,10 @@ export const card = (page, i) => page.locator(`[data-card="${i}"]`);
 export const decodeState = (loc) => loc.getAttribute("data-decode");
 export const CARD_COUNT = 9; // 8 projects + the end card
 
+// The decode controller marks each card once React has hydrated, so the
+// section's pointer and key listeners are live from here on.
+export const hydrated = (page) => page.locator('[data-card="0"][data-decode]').waitFor({ state: "attached" });
+
 // Track geometry in page coordinates, plus the viewport the strip lays out in.
 export const trackInfo = (page) =>
   page.evaluate(() => {
