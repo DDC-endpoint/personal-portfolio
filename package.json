@@ -9,7 +9,8 @@
     "optimize-photos": "node scripts/optimize-photos.mjs",
     "test": "vitest run",
     "e2e": "playwright test",
-    "process-portrait": "node scripts/process-portrait.mjs"
+    "process-portrait": "node scripts/process-portrait.mjs",
+    "capture-projects": "node scripts/capture-projects.mjs"
   },
   "dependencies": {
     "framer-motion": "^14.6.0",
