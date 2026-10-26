@@ -1,5 +1,15 @@
 # V3 Phase 2 Implementation Plan: Projects
 
+> **Status: built on `v3-phase-2` (2026-10-27), waiting for Damian's screenshot approval and the local merge. Don't re-execute it.** The build departed from this plan in these ways, all logged in [`decisions.md`](decisions.md) → "Phase 2 build rulings":
+> - **Screenshots stay uncommitted** until Damian approves them. The capture prep waits out Aloys' slideshow and hides the cursor and the dev badge.
+> - **Review fixes:**
+>   - Only keyboard focus scrolls the strip, and Tab makes focus beat a parked mouse.
+>   - The pin is gated on `html.js`.
+>   - Card links are described by their blurb.
+>   - Canvases size from the ResizeObserver entry.
+> - **Keyboard-pass fixes:** the end card scrolls into view on focus, and counts in nearest-to-centre.
+> - **One e2e change:** the reduced-motion test checks "not sticky", not "track < 3 screens"; a stacked list is legitimately taller.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the Projects list with the pinned diagonal strip of browser-window cards. Each card shows a skeleton of its site and decodes through noise characters into a real screenshot. Mobile gets an offset stack, and reduced motion gets a plain decoded list.

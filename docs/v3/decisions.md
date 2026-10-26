@@ -118,6 +118,27 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Merge (Damian):** `v3-phase-2` merges into `v3` locally, like Phase 1. No push.
 - **Interact District 3220** returned 404 on 2026-10-27, which is consistent with its upcoming status.
 
+## Phase 2 build rulings (2026-10-27)
+
+- **Screenshot gate deferred, not skipped (builder).** The capture script is committed. The six WebPs stay uncommitted until Damian approves them.
+- **Capture prep (builder):**
+  - Aloys Travels' hero is a crossfading slideshow, so the capture waits for a slide change, then 2.5 s.
+  - The portfolio shot hides the custom cursor and the Next dev badge.
+- **Touch activation (builder):** devices ≥ 768 px without hover use nearest-to-centre activation in the strip too.
+- **Intro copy now (builder):** "Six projects out in the world, two more on the way…" The old "one more in motion" contradicted the two upcoming cards.
+- **Input modality (review fix).** Only keyboard focus scrolls the strip; a click's focus must not move the card away. A Tab press makes focus win over a parked mouse until the pointer moves.
+- **Pin gated on JS (review fix).** It is gated on `html.js`, so no-JS visitors get the plain list.
+- **The end card counts (builder).** It is a nearest-to-centre candidate, so centring it leaves no project card active, and focusing its link scrolls it into view.
+- **Card links (review fix).** Each card link's description is its blurb (`aria-describedby`), so screen readers hear what the project is.
+- **Deferred minors from the review:**
+  - The reveal row fades about 1 s before the screenshot dissolves.
+  - Under reduced motion, a failed screenshot shows an empty frame.
+  - The pointer hit-test runs while the track is off screen.
+  - `PIN_SCREENS` and the 400vh class are tied only by a comment.
+  - iPad: `innerHeight` vs `100vh`, and Safari toolbar resizes re-lay out the strip mid-scroll.
+  - No e2e test reverses a decode mid-run.
+  - `activate()` can start a rAF after unmount, the EndCard writes into a React text node, and hybrid touch laptops get no centre fallback.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
