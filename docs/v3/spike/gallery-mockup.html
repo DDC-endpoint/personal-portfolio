@@ -19,12 +19,18 @@
   h2 i { color:var(--electric); }
   .intro { margin-top:1.5rem; max-width:36rem; font-size:1.1rem; color:var(--ink-soft); }
   /* compact bento: 6 columns of small 3:4 tiles, two 2x2 hero tiles, a text tile */
-  .wrap { container-type:inline-size; max-width:1100px; margin-left:auto; }
-  .grid { --g:14px; display:grid; grid-template-columns:repeat(6,1fr); gap:var(--g);
+  .wrap { container-type:inline-size; }
+  .grid { --g:16px; display:grid; grid-template-columns:repeat(6,1fr); gap:var(--g);
           grid-auto-rows:calc((100cqw - 5 * var(--g)) / 6 * 4 / 3); }
-  figure { position:relative; overflow:hidden; margin:0; }
-  figure img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; transition:transform .8s cubic-bezier(.22,1,.36,1); }
-  figure:hover img { transform:scale(1.04); }
+  /* frame: hairline border + ivory mat; the photo sits inset inside it */
+  figure { position:relative; margin:0; border:1px solid var(--rule); background:var(--ivory); padding:8px; }
+  .ph { position:relative; width:100%; height:100%; overflow:hidden; }
+  .ph img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  /* highlighter: an electric line traces the frame clockwise from the top-left on hover */
+  .hl { position:absolute; inset:-1px; width:calc(100% + 2px); height:calc(100% + 2px); pointer-events:none; overflow:visible; }
+  .hl rect { fill:none; stroke:var(--electric); stroke-width:1.5; vector-effect:non-scaling-stroke;
+             stroke-dasharray:1 1; stroke-dashoffset:1; transition:stroke-dashoffset .6s cubic-bezier(.65,0,.35,1); }
+  figure:hover .hl rect, figure:focus-visible .hl rect { stroke-dashoffset:0; }
   figcaption { position:absolute; inset:auto 0 0 0; padding:2.2rem .7rem .6rem; display:flex; justify-content:space-between; align-items:end; gap:.5rem;
                font:400 9px 'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; color:#F6F6F1; line-height:1.4;
                background:linear-gradient(to top, rgba(11,31,58,.72), rgba(11,31,58,0)); }
@@ -34,6 +40,7 @@
     figure:hover figcaption { opacity:1; transform:none; }
   }
   .big { grid-column:span 2; grid-row:span 2; } .big figcaption { font-size:10px; padding:3rem .9rem .8rem; }
+  .big { padding:10px; }
   .p01 { grid-area:1 / 1 / 3 / 3; } .p02 { grid-area:1 / 3; } .p03 { grid-area:1 / 4; } .p04 { grid-area:1 / 5 / 3 / 7; }
   .p05 { grid-area:2 / 3; } .p06 { grid-area:2 / 4; }
   .p07 { grid-area:3 / 1; } .p08 { grid-area:3 / 2; } .p09 { grid-area:3 / 3; } .p10 { grid-area:3 / 4; }
@@ -75,7 +82,7 @@ const photos = [
 ];
 document.getElementById('grid').innerHTML = photos.map(([file, cap, when, big], i) => {
   const n = String(i + 1).padStart(2, '0');
-  return `<figure class="p${n}${big ? ' big' : ''}"><img src="gal/${file}.jpg" alt="${cap}" loading="lazy"><figcaption><span><b>Frame ${n}</b>${cap}</span><span>${when}</span></figcaption></figure>`;
+  return `<figure class="p${n}${big ? ' big' : ''}" tabindex="0"><div class="ph"><img src="gal/${file}.jpg" alt="${cap}" loading="lazy"><figcaption><span><b>Frame ${n}</b>${cap}</span><span>${when}</span></figcaption></div><svg class="hl" aria-hidden="true"><rect x="0" y="0" width="100%" height="100%" pathLength="1"/></svg></figure>`;
 }).join('') + `<div class="note"><div class="count">10 <i>frames</i></div><div><p>2025 – 2026 · Sri Lanka<br>Private account. Request access for the full feed.</p><a href="#">@nothing._.ddc ↗</a></div></div>`;
 </script>
 </body>

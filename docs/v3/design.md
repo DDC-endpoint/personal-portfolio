@@ -175,7 +175,7 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 - **Layout (Damian, revised twice):** a **compact mixed-size grid**. Smaller than the first editorial spread (Damian found it "massive"), with more rhythm than equal tiles. Reference: `spike/gallery-mockup.html`.
   - **Desktop:**
-    - A 6-column grid, max width about 1100 px, right-aligned under the section text, with a 14 px gap.
+    - A 6-column grid spanning the **full content width** (page margins only), under the section heading, with a 16 px gap (Damian: less empty space on the left).
     - Rows are sized so each single tile is 3:4.
     - Two **2×2 hero tiles** plus eight single tiles, and a 2×1 **text tile** that closes the grid.
   - **Placement and captions (frame numbers follow reading order):**
@@ -197,7 +197,11 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
   - **Captions:** a mono overlay on a navy gradient at the bottom of each tile: `FRAME NN` + caption on the left, month on the right.
     - On desktop with hover they are hidden at rest and slide up on hover. That keeps the grid clean and stops them clashing with the camera frame baked into Frame 01, which stays as is (Damian).
     - On touch and mobile they are always visible.
-  - **Hover:** the image scales to 1.04 inside its tile.
+  - **Frame (Damian):** each tile has a hairline `rule` border with an ivory mat around the photo (8 px; 10 px on hero tiles), echoing the live site's cards. Captions stay as the hover overlay inside the photo. The text tile gets the same border.
+  - **Hover (Damian):**
+    - No zoom and no lift.
+    - A **highlighter** line traces the frame: an electric-blue 1.5 px stroke draws clockwise from the top-left around the border in about 0.6 s (`cubic-bezier(.65,0,.35,1)`), and draws back when the pointer leaves. Keyboard focus triggers it too.
+    - In the prototype it's an SVG `rect` with `pathLength=1`, animating `stroke-dashoffset` from 1 to 0.
   - **Mobile:** two columns. Hero tiles span both columns at 2×2 and the text tile spans the full width.
   - The 4 existing photos are in `public/photography/`. The 6 new originals are in `assets/photography-originals/` (gitignored) and must go through `npm run optimize-photos` before commit.
 - **Caption:** place + month (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number, in mono.
