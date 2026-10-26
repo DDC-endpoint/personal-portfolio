@@ -1,6 +1,6 @@
 # V3 copy — draft for approval
 
-Status: **draft, awaiting Damian's approval.** Written 2026-10-26 and edited with the `/no-ai-slop` rules: same calm, slightly wry editorial voice, tighter, very few em dashes, no new claims or numbers. Prices, timelines and policies on `/services` are unchanged in meaning.
+Status: **approved by Damian on 2026-10-26.** Written 2026-10-26 and edited with the `/no-ai-slop` rules: same calm, slightly wry editorial voice, tighter, very few em dashes, no new claims or numbers. Prices, timelines and policies on `/services` are unchanged in meaning.
 
 Lines marked **(keep)** stay exactly as they are. Questions for Damian are at the bottom.
 
@@ -104,10 +104,7 @@ What changed: dropped the closing "The spark that started this whole journey." (
 
 ### § 08 Contact (growing electric card)
 
-- Headline options (pick one):
-  - A. Let's *talk*. (current)
-  - B. Got something in *mind*?
-  - C. Say *hello*.
+- Headline: Got something in *mind*? (Damian chose this over "Let's talk." and "Say hello.")
 - Body
   - Now: Need a website? I take on freelance web design and development for businesses and creatives — many projects delivered within a couple of days. Internships, collaborations, or anyone with a good idea — the inbox is open. Pick the channel you like.
   - **New:** Need a website? I design and build them for businesses and creatives, and many go live within a couple of days. Internships, collaborations and good ideas are welcome too. Pick whichever channel suits you.
@@ -161,7 +158,7 @@ Service descriptions (titles, "includes" lists, prices and turnarounds unchanged
 - This Portfolio: "Personal portfolio built with Next.js, Tailwind and Framer Motion. The full body of work lives here."
 - Spades Solutions **(keep)**: A sharp, professional web presence for a growing solutions company.
 - Aloys Travels: "Website for a travel company, with clean booking flows and a journey-led design." Link → `https://aloys-travels.com/`.
-- *(See question 5 about adding Danella De Cruz.)*
+- Danella De Cruz (new card, tag "Artist site"): Portfolio and booking site for a Colombo cover artist. Link → `https://danelladc.com`.
 
 ### § 04 FAQ — heading **(keep)**: Good questions, *answered*.
 
@@ -196,7 +193,5 @@ Service descriptions (titles, "includes" lists, prices and turnarounds unchanged
 3. Head Prefect was 2024–2025 → A-Levels entry credits Senior Prefect + Interact Club President instead.
 4. Second year began Sep 2026.
 
-## Still open
-
-5. **/services recent work.** Add Danella De Cruz to the three cards there?
-6. **Contact headline.** A, B or C?
+5. /services recent work → add Danella De Cruz as a fourth card.
+6. Contact headline → B, "Got something in *mind*?"
