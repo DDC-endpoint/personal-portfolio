@@ -172,3 +172,57 @@ test("theme toggle mid-develop keeps going", async ({ page }, info) => {
   await expect(frame(page, "06")).toHaveAttribute("data-develop", "developed", { timeout: 3000 });
   expect(errors).toEqual([]);
 });
+
+test.describe("dark theme", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.setItem("theme", "dark")));
+  test("hover captions stay light on a navy wash", async ({ page }, info) => {
+    desktopOnly(info);
+    await toLens(page, "02");
+    await frame(page, "02").hover();
+    await page.waitForTimeout(600);
+    const c = frame(page, "02").locator("[data-caption]");
+    expect(await c.evaluate((el) => getComputedStyle(el).color)).toBe("rgb(246, 246, 241)");
+    // the ink/72 wash serialises as rgba or as oklab, depending on the engine
+    expect(await c.evaluate((el) => getComputedStyle(el).backgroundImage)).toMatch(
+      /rgba\(11, 31, 58, 0\.72\)|oklab\(0\.239\d* -0\.013\d* -0\.056\d* \/ 0\.72\)/
+    );
+  });
+});
+
+test("resize repaints the print at once and samples once it settles", async ({ page }, info) => {
+  desktopOnly(info);
+  await page.addInitScript(() => {
+    window.__samples = 0;
+    const cib = window.createImageBitmap.bind(window);
+    // Lens tiles only: the hero portrait resamples its own blob on resize
+    window.createImageBitmap = (...a) => (a[0]?.closest?.("[data-frame]") && window.__samples++, cib(...a));
+  });
+  await page.goto("/");
+  await scrollToFrame(page, "05"); // load the photos
+  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developed", { timeout: 5000 });
+  await scrollTo(page, 0);
+  await expect(page.locator('[data-frame][data-develop="halftone"]')).toHaveCount(10);
+  // every photo loaded and sampled, so only the resize can sample from here
+  await page.waitForFunction(() => [...document.querySelectorAll("[data-frame] img")].every((i) => i.complete));
+  await page.waitForTimeout(400);
+  const before = await page.evaluate(() => window.__samples);
+  for (const w of [1420, 1400, 1380, 1360, 1340]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    await page.waitForTimeout(20);
+  }
+  const painted = await frame(page, "02").locator("canvas").evaluate((c) => {
+    const d = c.getContext("2d").getImageData(1, 1, 1, 1).data;
+    return d[3];
+  });
+  expect(painted).toBe(255); // the ivory field is there, not a blank mat
+  await page.waitForTimeout(600);
+  expect(await page.evaluate(() => window.__samples) - before).toBeLessThanOrEqual(10);
+});
+
+test("a hero tile taller than the screen still develops", async ({ page }, info) => {
+  desktopOnly(info);
+  await page.setViewportSize({ width: 740, height: 300 });
+  await page.goto("/");
+  await scrollToFrame(page, "01");
+  await expect(frame(page, "01")).toHaveAttribute("data-develop", "developed", { timeout: 5000 });
+});

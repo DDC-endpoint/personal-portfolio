@@ -117,3 +117,22 @@ test.describe("reduced motion", () => {
     expect(anims).toBe(0);
   });
 });
+
+test("a real touch swipe steps, and the next tap still closes", async ({ page }, info) => {
+  mobileOnly(info);
+  await toLens(page, "02");
+  await frame(page, "02").tap();
+  await expect(dialog(page)).toBeVisible();
+  await page.waitForTimeout(500);
+  const photo = await dialog(page).locator("[data-viewer-photo]").boundingBox();
+  const y = Math.round(photo.y + photo.height / 2);
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type, x) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+  await touch("touchStart", 300);
+  for (const x of [260, 220, 180, 140, 100]) await touch("touchMove", x);
+  await touch("touchEnd");
+  await expect(caption(page)).toContainText("FRAME 03");
+  await page.waitForTimeout(300);
+  await page.touchscreen.tap(195, y);
+  await expect(dialog(page)).toHaveCount(0);
+});

@@ -1,4 +1,4 @@
-import { HALFTONE, dotRadius, developMix, levels, dotTone } from "@/lib/halftone";
+import { HALFTONE, dotRadius, developMix, levels, dotTone, inView } from "@/lib/halftone";
 
 test("constants", () => expect(HALFTONE).toEqual({ CELL: 7, DEVELOP_MS: 1200 }));
 
@@ -53,4 +53,16 @@ test("levels ignores outliers and leaves a flat image alone", () => {
 test("dark mode sizes dots by brightness, so the print stays a positive", () => {
   expect(dotRadius(dotTone(0.9, false), 7)).toBeLessThan(dotRadius(dotTone(0.1, false), 7)); // light: dark → big
   expect(dotRadius(dotTone(0.9, true), 7)).toBeGreaterThan(dotRadius(dotTone(0.1, true), 7)); // dark: bright → big
+});
+
+test("a tile develops once 35% of it is in view", () => {
+  expect(inView(0.34, 300, 900)).toBe(false);
+  expect(inView(0.35, 300, 900)).toBe(true);
+});
+
+test("a tile taller than the screen develops once it fills most of it", () => {
+  // 950 px tile on a 300 px screen: at best 31.6% of it can show
+  expect(inView(0.3, 950, 300)).toBe(true); // 285 px of 300 shown
+  expect(inView(0.2, 950, 300)).toBe(false);
+  expect(inView(0, 950, 300)).toBe(false);
 });

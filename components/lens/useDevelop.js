@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { HALFTONE, dotRadius, developMix, levels, dotTone } from "@/lib/halftone";
+import { HALFTONE, dotRadius, developMix, levels, dotTone, inView } from "@/lib/halftone";
 
 // Drives one Lens tile's halftone → colour develop on its canvas (maths in
 // lib/halftone.js). The tile's root carries the state as data-develop:
@@ -8,13 +8,17 @@ import { HALFTONE, dotRadius, developMix, levels, dotTone } from "@/lib/halftone
 //   static (reduced motion: the photo shows in colour, nothing runs)
 // The canvas sits under the photo and draws an ivory field of electric dots
 // sized by tone; the photo fades in over it. A tile develops each time it
-// comes 35% into view and drops straight back to halftone when it leaves
+// comes 35% into view (a tile taller than the screen: once it fills most of
+// it) and drops straight back to halftone when it leaves
 // (Damian: replays every time). rAF runs only while a develop runs. The
 // photo is hidden from JS, so without JS it simply shows. A photo that fails
 // to load leaves the bare mat.
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const IN_VIEW = 0.35;
+const RESAMPLE_MS = 150; // resizes settle before the photo is sampled again
+// Fine IntersectionObserver steps, so a tile taller than the screen still
+// reports the ratio inView() needs (lib/halftone.js).
+const STEPS = Array.from({ length: 36 }, (_, i) => i / 100);
 
 export function useDevelop({ rootRef, canvasRef, imgRef }) {
   useEffect(() => {
@@ -29,7 +33,7 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
     const ctx = canvas.getContext("2d");
     const { CELL, DEVELOP_MS } = HALFTONE;
     let W = 0, H = 0, cols = 0, rows = 0, lum = null, colours = null;
-    let raf = 0, start = 0, inView = false, failed = false, disposed = false, sampleRun = 0;
+    let raf = 0, start = 0, shown = false, failed = false, disposed = false, sampleRun = 0, resample = 0;
 
     const readColours = () => {
       const s = getComputedStyle(document.documentElement);
@@ -134,7 +138,7 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       if (root.dataset.develop === "halftone") {
         readColours();
         paint(developMix(0));
-        if (inView) startDevelop();
+        if (shown) startDevelop();
       }
     }
 
@@ -146,17 +150,23 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      sample();
+      // Resizing the canvas clears it: repaint from the last sample at once,
+      // then sample again once the resize settles.
+      if (!lum) return sample();
+      if (root.dataset.develop === "halftone") paint(developMix(0));
+      clearTimeout(resample);
+      resample = setTimeout(sample, RESAMPLE_MS);
     });
     ro.observe(canvas);
 
     const io = new IntersectionObserver(
       ([entry]) => {
-        inView = entry.isIntersecting && entry.intersectionRatio >= IN_VIEW;
-        if (inView) startDevelop();
+        const viewH = entry.rootBounds?.height ?? window.innerHeight;
+        shown = entry.isIntersecting && inView(entry.intersectionRatio, entry.boundingClientRect.height, viewH);
+        if (shown) startDevelop();
         else if (root.dataset.develop !== "halftone") rest();
       },
-      { threshold: [0, IN_VIEW] }
+      { threshold: STEPS }
     );
     io.observe(root);
 
@@ -173,6 +183,7 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
 
     return () => {
       disposed = true;
+      clearTimeout(resample);
       cancelAnimationFrame(raf);
       ro.disconnect();
       io.disconnect();

@@ -109,3 +109,19 @@ test.describe("no JS", () => {
     await expect(page.locator("[data-needle]")).toBeHidden();
   });
 });
+
+test("a reflow without a window resize keeps milestones in step", async ({ page }, info) => {
+  desktopOnly(info);
+  await page.goto("/");
+  await scrollToProgress(page, 0.5);
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => (document.querySelector("[data-timeline-list]").style.maxWidth = "420px"));
+  await scrollToProgress(page, 0.5);
+  await page.waitForTimeout(1200);
+  const h = await page.evaluate(() => {
+    const w = document.querySelector("[data-timeline-list]");
+    return [parseFloat(w.style.getPropertyValue("--h")), w.offsetHeight];
+  });
+  expect(h[0]).toBe(h[1]);
+  expect(await lit(page).count()).toBe(await dotsAboveNeedle(page));
+});

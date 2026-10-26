@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useScroll } from "framer-motion";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { SOCIALS, EMAIL, WHATSAPP_LINK, AVAILABILITY } from "@/lib/site";
-import { CONTACT, growInset, colomboClock } from "@/lib/contact";
+import { CONTACT, growInset, growProgress, colomboClock } from "@/lib/contact";
 import { DecodeLabel, ScrambleText } from "./Scramble";
 
 // § 08 Contact — the closing moment (Damian): a small electric tile under the
@@ -23,7 +23,7 @@ export default function Contact() {
   const reduce = useReducedMotion();
   const [clock, setClock] = useState("Colombo · --:--");
 
-  const { scrollYProgress } = useScroll({ target: cardRef, offset: ["start 0.95", "start 0.25"] });
+  const { scrollY } = useScroll();
 
   useEffect(() => {
     const tick = () => setClock(colomboClock(new Date()));
@@ -32,24 +32,45 @@ export default function Contact() {
     return () => clearInterval(id);
   }, []);
 
-  // Scroll-scrubbed growth; the card's size comes from its ResizeObserver entry.
+  // Scroll-scrubbed growth (lib/contact.js growProgress). The card's size
+  // comes from its ResizeObserver entry; its page position and the page's
+  // scroll range are re-measured whenever the card or the page resizes.
   useEffect(() => {
     const card = cardRef.current, content = contentRef.current;
     if (!card || !content || reduce) return;
-    let W = 0, H = 0, held = false;
+    let W = 0, H = 0, held = false, geo = null;
+    const measure = () => {
+      const root = document.documentElement;
+      geo = {
+        cardTop: card.getBoundingClientRect().top + window.scrollY,
+        vh: window.innerHeight,
+        maxScroll: root.scrollHeight - window.innerHeight,
+      };
+    };
     const apply = () => {
-      if (!W) return;
-      const p = scrollYProgress.get();
+      if (!W || !geo) return;
+      const p = growProgress(scrollY.get(), geo);
       card.style.clipPath = held ? FULL : growInset(p, { W, H, tile: CONTACT.tile });
       content.style.opacity = held ? "1" : String(Math.min(1, Math.max(0, (p - 0.6) / 0.4)));
     };
     const ro = new ResizeObserver(([entry]) => {
       W = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
       H = entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height;
+      measure();
       apply();
     });
     ro.observe(card);
-    const unsub = scrollYProgress.on("change", apply);
+    const pageRo = new ResizeObserver(() => {
+      measure();
+      apply();
+    });
+    pageRo.observe(document.body);
+    const onResize = () => {
+      measure();
+      apply();
+    };
+    window.addEventListener("resize", onResize);
+    const unsub = scrollY.on("change", apply);
     const onFocusIn = () => {
       held = true;
       apply();
@@ -63,13 +84,15 @@ export default function Contact() {
     card.addEventListener("focusout", onFocusOut);
     return () => {
       ro.disconnect();
+      pageRo.disconnect();
+      window.removeEventListener("resize", onResize);
       unsub();
       card.removeEventListener("focusin", onFocusIn);
       card.removeEventListener("focusout", onFocusOut);
       card.style.clipPath = "";
       content.style.opacity = "";
     };
-  }, [reduce, scrollYProgress]);
+  }, [reduce, scrollY]);
 
   const [lead, accent, tail] = CONTACT.headline;
   const onCard = "text-ivory dark:text-ink";
@@ -86,7 +109,7 @@ export default function Contact() {
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ivory dark:bg-ink animate-pulse" />
               <span data-availability>{AVAILABILITY}</span>
             </span>
-            <span data-clock className={`${mono} opacity-80`}>
+            <span data-clock className={mono}>
               {clock}
             </span>
           </div>
@@ -97,7 +120,7 @@ export default function Contact() {
               <span className="italic">{accent}</span>
               {tail}
             </h2>
-            <p className="mt-6 md:mt-8 max-w-2xl text-lg md:text-xl leading-relaxed opacity-90">{CONTACT.body}</p>
+            <p className="mt-6 md:mt-8 max-w-2xl text-lg md:text-xl leading-relaxed">{CONTACT.body}</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

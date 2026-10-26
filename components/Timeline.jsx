@@ -57,7 +57,7 @@ export default function Timeline() {
 
   // Milestones light as the needle passes their dot. Thresholds are each
   // dot's position as a fraction of the list height: one batched measure
-  // after fonts settle, recomputed on debounced resize.
+  // after fonts settle, recomputed (debounced) whenever the list resizes.
   const [thresholds, setThresholds] = useState([]);
   const [lit, setLit] = useState(0);
 
@@ -86,11 +86,14 @@ export default function Timeline() {
       } catch {}
       measure();
     })();
-    window.addEventListener("resize", onResize);
+    // The list can reflow without a window resize (a scrollbar appearing,
+    // late layout above), so watch the list itself.
+    const ro = new ResizeObserver(onResize);
+    ro.observe(wrapperRef.current);
     const rafs = yearRafs.current;
     return () => {
       clearTimeout(t);
-      window.removeEventListener("resize", onResize);
+      ro.disconnect();
       rafs.forEach((r) => cancelAnimationFrame(r.current));
     };
   }, [drawn]);

@@ -125,3 +125,36 @@ test("keyboard focus ring shows on the electric card", async ({ page }, info) =>
   expect(parseFloat(seen.email.radius)).toBeGreaterThan(20); // the pill keeps its shape
   expect(seen.social.ring).toBe("rgb(246, 246, 241)");
 });
+
+for (const size of [{ width: 2560, height: 1600 }, { width: 1024, height: 1366 }]) {
+  test(`card opens fully at the bottom of a ${size.width}×${size.height} page`, async ({ page }, info) => {
+    desktopOnly(info);
+    await page.setViewportSize(size);
+    await page.goto("/");
+    await cardTopAt(page, 0.9);
+    await grown(page);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(() => clip(page)).toMatch(FULL);
+    await expect
+      .poll(() => card(page).locator("[data-contact-content]").evaluate((el) => getComputedStyle(el).opacity))
+      .toBe("1");
+  });
+}
+
+test("card text is full ivory, not dimmed", async ({ page }, info) => {
+  desktopOnly(info);
+  await page.goto("/");
+  await cardTopAt(page, 0.2);
+  await expect.poll(() => clip(page)).toMatch(FULL);
+  const looks = await card(page).evaluate((c) =>
+    [...c.querySelectorAll("p, [data-clock], [data-availability], h2")].map((el) => {
+      let o = 1;
+      for (let n = el; n && n !== c; n = n.parentElement) o *= parseFloat(getComputedStyle(n).opacity);
+      return [o, getComputedStyle(el).color];
+    })
+  );
+  for (const [o, colour] of looks) {
+    expect(o).toBe(1);
+    expect(colour).toBe("rgb(246, 246, 241)");
+  }
+});

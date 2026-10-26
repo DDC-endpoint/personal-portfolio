@@ -78,14 +78,15 @@ export default function LensTile({ frame, index, onOpen }) {
 
 // One caption, placed per breakpoint: in the mat under the photo on phones;
 // on md+ an overlay across the photo's foot, clipped to the photo so its
-// slide-up never spills onto the mat.
+// slide-up never spills onto the mat. The overlay is light on a navy wash in
+// both themes, so ink and ivory swap in dark mode, like the Contact card.
 function Caption({ frame: { n, caption, month, hero } }) {
   return (
     <div className={`pointer-events-none md:absolute md:overflow-hidden ${hero ? "md:inset-x-2.5 md:bottom-2.5" : "md:inset-x-2 md:bottom-2"}`}>
       <div
         data-caption
         aria-hidden="true"
-        className={`flex items-end justify-between gap-2 pt-2 pb-0.5 font-mono uppercase leading-[1.4] tracking-[0.12em] text-ink-faint md:bg-linear-to-t md:from-[rgb(11_31_58/.72)] md:to-transparent md:text-[#F6F6F1] ${
+        className={`flex items-end justify-between gap-2 pt-2 pb-0.5 font-mono uppercase leading-[1.4] tracking-[0.12em] text-ink-faint md:bg-linear-to-t md:from-ink/72 md:to-transparent md:text-ivory md:dark:from-ivory/72 md:dark:text-ink ${
           hero ? "text-[10px] md:px-3.5 md:pb-3 md:pt-12" : "text-[9px] md:px-3 md:pb-2.5 md:pt-9"
         } transition-[opacity,translate] duration-[450ms] ease-[cubic-bezier(.22,1,.36,1)] can-hover:translate-y-2.5 can-hover:opacity-0 can-hover:group-hover:translate-y-0 can-hover:group-hover:opacity-100 can-hover:group-focus-visible:translate-y-0 can-hover:group-focus-visible:opacity-100`}
       >

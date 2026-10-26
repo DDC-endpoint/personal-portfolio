@@ -15,6 +15,7 @@ import { ScrambleText } from "../Scramble";
 
 const OPEN_MS = 450;
 const SWIPE_PX = 50;
+const TAP_PX = 10;
 const ease = `cubic-bezier(${EASE.join(",")})`;
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -32,7 +33,7 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
   const box = useRef(null);
   const closeBtn = useRef(null);
   const closing = useRef(false);
-  const swipe = useRef({ x: 0, id: null, swiped: false });
+  const swipe = useRef({ x: 0, y: 0, id: null, onButton: false });
   const current = useRef(index);
   current.current = index;
 
@@ -98,26 +99,20 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   });
 
+  // A horizontal drag steps; a tap anywhere but a button closes. Taps are
+  // read from the pointer itself, not from click: after a quick flick Chrome
+  // can swallow the next tap's click, which left the viewer stuck open.
   const onPointerDown = (e) => {
-    swipe.current = { x: e.clientX, id: e.pointerId, swiped: false };
+    if (!e.isPrimary || e.button !== 0) return;
+    swipe.current = { x: e.clientX, y: e.clientY, id: e.pointerId, onButton: !!e.target.closest("button") };
   };
   const onPointerUp = (e) => {
     const s = swipe.current;
     if (s.id !== e.pointerId) return;
     s.id = null;
-    const dx = e.clientX - s.x;
-    if (Math.abs(dx) > SWIPE_PX) {
-      s.swiped = true;
-      onStep(dx < 0 ? 1 : -1);
-    }
-  };
-  // Any click but a button's (or the end of a swipe) closes.
-  const onClick = (e) => {
-    if (swipe.current.swiped) {
-      swipe.current.swiped = false;
-      return;
-    }
-    if (!e.target.closest("button")) close();
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (Math.abs(dx) > SWIPE_PX) return onStep(dx < 0 ? 1 : -1);
+    if (Math.hypot(dx, dy) < TAP_PX && !s.onButton && !e.target.closest("button")) close();
   };
 
   const f = FRAMES[index];
@@ -131,7 +126,6 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
       aria-modal="true"
       aria-label="Photo viewer"
       data-lenis-prevent
-      onClick={onClick}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       className="fixed inset-0 z-[100] flex touch-pan-y select-none flex-col items-center justify-center"
