@@ -1,0 +1,64 @@
+import { test, expect } from "@playwright/test";
+
+const KICKER = "Creative Technologist · Freelance Web Designer";
+const portrait = (page) => page.locator("[data-portrait]");
+const kicker = (page) => page.locator("[data-hero-kicker]");
+
+// Records every data-state the portrait passes through, from the first paint.
+async function recordStates(page) {
+  await page.addInitScript(() => {
+    window.__states = [];
+    new MutationObserver(() => {
+      const s = document.querySelector("[data-portrait]")?.getAttribute("data-state");
+      if (s && window.__states.at(-1) !== s) window.__states.push(s);
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-state"], childList: true });
+  });
+}
+
+test("first visit plays the wave, a reload in the same session is static", async ({ page }) => {
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
+  await expect(kicker(page)).toHaveAttribute("aria-busy", "true");
+  await expect(kicker(page)).toHaveText(KICKER, { timeout: 4000 });
+  await expect(kicker(page)).not.toHaveAttribute("aria-busy");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static");
+
+  await recordStates(page);
+  await page.reload();
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.__states)).not.toContain("wave");
+  await expect(kicker(page)).toHaveText(KICKER);
+});
+
+test("slow image skips the wave", async ({ page }) => {
+  await page.route("**/hero/portrait.webp", async (r) => {
+    await new Promise((res) => setTimeout(res, 3000));
+    await r.continue();
+  });
+  let busy = false;
+  await page.exposeFunction("__busy", () => (busy = true));
+  await page.addInitScript(() =>
+    new MutationObserver((ms) => {
+      if (ms.some((m) => m.target.getAttribute?.("aria-busy") === "true" && m.target.matches("[data-hero-kicker]"))) window.__busy();
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ["aria-busy"] })
+  );
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "skipped", { timeout: 10000 });
+  await expect(kicker(page)).toHaveText(KICKER);
+  expect(busy).toBe(false);
+});
+
+test("reduced motion: no wave", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await recordStates(page);
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  expect(await page.evaluate(() => window.__states)).not.toContain("wave");
+});
+
+test("no IntroStamp", async ({ page, request }) => {
+  await page.goto("/");
+  await expect(page.locator(".intro-stamp")).toHaveCount(0);
+  expect(await (await request.get("/")).text()).not.toContain("intro-stamp");
+});

@@ -1,7 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { trackErrors } from "./helpers";
 
-test.beforeEach(({}, info) => test.skip(info.project.name !== "desktop", "portrait rendering checks run on desktop"));
+test.beforeEach(async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "portrait rendering checks run on desktop");
+  // Rendering checks, not loader checks: run as a repeat visit (no wave).
+  await page.addInitScript(() => sessionStorage.setItem("ddc:loader-played", "1"));
+});
 
 const portrait = (page) => page.locator("[data-portrait]");
 

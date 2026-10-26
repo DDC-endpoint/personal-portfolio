@@ -2,9 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
   RAMP, cellSize, fadeAt, glyphIndex, buildField, density, shadeRGB, glyphAlpha,
-  scanBand, bandWeight, flickerCount, FACE,
+  scanBand, bandWeight, flickerCount, revealTime, cellPhase, FACE, LOADER_S,
 } from "@/lib/portrait";
 import { noiseChar } from "@/lib/decode";
+import { shouldPlayLoader } from "@/lib/motion";
+import { heroWave } from "@/lib/heroWave";
 
 // The V3 hero: Damian's studio headshot redrawn as an electric-blue ASCII
 // portrait on a canvas. Spec: docs/v3/hero-portrait.md. All maths lives in
@@ -14,22 +16,31 @@ import { noiseChar } from "@/lib/decode";
 // each idle frame blits it, then adds the scan band and the flicker on top.
 // The loop pauses while the portrait is off-screen or the tab is hidden.
 // Reduced motion: drawn once, no loop.
+//
+// First visit per session (lib/motion shouldPlayLoader) it builds itself:
+// a 2.4 s wave spreads from the face — skeleton blocks, then a noise front,
+// then the final glyphs — and starts lib/heroWave so the hero text lands
+// with it. If image + font arrive later than 2.5 s into the load, the wave is
+// skipped: content that has been on screen for seconds must not blink away.
 
 const SRC = "/hero/portrait.webp";
 const SUPERSAMPLE = 3;
+const LATE_MS = 2500; // the site-wide slow-load cut-off (see EagerReveal)
 
 const rgbVar = (styles, name) => styles.getPropertyValue(name).trim().split(/\s+/).map(Number);
 const css = ([r, g, b]) => `rgb(${r},${g},${b})`;
 
-function createPortrait({ wrapper, canvas, img, family, onLayout }) {
+function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEnd }) {
   const ctx = canvas.getContext("2d");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const { font, cw, ch } = cellSize();
   let W = 0, H = 0, dpr = 1, cols = 0, rows = 0, n = 0;
-  let field = null, fade = null, rest = null;
+  let field = null, fade = null, rest = null, reveal = null;
   let electric, bg, dark;
   const flickUntil = new Map(); // cell → [expiry ms, glyph]
   let idleStart = performance.now();
+  const waveStart = performance.now();
+  let waving = wave;
   let raf = 0, running = false, onScreen = true;
 
   const setFont = (c) => {
@@ -64,7 +75,13 @@ function createPortrait({ wrapper, canvas, img, family, onLayout }) {
     sx.drawImage(img, 0, 0, sample.width, sample.height);
     field = buildField(sx.getImageData(0, 0, sample.width, sample.height).data, cols, rows, SUPERSAMPLE);
     fade = new Float32Array(n);
-    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) fade[y * cols + x] = fadeAt(x / cols, y / rows);
+    reveal = new Float32Array(n);
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        fade[y * cols + x] = fadeAt(x / cols, y / rows);
+        reveal[y * cols + x] = revealTime(x, y, cols, rows, ch / cw, Math.random());
+      }
+    }
     flickUntil.clear();
     onLayout(cols, rows);
     buildRest();
@@ -135,7 +152,37 @@ function createPortrait({ wrapper, canvas, img, family, onLayout }) {
     ctx.globalAlpha = 1;
   }
 
+  // Loader: the finished portrait is blitted, then every cell the wave hasn't
+  // reached yet is cleared and redrawn as a shimmering skeleton block or, in
+  // the last 0.25 s before it lands, a noise glyph.
+  function drawWave(t) {
+    blitRest();
+    ctx.fillStyle = css(electric);
+    for (const i of field.inside) {
+      const tr = reveal[i];
+      if (t >= tr) continue;
+      const x = i % cols, y = (i / cols) | 0, px = x * cw, py = y * ch;
+      ctx.globalAlpha = 1;
+      ctx.clearRect(px, py, cw, ch);
+      if (cellPhase(t, tr) === "skeleton") {
+        ctx.globalAlpha = (0.1 + 0.05 * Math.sin(t * 6 + x * 0.3 + y * 0.2)) * fade[i];
+        ctx.fillRect(px + cw * 0.3, py + ch * 0.3, cw * 0.4, ch * 0.4);
+      } else {
+        ctx.globalAlpha = 0.9 * fade[i];
+        ctx.fillText(noiseChar(), px, py);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawFrame(now) {
+    if (waving) {
+      const t = (now - waveStart) / 1000;
+      if (t < LOADER_S) return drawWave(t);
+      waving = false;
+      idleStart = now;
+      onWaveEnd();
+    }
     drawIdle(now);
   }
 
@@ -159,7 +206,8 @@ function createPortrait({ wrapper, canvas, img, family, onLayout }) {
   // ---- lifecycle ------------------------------------------------------------
   readTheme();
   layout();
-  blitRest();
+  if (waving) drawWave(0);
+  else blitRest();
 
   let pending = 0;
   const ro = new ResizeObserver(() => {
@@ -182,7 +230,6 @@ function createPortrait({ wrapper, canvas, img, family, onLayout }) {
   });
   io.observe(wrapper);
   document.addEventListener("visibilitychange", sync);
-  idleStart = performance.now();
   sync();
 
   return {
@@ -217,14 +264,19 @@ export default function HeroPortrait({ className = "" }) {
     Promise.all([img.decode(), document.fonts.load(`700 6px ${family}`)])
       .then(() => {
         if (cancelled) return;
+        const play = shouldPlayLoader();
+        const wave = play && performance.now() <= LATE_MS;
         portrait = createPortrait({
           wrapper: wrapperRef.current,
           canvas: canvasRef.current,
           img,
           family,
           onLayout: (cols, rows) => setGrid(`${cols} × ${rows}`),
+          wave,
+          onWaveEnd: () => setState("static"),
         });
-        setState("static");
+        if (wave) heroWave.start(performance.now(), portrait.faceViewportPoint());
+        setState(wave ? "wave" : play ? "skipped" : "static");
       })
       .catch(() => {
         if (!cancelled) setState("error");
