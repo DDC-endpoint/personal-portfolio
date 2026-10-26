@@ -90,6 +90,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **More photos (Damian):** Damian will add more; design the grid for 6–10 photos. New originals go in `assets/photography-originals/` and through `npm run optimize-photos` (EXIF stripped) before commit.
 - **Halftone (Damian):** round electric-blue dots sized by tone, like a print screen, resolving into the full-colour photo.
 - **Replay (Damian):** develops **every time** it scrolls into view; scrolling away returns it to halftone.
+- **Photos, order and captions (Damian, 2026-10-26):** 10 photos (4 existing + 6 new), order curated by Claude for size, colour and day/night rhythm, with captions chosen by Damian. The full table is in `design.md` → Lens.
 - **Caption (Damian):** place + month as now (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number.
 
 ## Contact (wow #5)

@@ -21,3 +21,4 @@ posts/
 # V3 portrait spike: generated cutouts of the headshot stay local
 docs/v3/spike/cutout*.png
 docs/v3/spike/cutout*.jpg
+docs/v3/spike/gal/
