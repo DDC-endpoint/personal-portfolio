@@ -73,16 +73,17 @@ fade = (1 − smoothstep(0.50, 0.92, v))
 
 The fade starts around chest level ("stronger" setting, Damian's choice) so the portrait reads as head and shoulders dissolving into the page. The same mask is applied to the photo inside the lens.
 
-## Loader (replaces the current IntroStamp curtain)
+## Loader (plays as the IntroStamp curtain lifts)
 
-- **When it plays (Damian):** on the **first visit per browser session** only. Reloads and returns from `/services` use the 0.6 s glyph-dissolve page transition instead, with the portrait already drawn and no wave.
+- **When it plays (Damian, revised 2026-10-27):** on **every load or reload of Home**, together with the existing `IntroStamp` curtain, which stays. The curtain decrypts the name and coordinates and wipes up at about 1 s (`INTRO_OFFSET`). The wave starts as it lifts, alongside the hero's float-in. Arriving from `/services` through the Phase 4 glyph-dissolve transition shows the portrait already drawn, with no wave.
+- Skipped (finished portrait shown instead) under reduced motion or forced colours, in a background tab, on a landing below the hero (`/#work`), or when the image is ready later than 2.5 s.
 - Duration ~**2.4 s**, kept as is (Damian).
 - Wave origin: the face, at `(0.5, 0.38)` of the stage. Per-cell reveal time `tr = 0.3 + dist/maxDist × 2.6 + jitter × 0.15` s (row distance scaled by cell aspect).
 - Before `tr − 0.25`: faint skeleton block (40% of the cell, opacity 0.10–0.15, shimmering).
 - `tr − 0.25 … tr`: a random code glyph at 0.9 opacity (the decode front). Noise set: `A–Z` (no I/O), `0–9`, `#$%&@*+=<>/\`.
 - After `tr`: the final glyph.
-- Hero text decodes with the same wave: every letter starts as a noise glyph at 0.12 opacity, scrambles for its last 220 ms, then lands. Delay = `350 ms + distance from the portrait's face / viewport width × 1100 ms + random 0–150 ms`. Letters are grouped per word (`white-space: nowrap`) so lines only break between words. The lede fades in with a 4 px blur at 1.3 s.
-- **LCP:** the real text must be in the server-rendered HTML from the first paint; the decode is a client-side replay over it (same approach as the current EagerReveal/IntroStamp). Don't regress the 2026-07-18 perf work.
+- **Hero text (Damian, revised 2026-10-27):** no letter decode. After the curtain, the text floats in as on the live site: the kicker fades up and the name rises line by line (`Word` masks, delays `INTRO_OFFSET` + 0.1 / 0.25 / 0.4 s). The lede stays static for LCP.
+- **LCP:** the real text must be in the server-rendered HTML from the first paint, under the SSR curtain (same approach as EagerReveal/IntroStamp). Don't regress the 2026-07-18 perf work.
 
 ## Idle motion (kept as is)
 

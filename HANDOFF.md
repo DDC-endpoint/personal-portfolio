@@ -1,7 +1,7 @@
 # DDC Portfolio — Session Handoff
 > Generated: 2026-06-06 | Updated: 2026-10-27 | Branch: `main` (+ V3 in progress on `v3`)
 
-> **V3 is in progress on the local `v3` branch.** Everything below describes `main` unless a line says "V3". The V3 record (design, decisions, plans, status) lives in `docs/v3/`; start with `docs/v3/README.md`. V3 Phase 1 (branch `v3-phase-1`) removed `Marquee.jsx` and `IntroStamp.jsx` and added the ASCII hero portrait, its first-visit loader and the cursor lens — see *V3 Phase 1* below.
+> **V3 is in progress on the local `v3` branch.** Everything below describes `main` unless a line says "V3". The V3 record (design, decisions, plans, status) lives in `docs/v3/`; start with `docs/v3/README.md`. V3 Phase 1 (branch `v3-phase-1`) removed `Marquee.jsx` and added the ASCII hero portrait (its wave plays as the kept `IntroStamp` curtain lifts) and the cursor lens — see *V3 Phase 1* below.
 
 ---
 
@@ -295,9 +295,9 @@ All tokens are CSS-variable-backed (`rgb(var(--c-*) / <alpha-value>)`) so `/opac
 
 Plan: `docs/v3/plan-phase-1.md`; spec: `docs/v3/design.md` + `docs/v3/hero-portrait.md`.
 - **Hero portrait:** `public/hero/portrait.webp` (800×1000, EXIF-free) comes from `npm run process-portrait "<headshot.png>"`. The original headshot stays outside the repo. The canvas samples it with `createImageBitmap` (off the main thread). Don't switch back to `drawImage` + `getImageData` on the full image: that readback was a ~65 ms task on a throttled phone.
-- **Loader:** the first visit per session plays a 2.4 s wave from the face, and the kicker and name land with it. Its states are exposed as `data-state` on `[data-portrait]`: `loading → wave → static`, `skipped` (late) or `error`.
+- **Loader:** `IntroStamp` stays (every load of Home). As it lifts (`INTRO_OFFSET`), the portrait plays a 2.4 s wave from the face and the hero text floats in as before. Its states are exposed as `data-state` on `[data-portrait]`: `loading → wave → static`, `skipped` (late) or `error`.
 - **Lens:** over the portrait, the cursor ring (`.cursor-ring.is-lens`, 240 px) grows into a lens over the full-colour photo. On touch, dragging moves a canvas-drawn lens.
-- **Decode language:** the 8 § labels on Home decode on entry. Desktop nav links, the hero SERVICES buttons, "Services & pricing" and "Request CV" scramble on hover and focus. `/services` gets these in Phase 4.
+- **Decode language:** the 8 § labels on Home decode on entry. Mono buttons (the hero SERVICES buttons, "Request CV") scramble on hover and focus. Underlined links (nav, "Services & pricing") don't (Damian). `/services` gets these in Phase 4.
 - **Lighthouse (prod builds, devtools throttling):** at parity with `main`. Desktop scores 100, and mobile is 79–81 with LCP about 2.1 s on both.
 - **Known, pre-existing (also on `main`):** under reduced motion, `SplitLines` in About causes a hydration mismatch (React #418).
 
@@ -334,9 +334,8 @@ lib/
   lab.js                — CATEGORIES + ALL_DEMOS (authored wave order) → exported DEMOS (category-grouped),
                           SECTIONS (index grouping/counts), labHref()/LAB_INDEX_HREF (clean URL shape),
                           LAB_PHOTOS (shared captioned photo set), getDemo, demoIndex
-  decode.js             — (V3) noise set, scrambleText, hero letter timing (pure, unit-tested)
+  decode.js             — (V3) noise set, scrambleText (pure, unit-tested)
   portrait.js           — (V3) every hero-portrait number: field build, density, shade, fade, wave, scan (pure, unit-tested)
-  heroWave.js           — (V3) the loader's shared clock: HeroPortrait starts it, DecodeText subscribes
   cursor.js             — (V3) the cursor ring's eased position, shared with the portrait lens
 
 components/
@@ -372,8 +371,7 @@ components/
   Footer.jsx            — v:03 / Always evolving
 
   SplitLines.jsx        — masked line reveals for headings (fonts.ready + offsetTop grouping; sr-only a11y text)
-  HeroPortrait.jsx      — (V3) canvas ASCII portrait: field/rest render, first-visit loader wave, idle scan + flicker, cursor lens
-  DecodeText.jsx        — (V3) hero text, one span per letter; lands with lib/heroWave
+  HeroPortrait.jsx      — (V3) canvas ASCII portrait: field/rest render, loader wave as the curtain lifts, idle scan + flicker, cursor lens
   Scramble.jsx          — (V3) DecodeLabel (§ labels decode on entry) + ScrambleText (link/button hover/focus scramble)
   ScrollProgress.jsx    — 2px electric top progress bar (z-55, both pages)
   Parallax.jsx          — scroll drift for NON-TEXT accents only (Lens photos, hello. watermark)
@@ -554,9 +552,9 @@ A 1:1 (2160×2160 at 2×) services poster lives at `posts/DDC-Services-Poster.pn
 15. **No parallax/drift on TEXT, no magnetic buttons** — user removed heading parallax twice ("letters lag when scrolling up") and the magnetic CTA pull ("reduces the professional effect"; `Magnetic.jsx` deleted). `Parallax.jsx` is only for non-text accents (Lens photos, `hello.` watermark). Card titles also must not slide on hover (removed) — colour change + card sweep only. Button hovers = colour fill + arrow nudge, nothing positional
 16. **SplitLines mask allowance is `pb-[0.14em] -mb-[0.14em]`** — shrinking it clips italic descenders (the *growing* g). Its screen-reader text is an `sr-only` span, NOT `aria-label` (invalid on `<p>`, fails Lighthouse `aria-prohibited-attr`)
 17. **Soon-card entrances animate to `opacity: 0.75`** — framer writes inline opacity; animating to 1 would override the `opacity-75` class and un-dim them
-18. **Motion constants come from `lib/motion.js`** — `EASE`, `VIEWPORT`, `SPRING`, and (V3) `shouldPlayLoader()`. V3 replaced `INTRO_OFFSET`/`shouldPlayIntro()`: the hero loader's one memoized per-load decision lives in `shouldPlayLoader()` and only `HeroPortrait` calls it; the hero text follows via `lib/heroWave.js`, never its own check
-19. **(V3) The hero loader plays once per browser session**, not every reload (Damian, V3 design) — `sessionStorage["ddc:loader-played"]`. Reduced motion never plays it; a page ready later than 2.5 s skips it (`data-state="skipped"`)
-20. **Above-fold content must paint in the SSR HTML** (perf pass 2026-07-18) — never wrap top-of-page content in `Reveal`/framer `initial={{opacity:0}}`; use `EagerReveal` (see *Performance Pass* section). Don't refactor EagerReveal into a conditional tag swap (remount re-registers LCP late), don't give the LCP paragraphs (`replay={false}`) their entrance back (V3: the hero lede stays static — Damian chose LCP over the spec's blur fade). V3 `DecodeText` keeps the real hero text in the SSR HTML and freezes each letter's width while it holds noise (otherwise CLS ~0.2)
+18. **Motion constants come from `lib/motion.js`** — `EASE`, `VIEWPORT`, `SPRING`, `INTRO_OFFSET`, `shouldPlayIntro()`. Hero, IntroStamp and (V3) HeroPortrait must share the same memoized `shouldPlayIntro()` decision; don't give any of them its own check
+19. **IntroStamp plays every reload** (user preference — not session-gated; reconfirmed for V3 on 2026-10-27, with the portrait wave starting as it lifts). Keep it `pointer-events-none` + `aria-hidden` + reduced-motion-skipped so it can never trap clicks or tank a11y
+20. **Above-fold content must paint in the SSR HTML** (perf pass 2026-07-18) — never wrap top-of-page content in `Reveal`/framer `initial={{opacity:0}}`; use `EagerReveal` (see *Performance Pass* section). Don't refactor EagerReveal into a conditional tag swap (remount re-registers LCP late), don't give the LCP paragraphs (`replay={false}`) their entrance back (V3: the hero lede stays static — Damian chose LCP over the spec's blur fade), and keep IntroStamp SSR-rendered with its three CSS gates (reduced-motion, `html:not(.js)`, 5s failsafe) in globals.css
 
 ---
 

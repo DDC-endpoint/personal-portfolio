@@ -1,10 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-test.beforeEach(async ({ page }) => {
-  // Lens checks, not loader checks: run as a repeat visit (no wave).
-  await page.addInitScript(() => sessionStorage.setItem("ddc:loader-played", "1"));
-});
-
 const portrait = (page) => page.locator("[data-portrait]");
 
 // Where the face is: (0.5, 0.38) of the stage, in page coordinates.

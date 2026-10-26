@@ -45,8 +45,8 @@ export const metadata = {
 };
 
 // Runs before first paint so the saved/system theme is applied with no flash.
-// Also stamps `js` on <html> — CSS can use it to hide JS-dependent chrome
-// from no-JS visitors before anything ever renders.
+// Also stamps `js` on <html> — CSS uses it to hide JS-dependent chrome (the
+// IntroStamp curtain) from no-JS visitors before anything ever renders.
 const themeScript = `(function(){document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
 // JSON-LD Person structured data — helps Google associate this site with

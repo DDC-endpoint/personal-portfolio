@@ -1,6 +1,4 @@
-import {
-  NOISE, noiseChar, isDecodable, scrambleText, splitWords, letterDelay, letterPhase,
-} from "@/lib/decode";
+import { NOISE, noiseChar, isDecodable, scrambleText } from "@/lib/decode";
 
 const zero = () => 0;
 
@@ -28,17 +26,3 @@ test("scramble resolves left to right", () => {
 });
 
 test("nbsp is not decodable", () => expect(isDecodable(" ")).toBe(false));
-
-test("splitWords", () =>
-  expect(splitWords("Creative Technologist · Web")).toEqual(["Creative", " ", "Technologist", " ", "·", " ", "Web"]));
-
-test("letterDelay", () => {
-  expect(letterDelay(0, 1440, zero)).toBe(350);
-  expect(letterDelay(720, 1440, () => 1)).toBe(1050);
-});
-
-test("letterPhase", () => {
-  expect(letterPhase(0, 500)).toBe("faint");
-  expect(letterPhase(300, 500)).toBe("scramble");
-  expect(letterPhase(500, 500)).toBe("final");
-});

@@ -47,7 +47,7 @@ export function useScramble(ref, text, durationMs, onRun) {
 
 // § section label — decodes once, the first time it scrolls into view.
 // While its letters hold noise they are aria-hidden and a static sr-only copy
-// (hidden the rest of the time) carries the label, as in DecodeText.
+// (hidden the rest of the time) carries the label, like ScrambleText below.
 export function DecodeLabel({ as: Tag = "div", className = "", children }) {
   const ref = useRef(null);
   const letters = useRef(null);

@@ -3,8 +3,6 @@ import { trackErrors } from "./helpers";
 
 test.beforeEach(async ({ page }, info) => {
   test.skip(info.project.name !== "desktop", "portrait rendering checks run on desktop");
-  // Rendering checks, not loader checks: run as a repeat visit (no wave).
-  await page.addInitScript(() => sessionStorage.setItem("ddc:loader-played", "1"));
 });
 
 const portrait = (page) => page.locator("[data-portrait]");
@@ -133,10 +131,7 @@ const distance = (p, q) => p.reduce((s, v, i) => s + Math.abs(v - q[i]), 0) / p.
 
 async function reference(browser, theme) {
   const ref = await browser.newPage({ viewport: { width: 1440, height: 900 }, forcedColors: "active" });
-  await ref.addInitScript((t) => {
-    sessionStorage.setItem("ddc:loader-played", "1");
-    localStorage.setItem("theme", t);
-  }, theme);
+  await ref.addInitScript((t) => localStorage.setItem("theme", t), theme);
   await ref.goto("/");
   await expect(portrait(ref)).toHaveAttribute("data-state", "static", { timeout: 10000 });
   await ref.waitForTimeout(300);
@@ -174,7 +169,6 @@ test("a browser that ignores resize options still draws the portrait", async ({ 
   const ignored = await paint(page);
 
   const ref = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await ref.addInitScript(() => sessionStorage.setItem("ddc:loader-played", "1"));
   await ref.goto("/");
   await expect(portrait(ref)).toHaveAttribute("data-state", "static", { timeout: 10000 });
   await ref.waitForTimeout(300);

@@ -6,8 +6,7 @@ import {
   LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE,
 } from "@/lib/portrait";
 import { noiseChar } from "@/lib/decode";
-import { shouldPlayLoader } from "@/lib/motion";
-import { heroWave } from "@/lib/heroWave";
+import { shouldPlayIntro, INTRO_OFFSET } from "@/lib/motion";
 import { ring, customCursorShown } from "@/lib/cursor";
 
 // The V3 hero: Damian's studio headshot redrawn as an electric-blue ASCII
@@ -19,11 +18,12 @@ import { ring, customCursorShown } from "@/lib/cursor";
 // The loop pauses while the portrait is off-screen or the tab is hidden.
 // Reduced motion: drawn once, no loop.
 //
-// First visit per session (lib/motion shouldPlayLoader) it builds itself:
-// a 2.4 s wave spreads from the face — skeleton blocks, then a noise front,
-// then the final glyphs — and starts lib/heroWave so the hero text lands
-// with it. If image + font arrive later than 2.5 s into the load, the wave is
-// skipped: content that has been on screen for seconds must not blink away.
+// On every load it builds itself as the IntroStamp curtain lifts (the same
+// memoized shouldPlayIntro() decision, starting at INTRO_OFFSET): a 2.4 s
+// wave spreads from the face — skeleton blocks, then a noise front, then the
+// final glyphs. If image + font arrive later than 2.5 s into the load, the
+// wave is skipped: content that has been on screen for seconds must not blink
+// away.
 //
 // Lens: over the portrait the site cursor's ring grows into a lens that shows
 // the full-colour photo (same fade mask), with the glyphs under it cleared.
@@ -37,7 +37,7 @@ const LATE_MS = 2500; // the site-wide slow-load cut-off (see EagerReveal)
 const rgbVar = (styles, name) => styles.getPropertyValue(name).trim().split(/\s+/).map(Number);
 const css = ([r, g, b]) => `rgb(${r},${g},${b})`;
 
-function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, onWaveEnd }) {
+function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, waveAt, onWaveStart, onWaveEnd }) {
   const ctx = canvas.getContext("2d");
   // Reduced motion and forced colours (high contrast) both get the finished
   // portrait, drawn once: no loop, no lens.
@@ -53,7 +53,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   const flickUntil = new Map(); // cell → [expiry ms, glyph]
   let idleStart = performance.now();
   let waveStart = performance.now();
-  let waving = wave;
+  let waving = wave, waveStarted = false;
   let raf = 0, running = false, onScreen = true, destroyed = false, layoutToken = 0;
 
   const setFont = (c) => {
@@ -270,7 +270,12 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   function drawFrame(now) {
     if (!field) return; // no layout yet (e.g. a zero-size stage)
     if (waving) {
+      // Before waveStart (curtain still down) every cell is still skeleton.
       const t = (now - waveStart) / 1000;
+      if (t >= 0 && !waveStarted) {
+        waveStarted = true;
+        onWaveStart();
+      }
       if (t < LOADER_S) drawWave(t);
       else {
         waving = false;
@@ -357,7 +362,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     await layout();
     if (destroyed) return;
-    waveStart = performance.now();
+    waveStart = Math.max(performance.now(), waveAt);
     restTimer = setTimeout(() => {
       buildRest();
       if (!running) blitRest();
@@ -371,10 +376,6 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
 
   return {
     ready,
-    faceViewportPoint() {
-      const r = wrapper.getBoundingClientRect();
-      return { x: r.left + r.width * FACE.u, y: r.top + r.height * FACE.v };
-    },
     destroy() {
       destroyed = true;
       photo.close();
@@ -399,32 +400,30 @@ export default function HeroPortrait({ className = "" }) {
   useEffect(() => {
     let portrait = null;
     let cancelled = false;
-    // next/font hashes the family names, so read the real ones from their variables.
-    const styles = getComputedStyle(document.documentElement);
-    const family = styles.getPropertyValue("--font-jetbrains-mono").trim() || "monospace";
-    const serif = styles.getPropertyValue("--font-instrument-serif").trim() || "serif";
+    // The curtain (IntroStamp, mounted alongside) lifts INTRO_OFFSET after
+    // hydration — the wave starts then, together with the hero's float-in.
+    const liftAt = performance.now() + INTRO_OFFSET * 1000;
+    // next/font hashes the family name, so read the real one from its variable.
+    const family = getComputedStyle(document.documentElement).getPropertyValue("--font-jetbrains-mono").trim() || "monospace";
     // Fetched as a blob so every decode and resize runs in createImageBitmap,
     // off the main thread. `photo` is the full-colour image for the lens.
     const blob = fetch(SRC).then((r) => {
       if (!r.ok) throw new Error(`portrait ${r.status}`);
       return r.blob();
     });
-    // The wave also waits for the name's serif (both styles): DecodeText
-    // freezes letter widths when it starts, so it must not start on the
-    // fallback font. The 2.5 s slow-load cut-off still applies.
-    const fonts = [`700 6px ${family}`, `400 16px ${serif}`, `italic 400 16px ${serif}`].map((f) => document.fonts.load(f));
-    Promise.all([blob, blob.then((b) => createImageBitmap(b)), ...fonts])
+    Promise.all([blob, blob.then((b) => createImageBitmap(b)), document.fonts.load(`700 6px ${family}`)])
       .then(async ([b, photo]) => {
         if (cancelled) {
           photo.close();
           return;
         }
         // Nobody would see the wave from a background tab or a landing below
-        // the hero (/#work), so don't play it — and don't ask the gate, which
-        // would spend the session's one loader on it.
+        // the hero (/#work): show the finished portrait instead.
         const r = wrapperRef.current.getBoundingClientRect();
         const seen = document.visibilityState === "visible" && r.bottom > 0 && r.top < window.innerHeight;
-        const play = seen && shouldPlayLoader();
+        // Forced colours still gets the curtain, but its portrait is static.
+        const still = window.matchMedia("(forced-colors: active)").matches;
+        const play = seen && !still && shouldPlayIntro();
         const wave = play && performance.now() <= LATE_MS;
         portrait = createPortrait({
           wrapper: wrapperRef.current,
@@ -434,12 +433,13 @@ export default function HeroPortrait({ className = "" }) {
           family,
           onLayout: (cols, rows) => setGrid(`${cols} × ${rows}`),
           wave,
+          waveAt: liftAt,
+          onWaveStart: () => setState("wave"),
           onWaveEnd: () => setState("static"),
         });
         await portrait.ready;
-        if (cancelled) return;
-        if (wave) heroWave.start(performance.now(), portrait.faceViewportPoint());
-        setState(wave ? "wave" : play ? "skipped" : "static");
+        if (cancelled || wave) return; // the wave reports its own states
+        setState(play ? "skipped" : "static");
       })
       .catch(() => {
         if (!cancelled) setState("error");

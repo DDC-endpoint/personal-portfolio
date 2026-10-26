@@ -44,7 +44,7 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 
 - **Stack:** Next.js 16.4 (App Router, Turbopack), React 19.3, Tailwind 4.3, framer-motion 14.6, GSAP 3.15, Lenis 1.3, OGL. Next 16 has breaking changes, so read `node_modules/next/dist/docs/` before writing framework code.
 - **Existing pieces to build on or replace:**
-  - `IntroStamp` (SSR curtain loader): replaced by the hero wave.
+  - `IntroStamp` (SSR curtain loader): kept, on every load of Home. The portrait's wave starts as it lifts (Damian, 2026-10-27).
   - `EagerReveal` (SSR-visible text with replayed entrance): reuse its approach.
   - `SplitLines`, `Reveal`, `Parallax`.
   - `SmoothScroll` (Lenis).
@@ -72,7 +72,7 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 - **Link hover:** mono buttons (e.g. `SERVICES →`, `Request CV`) briefly scramble and resolve. Links that already have the underline draw (the nav links, "Services & pricing", serif text links) keep only the underline and don't scramble (Damian, 2026-10-27).
 - **Cursor lens:** when the ring grows into the lens, the centre dot disappears (Damian, 2026-10-27).
 - **Page transition (Home ↔ `/services`):** glyph dissolve, about 0.6 s. The outgoing page breaks into blue characters and the incoming page decodes in through the same wave as the hero loader.
-  - It also applies to in-page links between the two pages, such as `/#work`, and to reloads after the first visit of a session.
+  - It also applies to in-page links between the two pages, such as `/#work`. Reloads get the curtain instead (Damian, 2026-10-27).
   - Arriving on Home this way never replays the 2.4 s portrait wave: the portrait is already drawn.
   - Builder's call: client-side navigation with a persistent transition overlay, rather than full reloads with a timed exit.
 - **Cursor:** the existing ring and dot. Over the hero portrait the ring grows into the lens (see Hero).
@@ -103,7 +103,7 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
   - Mobile order: kicker → name → portrait → lede → a full-width SERVICES button.
   - Exact values are in `hero-portrait.md` → Layout.
 - **Rendering:** a canvas ASCII portrait made from the processed studio headshot. Glyph ramp ` .·:;-=+*#%@`, cell 4, mono electric blue. Shading uses tints of electric blue rather than opacity. The bottom and shoulders fade out.
-- **Loader:** plays on the **first visit per browser session** only. A 2.4 s wave spreads from the face outward, from skeleton blocks through a noise front to the final glyphs. The hero text decodes as the wave reaches it, and this replaces `IntroStamp`. Hero text must be server-rendered and visible to LCP from the first paint.
+- **Loader (revised 2026-10-27):** the existing `IntroStamp` curtain plays on every load or reload of Home. As it lifts, a 2.4 s wave builds the portrait from the face outward, from skeleton blocks through a noise front to the final glyphs, and the hero text floats in as on the live site (no letter decode). Hero text must be server-rendered and visible to LCP from the first paint.
 - **Idle:** a scan band sweeps down every 6 s, plus sparse character flicker.
 - **Lens:** the cursor ring grows into a lens about 120 px in radius that shows the full-colour photo. It has a thin ring and an `x · y` readout. Touch: drag on the portrait to move the lens.
 
@@ -242,7 +242,7 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 1. `v3` is the integration branch, already created from `main` at `8cad99b`. It holds these docs.
 2. One branch and PR per phase, merged **into `v3`**:
-   - **Phase 1:** motion system primitives (decode, label decode, link scramble), the hero portrait plus the loader that replaces IntroStamp, the cursor-lens, and Marquee removal.
+   - **Phase 1:** motion system primitives (decode, label decode, link scramble), the hero portrait plus its loader wave (with the IntroStamp curtain kept), the cursor-lens, and Marquee removal.
    - **Phase 2:** Projects.
    - **Phase 3:** Timeline, Lens and Contact. For the Lens, run the 6 new originals in `assets/photography-originals/` through `npm run optimize-photos`, check for no EXIF/GPS, and add them with the captions and placement from the Lens table.
    - **Phase 4:** copy refresh across Home, the remaining quiet-section upgrades (Leadership rows, Skills terminal), `/services`, and the page transition.

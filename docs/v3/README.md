@@ -17,7 +17,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 ### The next step
 
-1. Damian reviews Phase 1 on `v3-phase-1`. Run `npm run dev`, then open `/` in a fresh tab (the loader plays once per browser session).
+1. Damian reviews Phase 1 on `v3-phase-1`. Run `npm run dev`, then open `/`. The curtain and the portrait wave play on every reload.
 2. Pushing needs Damian's OK, because `v3` has never been pushed. With it: `git push -u origin v3`, `git push -u origin v3-phase-1`, then open a PR into **`v3`**.
 3. Write the Phase 2 plan (Projects) with `superpowers:writing-plans` and save it as `docs/v3/plan-phase-2.md`.
 
