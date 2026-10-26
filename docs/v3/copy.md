@@ -15,7 +15,7 @@ Lines marked **(keep)** stay exactly as they are. Questions for Damian are at th
 - Lede
   - Now: Reading *BSc (Hons) Computer Science* at the Informatics Institute of Technology, Colombo — University of Westminster's campus in Sri Lanka. Building things on the internet at the seam of code, design, and curiosity.
   - **New:** In my second year of *BSc (Hons) Computer Science* at the Informatics Institute of Technology, Colombo, the University of Westminster's campus in Sri Lanka. Building things on the internet at the seam of code, design and curiosity.
-- "Currently" line **(keep)**: learning, shipping, breaking things.
+- "Currently" line: **removed** (Damian, builder review). The hero's right side is now the portrait.
 
 ### § 01 About
 
@@ -184,7 +184,7 @@ Service descriptions (titles, "includes" lists, prices and turnarounds unchanged
 - Removed filler and repetition ("personal projects and freelance web design and development", "itself", "publicly", "the spark that started this whole journey").
 - Softened one vague claim ("ship things that matter to a community" → "deliver them for a community").
 - Replaced "roadmap" with "plan" and "days, not months" with "within days".
-- Kept every heading, the "Currently" line, the footer tagline, all prices, turnarounds and the deposit policy's meaning.
+- Kept every heading, the footer tagline, all prices, turnarounds and the deposit policy's meaning.
 
 ## Answered (2026-10-26)
 

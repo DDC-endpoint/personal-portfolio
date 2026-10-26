@@ -28,14 +28,14 @@ Every decision made in the V3 design conversation (2026-10-26), with the reason 
 
 See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of Damian's calls:
 
-- Portrait in the **right column**; hero copy stays on the left **exactly like the current site** (kicker, DAMIAN / *de* CRUZ., lede, corner metadata).
+- Portrait in the **right column**; hero copy stays on the left **like the current site** (kicker, DAMIAN / *de* CRUZ., lede, corner metadata, SERVICES button, blobs). The "Currently" line and scroll indicator are removed; see "Builder review answers" below.
 - Rendered as **ASCII glyphs**, full face visible at rest (no "mystery" silhouette), finest grid (cell 4), **mono electric blue** (`#2563EB`).
 - **Bottom and shoulders fade out** (strong fade, starting around chest level) so it doesn't end abruptly.
-- **Loader:** the ASCII wave reveals the whole hero (~2.4s) and replaces today's intro curtain.
+- **Loader:** the ASCII wave reveals the whole hero (~2.4s) and replaces today's intro curtain. It plays on the first visit per browser session only.
 - **Idle:** slow scan band every 6s + sparse character flicker.
 - **Hover:** the site's existing cursor (ring + dot) expands into a **lens** showing the **full-colour photo**, radius ~120px (about 40% on the prototype slider). Thin ring + small `x · y` coordinates; no scrambled edge.
 - **Touch:** drag on the portrait moves the lens.
-- **Mobile order:** kicker → name → portrait → lede.
+- **Mobile order:** kicker → name → portrait → lede → full-width SERVICES button.
 - **Dark mode:** bright electric blue glyphs (`#3B82F6`) on navy.
 - **Label** "PORTRAIT · 160 × 130 CELLS" above the portrait stays.
 - **Photo:** the ChatGPT-edited studio headshot (navy suit, light blue shirt, navy tie, plain grey background). Publishing a processed, EXIF-free copy is approved.
@@ -59,9 +59,9 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Interact District 3220 (Damian):** client project, `https://www.interactdistrict3220.org/`, site not live yet.
 - **ai-studio (Damian):** keep it mysterious: title + "In the works · 2026", no description.
 - **Coursework Archive:** dropped (two real upcoming projects beat a placeholder).
-- **Upcoming cards:** no links until live. Shown as skeletons that never decode; on hover they scramble and stay skeletons with a "loading… 2026 →" label. When a site launches, flip its status to live and it gets the full treatment.
-- **Skeleton previews (Damian):** traced from each site's real layout (screenshot the live site, hand-trace nav/hero/cards/footer as a skeleton in the blue palette), so each is recognisable.
-- **Motion (Damian):** section pins; scrolling drives a tilted strip of previews diagonally across the viewport (~3 screens of scroll), then releases. Mobile: normal vertical stack with the same tilt.
+- **Upcoming cards:** no links until live. Shown as **generic** skeletons (no unreleased client design in the public repo) that never decode; on hover they scramble and stay skeletons with a "loading… 2026 →" label. When a site launches, flip its status to live and it gets the full treatment.
+- **Skeleton previews (Damian):** for live sites, traced from each site's real layout (screenshot the live site, hand-trace nav/hero/cards/footer as a skeleton in the blue palette), so each is recognisable.
+- **Motion (Damian):** section pins; scrolling drives a tilted strip of previews diagonally across the viewport (~3 screens of scroll), then releases. Mobile: a vertical stack of full-width level cards with an alternating sideways offset (builder's call, after review).
 - **Hover/tap (Damian):** the skeleton decodes through characters into a real screenshot of the site, plus title/year/tags. Click opens the live site in a new tab.
 - **Card frame (Damian):** each skeleton sits in a minimal browser window — three dots + the site's domain in a mono address bar.
 - **Card label (Damian):** small mono label under each card: number — title — year (e.g. `03 — Aloys Travels — 2026`). Tags and blurb appear on hover.
@@ -87,7 +87,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Layout (Damian, revised twice on 2026-10-26):** a compact mixed-size grid. There are 6 columns of small 3:4 tiles, two 2×2 hero tiles (Sigiriya, Storm light) and a text tile with the Instagram link. Captions appear on hover on desktop. Damian rejected two earlier versions: the big editorial spread ("massive pictures") and the equal five-across grid (wanted mixed sizes that look cleaner). Frame 01's baked-in camera frame stays. Later the same day: full content width, a hairline border + ivory mat on every tile, no zoom or lift on hover, and instead a highlighter line that traces the frame clockwise (Damian). Phones put captions below the photo in the mat, and a tap runs a quick trace before the viewer opens (Damian). **Gallery locked.**
 - **Wow:** each photo "develops" from a blue halftone into full colour as it scrolls into view.
 - **Viewer (Damian):** click opens a full-screen viewer expanding from the photo's spot; arrow keys / swipe for next, Esc or click to close.
-- **More photos (Damian):** Damian will add more; design the grid for 6–10 photos. New originals go in `assets/photography-originals/` and through `npm run optimize-photos` (EXIF stripped) before commit.
+- **More photos (Damian):** delivered 2026-10-26. There are 6 new originals, now in `assets/photography-originals/` (gitignored), for 10 in total. They go through `npm run optimize-photos` (EXIF/GPS stripped) before commit.
 - **Halftone (Damian):** round electric-blue dots sized by tone, like a print screen, resolving into the full-colour photo.
 - **Replay (Damian):** develops **every time** it scrolls into view; scrolling away returns it to halftone.
 - **Photos, order and captions (Damian, 2026-10-26):** 10 photos (4 existing + 6 new), with captions chosen by Damian. Placement was curated by Claude for colour and day/night rhythm. The full table is in `design.md` → Lens.
@@ -99,7 +99,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Card colour (Damian):** electric blue with ivory text.
 - **Growth (Damian):** scroll-scrubbed — expands as you scroll down, shrinks back as you scroll up.
 - **Card content (Damian):** headline + email and WhatsApp buttons + the pulsing availability badge (`Available · 2026`) + social links (LinkedIn, GitHub, Instagram, Discord) + a live `Colombo · hh:mm` clock.
-- **Headline:** decided in the copy refresh (Claude drafts options; "Let's talk." is one of them).
+- **Headline (Damian):** "Got something in *mind*?" (chosen in the copy refresh over "Let's talk." and "Say hello.").
 
 ## Copy refresh
 
@@ -119,7 +119,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Dark-mode orb (Damian):** dimmed, because it clashed with the blue glyphs.
 - **Mobile SERVICES button (Damian):** shown full width under the lede.
 - **Loader frequency (Damian):** first visit per browser session. Otherwise the 0.6 s transition plays and the portrait is already drawn.
-- **Gallery photos (Damian):** more coming before Phase 3.
+- **Gallery photos (Damian):** more coming before Phase 3. They were delivered the same day, so the gallery is designed around the real set of 10.
 - **Upcoming project cards (Damian):** generic skeletons, so no unreleased client design is published.
 - **Builder's calls:**
   - Mobile Projects uses an alternating sideways offset instead of a tilted path.
@@ -130,13 +130,22 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 
 - **Custom canvas renderer, not the `ascii-reveal` npm package.** The package is v0.3, three weeks old, single maintainer, and has no hooks for the palette, the lens, or dark mode.
 - **Hero text stays in the server HTML** under the loader, so LCP is unaffected (see the 2026-07-18 perf pass: mobile LCP floor is fonts).
-- **Reduced motion:** no loader wave, no idle animation, no lens; the portrait renders static. Exact behaviour per section still to specify.
+- **Reduced motion:** see Scope. The static final state is now specified per section.
 
-## Open questions (continue here)
+## Status and next step (continue here)
 
-Section design is settled as of 2026-10-26. Remaining:
+As of 2026-10-26 every area is designed, the copy is approved, the builder review is resolved and the gallery is locked.
 
-- **Copy drafts** for every section on Home and `/services` (then `/no-ai-slop`, then Damian's approval). Written to `docs/v3/copy.md`, current vs proposed side by side.
-- Then: consolidate into `docs/v3/design.md`, independent builder review, Damian's approval, implementation plan.
-
-Builder's calls not yet confirmed by Damian (flag in the design doc): timeline mobile layout keeps the thread on the left edge; nav, scroll progress bar and footer keep their current form apart from the shared label/hover upgrades; performance budget = no regression on the current Lighthouse mobile scores (mobile LCP floor is fonts); Instagram link stays under the gallery.
+- **Waiting on:** Damian's approval of [`design.md`](design.md). It was asked at the end of the session and is not yet answered.
+- **After approval:** write the Phase 1 implementation plan with the `superpowers:writing-plans` skill. Phase 1 covers the motion primitives, the hero portrait and loader, the cursor lens, and Marquee removal.
+- **Builder's calls Damian hasn't explicitly confirmed** (they are listed in `design.md`; confirm them during approval):
+  1. Custom canvas renderer for the portrait, not `ascii-reveal`.
+  2. Client-side page transitions with a persistent overlay, which also cover links like `/#work`.
+  3. Mobile Projects uses an alternating sideways offset.
+  4. `/services` "How it works" becomes one column.
+  5. Project screenshots are WebP captures at 1440×900.
+  6. Keyboard focus decodes a project card, and Enter opens the site.
+  7. The timeline thread runs on the left edge on mobile.
+  8. Nav, scroll progress bar and footer keep their current form.
+  9. Lighthouse mobile scores show no regression against `main` (measured on production builds).
+  10. If photos are late, Timeline and Contact come before the Lens. This is moot now that the photos are in.

@@ -34,7 +34,7 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 
 ## Anti-goals (failure even if it "works")
 
-- **Anything that reads as AI-template.** The Marquee was removed for exactly this reason. Avoid generic gradients, marquees and stock "bento" filler.
+- **Anything that reads as AI-template.** The Marquee was removed for exactly this reason. Avoid generic gradients, marquees and stock "bento" filler. The Lens gallery's mixed grid is deliberate: every tile is a real photo, framed like the live site.
 - **Decode effects everywhere.** If every heading scrambles, none of them are special.
 - **Motion that gets in the way of reading or clicking**, or that runs while you're trying to read.
 - **A slower first paint.** The 2026-07-18 perf pass established that mobile LCP is bounded by font loading. Real text must be in the server HTML from the first paint, and effects replay over it.
@@ -204,12 +204,11 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
     - In the prototype it's an SVG `rect` with `pathLength=1`, animating `stroke-dashoffset` from 1 to 0.
   - **Mobile:** two columns. Hero tiles and the text tile span both columns, and each tile's height follows its photo plus the caption underneath.
   - The 4 existing photos are in `public/photography/`. The 6 new originals are in `assets/photography-originals/` (gitignored) and must go through `npm run optimize-photos` before commit.
-- **Caption:** place + month (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number, in mono.
 - **Develop:**
   - Each photo starts as a halftone of round electric-blue dots sized by tone, and resolves into full colour as it scrolls into view.
   - This replays every time: scrolling away returns it to halftone.
 - **Viewer:** clicking opens a full-screen viewer that expands from the photo's spot. Arrow keys or swipe move between photos; Esc or a click closes it.
-- The Instagram link and the "Private account" note stay under the grid.
+- The Instagram link and the "Private account" note live in the grid's text tile; there's no separate footer row under the grid any more.
 
 ### 9. Contact (wow)
 
@@ -244,7 +243,7 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 2. One branch and PR per phase, merged **into `v3`**:
    - **Phase 1:** motion system primitives (decode, label decode, link scramble), the hero portrait plus the loader that replaces IntroStamp, the cursor-lens, and Marquee removal.
    - **Phase 2:** Projects.
-   - **Phase 3:** Timeline, Lens and Contact.
+   - **Phase 3:** Timeline, Lens and Contact. For the Lens, run the 6 new originals in `assets/photography-originals/` through `npm run optimize-photos`, check for no EXIF/GPS, and add them with the captions and placement from the Lens table.
    - **Phase 4:** copy refresh across Home, the remaining quiet-section upgrades (Leadership rows, Skills terminal), `/services`, and the page transition.
 3. Test `v3` after every merge: golden path, mobile, reduced motion and a Lighthouse mobile run.
 4. When all phases are in, merge `v3` to `main`, which triggers the redeploy.
@@ -260,5 +259,5 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 - Implementation choices: canvas vs WebGL for the portrait and halftones; GSAP ScrollTrigger vs framer-motion for pinning and scrubbing; component structure; how the skeletons are authored (hand-written SVG/JSX per site is expected).
 - Exact easing curves and durations not specified here, within the existing `lib/motion.js` vocabulary.
-- How many photos fit the gallery's asymmetric pattern at each breakpoint.
+- How the gallery grid absorbs photos beyond these 10 later. Adding photos must not need a redesign; extra rows of single tiles are fine.
 - Any performance tactics: pausing canvases off-screen, lowering cell density on low-end devices, lazy-loading screenshots.
