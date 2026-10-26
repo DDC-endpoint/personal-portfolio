@@ -2,6 +2,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import EagerReveal from "./EagerReveal";
+import HeroPortrait from "./HeroPortrait";
 import { EASE, INTRO_OFFSET, shouldPlayIntro } from "@/lib/motion";
 
 function Word({ children, delay = 0 }) {
@@ -129,6 +130,10 @@ export default function Hero() {
           </EagerReveal>
         </div>
       </motion.div>
+
+      <div className="hidden md:block absolute bottom-0 right-[calc(40px+5vw)] w-[min(40vw,72vh,calc((100vh-190px)*0.8))] aspect-[4/5]">
+        <HeroPortrait />
+      </div>
 
       {/* scroll indicator — purely decorative, hidden from assistive tech */}
       <motion.div
