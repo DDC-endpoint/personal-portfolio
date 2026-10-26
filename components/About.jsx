@@ -1,7 +1,7 @@
 "use client";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
-import { DecodeLabel, ScrambleText } from "./Scramble";
+import { DecodeLabel } from "./Scramble";
 
 export default function About() {
   return (
@@ -39,7 +39,7 @@ export default function About() {
                 data-hover
                 className="group mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-electric link-line"
               >
-                <ScrambleText text="Services & pricing" />
+                Services &amp; pricing
                 <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
               </a>
             </Reveal>

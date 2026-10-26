@@ -81,3 +81,60 @@ test("reduced motion has no lens", async ({ page }, info) => {
   await expect(page.locator(".cursor-ring")).not.toHaveClass(/is-lens/);
   expect(await warmAt(page, p)).toBe(0);
 });
+
+test("the cursor dot disappears inside the lens", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  const p = await face(page);
+  const dot = page.locator(".cursor-dot");
+  await page.mouse.move(p.x - 40, p.y);
+  await page.mouse.move(p.x, p.y, { steps: 5 });
+  await expect.poll(() => dot.evaluate((el) => getComputedStyle(el).opacity), { timeout: 1000 }).toBe("0");
+  await page.mouse.move(20, 450, { steps: 5 });
+  await expect.poll(() => dot.evaluate((el) => getComputedStyle(el).opacity), { timeout: 1000 }).toBe("1");
+});
+
+test("hovering the cell-count label doesn't grow the ring", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await page.locator("[data-portrait-label]").hover();
+  await page.waitForTimeout(300);
+  await expect(page.locator(".cursor-ring")).not.toHaveClass(/is-lens/);
+});
+
+test("with the lens off the portrait stops measuring itself", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.addInitScript(() => {
+    window.__measures = 0;
+    const orig = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function () {
+      if (this.tagName === "CANVAS") window.__measures++;
+      return orig.call(this);
+    };
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  const p = await face(page);
+  await page.mouse.move(p.x - 40, p.y);
+  await page.mouse.move(p.x, p.y, { steps: 5 });
+  await page.waitForTimeout(400);
+  await page.mouse.move(20, 450, { steps: 5 });
+  await page.waitForTimeout(2000); // lens fades out
+  await page.evaluate(() => (window.__measures = 0));
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.__measures)).toBe(0);
+});
+
+test("forced colours has no lens", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  const p = await face(page);
+  await page.mouse.move(p.x - 40, p.y);
+  await page.mouse.move(p.x, p.y, { steps: 5 });
+  await page.waitForTimeout(500);
+  expect(await warmAt(page, p)).toBe(0);
+});

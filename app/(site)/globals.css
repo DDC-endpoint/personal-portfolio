@@ -193,7 +193,8 @@
   transform: translate(-50%, -50%);
   mix-blend-mode: difference;
 }
-.cursor-dot  { width: 6px; height: 6px; background: #F6F6F1; }
+.cursor-dot  { width: 6px; height: 6px; background: #F6F6F1; transition: opacity .2s; }
+.cursor-dot.is-hidden { opacity: 0; }
 .cursor-ring { width: 36px; height: 36px; border: 1px solid #F6F6F1; transition: width .25s, height .25s, opacity .25s; }
 /* Over the hero portrait the ring becomes the lens's thin electric rim */
 .cursor-ring.is-lens { border-color: rgb(var(--c-electric) / .5); mix-blend-mode: normal; }

@@ -1,10 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-// First-visit checks depend on load timing: the loader is skipped by design
-// when the page is ready later than 2.5 s, which an unminified dev build
-// under parallel workers occasionally is. Retry rather than loosen the gate.
-test.describe.configure({ retries: 2 });
-
 const KICKER = "Creative Technologist · Freelance Web Designer";
 const portrait = (page) => page.locator("[data-portrait]");
 const kicker = (page) => page.locator("[data-hero-kicker]");
@@ -21,22 +16,6 @@ async function recordStates(page) {
     }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-state"], childList: true });
   });
 }
-
-test("first visit plays the wave, a reload in the same session is static", async ({ page }) => {
-  await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
-  await expect(kicker(page)).toHaveAttribute("aria-busy", "true");
-  await expect(letters(page)).toHaveText(KICKER, { timeout: 4000 });
-  await expect(kicker(page)).not.toHaveAttribute("aria-busy");
-  await expect(portrait(page)).toHaveAttribute("data-state", "static");
-
-  await recordStates(page);
-  await page.reload();
-  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
-  await page.waitForTimeout(500);
-  expect(await page.evaluate(() => window.__states)).not.toContain("wave");
-  await expect(letters(page)).toHaveText(KICKER);
-});
 
 test("slow image skips the wave", async ({ page }) => {
   await page.route("**/hero/portrait.webp", async (r) => {
@@ -70,28 +49,6 @@ test("no IntroStamp", async ({ page, request }) => {
   expect(await (await request.get("/")).text()).not.toContain("intro-stamp");
 });
 
-test("the hero decode never shifts layout", async ({ page }) => {
-  await page.addInitScript(() => {
-    window.__cls = 0;
-    new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
-    }).observe({ type: "layout-shift", buffered: true });
-  });
-  await page.goto("/");
-  await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
-  await expect(letters(page)).toHaveText(KICKER, { timeout: 4000 });
-  await expect(portrait(page)).toHaveAttribute("data-state", "static");
-  expect(await page.evaluate(() => window.__cls)).toBeLessThan(0.01);
-});
-
-test("screen readers get the real hero text mid-decode", async ({ page }) => {
-  await page.goto("/");
-  await expect(kicker(page)).toHaveAttribute("aria-busy", "true", { timeout: 10000 });
-  const snap = await page.locator("#top").ariaSnapshot();
-  expect(snap).toContain(KICKER);
-  expect(snap).toMatch(/heading "Damian\s*de\s*Cruz\." \[level=1\]/);
-});
-
 test("a hidden tab doesn't spend the session's loader", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(document, "visibilityState", { get: () => "hidden" });
@@ -105,5 +62,92 @@ test("a hidden tab doesn't spend the session's loader", async ({ page }) => {
 test("landing below the hero doesn't spend the session's loader", async ({ page }) => {
   await page.goto("/#about");
   await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  expect(await page.evaluate(() => sessionStorage.getItem("ddc:loader-played"))).toBeNull();
+});
+
+// These need a prompt first load: the loader is skipped by design when the
+// page is ready later than 2.5 s, which an unminified dev build under
+// parallel workers occasionally is. Only these retry; the gate isn't loosened.
+test.describe("first visit (timing-dependent)", () => {
+  test.describe.configure({ retries: 2 });
+
+  test("first visit plays the wave, a reload in the same session is static", async ({ page }) => {
+    await page.goto("/");
+    await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
+    await expect(kicker(page)).toHaveAttribute("aria-busy", "true");
+    await expect(letters(page)).toHaveText(KICKER, { timeout: 4000 });
+    await expect(kicker(page)).not.toHaveAttribute("aria-busy");
+    await expect(portrait(page)).toHaveAttribute("data-state", "static");
+
+    await recordStates(page);
+    await page.reload();
+    await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.__states)).not.toContain("wave");
+    await expect(letters(page)).toHaveText(KICKER);
+  });
+
+  test("the hero decode never shifts layout", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__cls = 0;
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await page.goto("/");
+    await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
+    await expect(letters(page)).toHaveText(KICKER, { timeout: 4000 });
+    await expect(portrait(page)).toHaveAttribute("data-state", "static");
+    expect(await page.evaluate(() => window.__cls)).toBeLessThan(0.01);
+  });
+
+  test("screen readers get the real hero text mid-decode", async ({ page }) => {
+    await page.goto("/");
+    await expect(kicker(page)).toHaveAttribute("aria-busy", "true", { timeout: 10000 });
+    const snap = await page.locator("#top").ariaSnapshot();
+    expect(snap).toContain(KICKER);
+    expect(snap).toMatch(/heading "Damian\s*de\s*Cruz\." \[level=1\]/);
+  });
+
+  test("the wave waits for the display font", async ({ page, request }) => {
+    // Delay only Instrument Serif: letter widths are frozen when the wave
+    // starts, so it must not start on the fallback serif.
+    const html = await (await request.get("/")).text();
+    const sheets = [...html.matchAll(/href="([^"]+\.css[^"]*)"/g)].map((m) => m[1]);
+    const serif = [];
+    for (const href of sheets) {
+      const css = await (await request.get(href)).text();
+      for (const face of css.matchAll(/@font-face\s*\{[^}]*Instrument Serif[^}]*\}/g)) {
+        for (const u of face[0].matchAll(/url\(([^)]+)\)/g)) serif.push(u[1].replace(/["']/g, "").split("/").pop());
+      }
+    }
+    expect(serif.length).toBeGreaterThan(0);
+    for (const u of serif) {
+      await page.route(`**/${u}`, async (r) => {
+        await new Promise((res) => setTimeout(res, 1000));
+        await r.continue();
+      });
+    }
+    await page.addInitScript(() => {
+      new MutationObserver(() => {
+        const k = document.querySelector("[data-hero-kicker][aria-busy='true']");
+        if (k && window.__serifAtWave === undefined) {
+          const fam = getComputedStyle(document.documentElement).getPropertyValue("--font-instrument-serif").trim();
+          window.__serifAtWave = document.fonts.check(`400 16px ${fam}`);
+        }
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["aria-busy"] });
+    });
+    await page.goto("/");
+    await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
+    expect(await page.evaluate(() => window.__serifAtWave)).toBe(true);
+  });
+});
+
+test("forced colours: no wave, session not spent", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await recordStates(page);
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  expect(await page.evaluate(() => window.__states)).not.toContain("wave");
   expect(await page.evaluate(() => sessionStorage.getItem("ddc:loader-played"))).toBeNull();
 });

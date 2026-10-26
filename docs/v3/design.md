@@ -69,7 +69,8 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 
 - **Decode primitive:** text or a canvas region resolves from noise characters to its final state. Noise set: `A–Z` (no I/O), `0–9`, `#$%&@*+=<>/\`. Text decode works letter by letter, with letters grouped per word so lines break only between words. Shared by the hero loader, section labels, link hover, timeline years and project skeletons.
 - **Section labels** (`§ 0N — …`) decode in when they enter view. **Serif section titles** keep the existing line-by-line rise (`SplitLines`).
-- **Link hover:** nav links and mono buttons (e.g. `SERVICES →`) briefly scramble and resolve. Serif text links keep the underline draw.
+- **Link hover:** mono buttons (e.g. `SERVICES →`, `Request CV`) briefly scramble and resolve. Links that already have the underline draw (the nav links, "Services & pricing", serif text links) keep only the underline and don't scramble (Damian, 2026-10-27).
+- **Cursor lens:** when the ring grows into the lens, the centre dot disappears (Damian, 2026-10-27).
 - **Page transition (Home ↔ `/services`):** glyph dissolve, about 0.6 s. The outgoing page breaks into blue characters and the incoming page decodes in through the same wave as the hero loader.
   - It also applies to in-page links between the two pages, such as `/#work`, and to reloads after the first visit of a session.
   - Arriving on Home this way never replays the 2.4 s portrait wave: the portrait is already drawn.

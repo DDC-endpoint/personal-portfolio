@@ -39,7 +39,9 @@ const css = ([r, g, b]) => `rgb(${r},${g},${b})`;
 
 function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, onWaveEnd }) {
   const ctx = canvas.getContext("2d");
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Reduced motion and forced colours (high contrast) both get the finished
+  // portrait, drawn once: no loop, no lens.
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active)").matches;
   const { font, cw, ch } = cellSize();
   let W = 0, H = 0, dpr = 1, cols = 0, rows = 0, n = 0;
   let field = null, fade = null, rest = null, reveal = null, fadeMask = null;
@@ -95,11 +97,13 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     cols = c;
     rows = rw;
     n = cols * rows;
+    // Sized to the grid, not the bitmap: a browser that ignores the resize
+    // options hands back the full image, which drawImage then scales.
     const sample = document.createElement("canvas");
-    sample.width = bitmap.width;
-    sample.height = bitmap.height;
+    sample.width = c * SUPERSAMPLE;
+    sample.height = rw * SUPERSAMPLE;
     const sx = sample.getContext("2d", { willReadFrequently: true });
-    sx.drawImage(bitmap, 0, 0);
+    sx.drawImage(bitmap, 0, 0, sample.width, sample.height);
     bitmap.close();
     field = buildField(sx.getImageData(0, 0, sample.width, sample.height).data, cols, rows, SUPERSAMPLE);
     fade = new Float32Array(n);
@@ -148,7 +152,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (rest) ctx.drawImage(rest, 0, 0);
+    if (rest?.width && rest.height) ctx.drawImage(rest, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     setFont(ctx);
   }
@@ -219,6 +223,9 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   }
 
   function drawLens() {
+    // Strength first: with the lens off, nothing below runs (no layout reads).
+    lens.s += ((lens.on ? 1 : 0) - lens.s) * STRENGTH_EASE;
+    if (lens.s < 0.01) return;
     if (lens.own) {
       lens.x += (lens.tx - lens.x) * FOLLOW;
       lens.y += (lens.ty - lens.y) * FOLLOW;
@@ -227,8 +234,6 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
       lens.x = ring.x - r.left;
       lens.y = ring.y - r.top;
     }
-    lens.s += ((lens.on ? 1 : 0) - lens.s) * STRENGTH_EASE;
-    if (lens.s < 0.01) return;
     // clear the glyphs under the lens
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "destination-out";
@@ -347,6 +352,9 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   // observers and pointer listeners only start once there is a field.
   const ready = (async () => {
     readTheme();
+    // Watch the theme from the start: a switch during the async first layout
+    // must still land in the rest canvas.
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     await layout();
     if (destroyed) return;
     waveStart = performance.now();
@@ -355,7 +363,6 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
       if (!running) blitRest();
     }, 0);
     ro.observe(wrapper);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     io.observe(wrapper);
     document.addEventListener("visibilitychange", sync);
     if (!reduced) for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn);
@@ -370,6 +377,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     },
     destroy() {
       destroyed = true;
+      photo.close();
       cancelAnimationFrame(raf);
       cancelAnimationFrame(pending);
       clearTimeout(restTimer);
@@ -391,17 +399,26 @@ export default function HeroPortrait({ className = "" }) {
   useEffect(() => {
     let portrait = null;
     let cancelled = false;
-    // next/font hashes the family name, so read the real one from its variable.
-    const family = getComputedStyle(document.documentElement).getPropertyValue("--font-jetbrains-mono").trim() || "monospace";
+    // next/font hashes the family names, so read the real ones from their variables.
+    const styles = getComputedStyle(document.documentElement);
+    const family = styles.getPropertyValue("--font-jetbrains-mono").trim() || "monospace";
+    const serif = styles.getPropertyValue("--font-instrument-serif").trim() || "serif";
     // Fetched as a blob so every decode and resize runs in createImageBitmap,
     // off the main thread. `photo` is the full-colour image for the lens.
     const blob = fetch(SRC).then((r) => {
       if (!r.ok) throw new Error(`portrait ${r.status}`);
       return r.blob();
     });
-    Promise.all([blob, blob.then((b) => createImageBitmap(b)), document.fonts.load(`700 6px ${family}`)])
+    // The wave also waits for the name's serif (both styles): DecodeText
+    // freezes letter widths when it starts, so it must not start on the
+    // fallback font. The 2.5 s slow-load cut-off still applies.
+    const fonts = [`700 6px ${family}`, `400 16px ${serif}`, `italic 400 16px ${serif}`].map((f) => document.fonts.load(f));
+    Promise.all([blob, blob.then((b) => createImageBitmap(b)), ...fonts])
       .then(async ([b, photo]) => {
-        if (cancelled) return;
+        if (cancelled) {
+          photo.close();
+          return;
+        }
         // Nobody would see the wave from a background tab or a landing below
         // the hero (/#work), so don't play it — and don't ask the gate, which
         // would spend the session's one loader on it.
@@ -437,13 +454,13 @@ export default function HeroPortrait({ className = "" }) {
     <div
       ref={wrapperRef}
       data-portrait
-      data-lens
       data-state={state}
       role="img"
       aria-label="ASCII portrait of Damian De Cruz"
       className={`relative h-full w-full ${className}`}
     >
-      <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full touch-none" />
+      {/* data-lens on the canvas only — the label above it must not grow the cursor ring */}
+      <canvas ref={canvasRef} data-lens aria-hidden="true" className="absolute inset-0 h-full w-full touch-none" />
       <div data-portrait-label className="section-label absolute left-0 -top-6">
         {grid && `Portrait · ${grid} cells`}
       </div>

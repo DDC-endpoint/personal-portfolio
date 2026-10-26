@@ -20,9 +20,10 @@ export default function Cursor() {
     const move = (e) => { mx = e.clientX; my = e.clientY; };
     const onOver = (e) => {
       // Over the hero portrait the ring grows into its lens (the portrait
-      // draws the photo inside it from ringPos).
+      // draws the photo inside it from ringPos) and the dot steps aside.
       const lens = !!e.target.closest("[data-lens]");
       ring.current?.classList.toggle("is-lens", lens);
+      dot.current?.classList.toggle("is-hidden", lens);
       if (lens) {
         ring.current?.style.setProperty("width", "240px");
         ring.current?.style.setProperty("height", "240px");

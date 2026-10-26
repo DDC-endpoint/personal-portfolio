@@ -1,8 +1,8 @@
 import { shouldPlayLoader, resetLoaderDecision, LOADER_KEY } from "@/lib/motion";
 
-function stubWindow({ reduced = false, storage = new Map(), throws = false } = {}) {
+function stubWindow({ reduced = false, forced = false, storage = new Map(), throws = false } = {}) {
   globalThis.window = {
-    matchMedia: (q) => ({ matches: reduced && q.includes("reduce") }),
+    matchMedia: (q) => ({ matches: (reduced && q.includes("reduce")) || (forced && q.includes("forced-colors")) }),
     sessionStorage: {
       getItem: (k) => {
         if (throws) throw new Error("blocked");
@@ -52,4 +52,10 @@ test("SSR is undecided", () => {
   expect(shouldPlayLoader()).toBe(false);
   stubWindow();
   expect(shouldPlayLoader()).toBe(true);
+});
+
+test("forced colours never plays and leaves the session unmarked", () => {
+  const storage = stubWindow({ forced: true });
+  expect(shouldPlayLoader()).toBe(false);
+  expect(storage.has(LOADER_KEY)).toBe(false);
 });

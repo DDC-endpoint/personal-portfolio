@@ -110,6 +110,13 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Facts to include:** Damian is now in **second year** of the BSc (Hons) Computer Science at IIT; new upcoming projects (Interact District 3220, ai-studio); Aloys Travels URL change.
 - Real copy only, no fake metrics.
 
+## Phase 1 review (2026-10-27)
+
+- **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
+- **The cursor dot hides inside the lens (Damian).** The dot blended teal over the colour photo.
+- **High contrast counts as static (spec).** Forced-colours mode gets the finished portrait, with no loader, idle animation or lens.
+- **A loader nobody can see isn't spent (builder's call).** In a background tab or on a landing below the hero, the wave is skipped and stays available for the next visible first load.
+
 ## Builder review answers (2026-10-26)
 
 - **Hero pieces (Damian):**

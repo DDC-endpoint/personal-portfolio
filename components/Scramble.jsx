@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { scrambleText, TICK_MS, LABEL_MS, LINK_MS } from "@/lib/decode";
 
 // Scramble-and-resolve for mono text: § section labels decode as they enter
-// view, nav links and mono buttons scramble on hover/focus. The text lives
+// view, mono buttons scramble on hover/focus. Links that already have the
+// underline draw (nav, "Services & pricing") don't scramble too (Damian). The text lives
 // in ONE node and the font is mono, so the width never changes mid-run.
 // Text is written straight to the DOM node each tick — never React state.
 // Reduced motion: play() is a no-op, the text stays as rendered.
@@ -11,8 +12,9 @@ import { scrambleText, TICK_MS, LABEL_MS, LINK_MS } from "@/lib/decode";
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Returns play(): (re)starts a left-to-right resolve of `text` over
-// `durationMs`. aria-busy is set while the node holds noise.
-export function useScramble(ref, text, durationMs) {
+// `durationMs`. aria-busy is set while the node holds noise, and the optional
+// onRun(true / false) brackets the run.
+export function useScramble(ref, text, durationMs, onRun) {
   const raf = useRef(0);
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
@@ -24,11 +26,13 @@ export function useScramble(ref, text, durationMs) {
     const start = performance.now();
     let last = -Infinity;
     el.setAttribute("aria-busy", "true");
+    onRun?.(true);
     const step = (now) => {
       const t = now - start;
       if (t >= durationMs) {
         el.textContent = text;
         el.removeAttribute("aria-busy");
+        onRun?.(false);
         return;
       }
       if (now - last >= TICK_MS) {
@@ -38,13 +42,25 @@ export function useScramble(ref, text, durationMs) {
       raf.current = requestAnimationFrame(step);
     };
     raf.current = requestAnimationFrame(step);
-  }, [ref, text, durationMs]);
+  }, [ref, text, durationMs, onRun]);
 }
 
 // § section label — decodes once, the first time it scrolls into view.
+// While its letters hold noise they are aria-hidden and a static sr-only copy
+// (hidden the rest of the time) carries the label, as in DecodeText.
 export function DecodeLabel({ as: Tag = "div", className = "", children }) {
   const ref = useRef(null);
-  const play = useScramble(ref, children, LABEL_MS);
+  const letters = useRef(null);
+  const srCopy = useRef(null);
+  // Explicit "true" values: an empty aria-hidden is ignored by assistive tech.
+  const onRun = useCallback((running) => {
+    for (const [el, attr] of [[ref.current, "aria-busy"], [letters.current, "aria-hidden"]]) {
+      if (running) el?.setAttribute(attr, "true");
+      else el?.removeAttribute(attr);
+    }
+    if (srCopy.current) srCopy.current.hidden = !running;
+  }, []);
+  const play = useScramble(letters, children, LABEL_MS, onRun);
 
   useEffect(() => {
     const el = ref.current;
@@ -63,7 +79,12 @@ export function DecodeLabel({ as: Tag = "div", className = "", children }) {
 
   return (
     <Tag ref={ref} className={className}>
-      {children}
+      <span ref={letters} data-letters>
+        {children}
+      </span>
+      <span ref={srCopy} className="sr-only" hidden>
+        {children}
+      </span>
     </Tag>
   );
 }

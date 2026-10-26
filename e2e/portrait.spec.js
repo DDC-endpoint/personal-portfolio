@@ -102,3 +102,102 @@ test("a zero-size stage never kills the loop", async ({ page }) => {
   expect(await frame()).not.toEqual(a);
   expect(errors).toEqual([]);
 });
+
+// Delays createImageBitmap's resized (field) bitmap, holding the first layout open.
+// Sets window.__inLayout while the delay is running.
+const slowFieldBitmap = () => {
+  const orig = window.createImageBitmap;
+  window.createImageBitmap = (src, opts) => {
+    if (!opts?.resizeWidth) return orig(src, opts);
+    window.__inLayout = true;
+    return new Promise((r) => setTimeout(r, 800)).then(() => {
+      window.__inLayout = false;
+      return orig(src, opts);
+    });
+  };
+};
+
+// A 32×40 block-average of the canvas (premultiplied RGB), for comparing
+// two renders of the same layout.
+const signature = (page) =>
+  page.locator("[data-portrait] canvas").evaluate((c) => {
+    const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    const BX = 32, BY = 40, out = new Array(BX * BY * 3).fill(0), cnt = new Array(BX * BY).fill(0);
+    for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+      const i = (y * c.width + x) * 4, a = d[i + 3] / 255, b = ((y * BY / c.height) | 0) * BX + ((x * BX / c.width) | 0);
+      out[b * 3] += d[i] * a; out[b * 3 + 1] += d[i + 1] * a; out[b * 3 + 2] += d[i + 2] * a; cnt[b]++;
+    }
+    return out.map((v, k) => v / cnt[(k / 3) | 0]);
+  });
+const distance = (p, q) => p.reduce((s, v, i) => s + Math.abs(v - q[i]), 0) / p.length;
+
+async function reference(browser, theme) {
+  const ref = await browser.newPage({ viewport: { width: 1440, height: 900 }, forcedColors: "active" });
+  await ref.addInitScript((t) => {
+    sessionStorage.setItem("ddc:loader-played", "1");
+    localStorage.setItem("theme", t);
+  }, theme);
+  await ref.goto("/");
+  await expect(portrait(ref)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await ref.waitForTimeout(300);
+  const sig = await signature(ref);
+  await ref.close();
+  return sig;
+}
+
+test("a theme switch during the first layout still recolours", async ({ page, browser }) => {
+  // Forced colours keeps the custom cursor off: its later js-cursor class
+  // change on <html> would otherwise wake the theme observer and mask a miss.
+  // (Not reduced motion: that currently hits a SplitLines hydration error
+  // which resets <html> classes, theme included.)
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.addInitScript(slowFieldBitmap);
+  await page.goto("/");
+  await page.waitForFunction(() => window.__inLayout === true); // inside the delayed first layout
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await page.waitForTimeout(300);
+  const toggled = await signature(page);
+  const dark = await reference(browser, "dark");
+  const light = await reference(browser, "light");
+  expect(distance(toggled, dark)).toBeLessThan(distance(toggled, light) / 2);
+});
+
+test("a browser that ignores resize options still draws the portrait", async ({ page, browser }) => {
+  await page.addInitScript(() => {
+    const orig = window.createImageBitmap;
+    window.createImageBitmap = (src) => orig(src); // drops resizeWidth/Height
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await page.waitForTimeout(300);
+  const ignored = await paint(page);
+
+  const ref = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await ref.addInitScript(() => sessionStorage.setItem("ddc:loader-played", "1"));
+  await ref.goto("/");
+  await expect(portrait(ref)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await ref.waitForTimeout(300);
+  const normal = await paint(ref);
+  await ref.close();
+  expect(Math.abs(ignored.n - normal.n) / normal.n).toBeLessThan(0.15);
+});
+
+test("the lens photo is released when a mount is abandoned", async ({ page }) => {
+  // Dev StrictMode mounts, unmounts and remounts: the abandoned mount's
+  // full-size photo bitmap must be closed, leaving exactly one live.
+  await page.addInitScript(() => {
+    window.__photos = [];
+    const orig = window.createImageBitmap;
+    window.createImageBitmap = async (src, opts) => {
+      const b = await orig(src, opts);
+      if (!opts) window.__photos.push(b);
+      return b;
+    };
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 10000 });
+  await page.waitForTimeout(300);
+  const live = await page.evaluate(() => window.__photos.filter((b) => b.width > 0).length);
+  expect(live).toBe(1);
+});
