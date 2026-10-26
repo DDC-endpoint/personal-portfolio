@@ -144,6 +144,16 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Screenshots approved (Damian, 2026-10-27).** All six are committed with no metadata. Phase 2 is merged into `v3` locally.
 - **Lens fade test made load-proof (builder, after the merge).** The Phase 1 test `with the lens off the portrait stops measuring itself` assumed the lens finishes fading within 2 s. Under a busy parallel run it sometimes didn't, and the extra weight Phase 2 adds to Home made that show up. It now polls until the measuring stops (8 s cap). The behaviour it checks is unchanged.
 
+## Phase 3 planning (2026-10-27)
+
+- **Copy now (Damian):** Timeline, Lens and Contact switch to the approved `copy.md` text as they are rebuilt. Phase 4 covers the remaining sections.
+- **Head Prefect entry (Damian):** the Timeline gets a new "2024–2025 · Head Prefect" entry at St. Joseph's College, Colombo 10, right after A-Levels.
+- **Contact card start (Damian):** a small electric square under the § 08 label that grows right and down into the full-width card.
+- **Lens develop (Damian):** timed, about 1.2 s once a tile enters view, replaying each time it comes back into view.
+- **Builder's calls:**
+  - The Contact card grows by `clip-path`, so layout never reflows and the links are always in the DOM.
+  - The Lens viewer is a modal dialog with a focus trap. It reuses the site's scroll lock (`body` overflow, as in `Nav`).
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
