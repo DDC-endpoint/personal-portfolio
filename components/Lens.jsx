@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import LensTile from "./lens/LensTile";
+import Viewer from "./lens/Viewer";
 import { DecodeLabel } from "./Scramble";
 import { FRAMES, LENS_NOTE, LENS_INTRO } from "@/lib/lens";
 
@@ -13,6 +14,27 @@ import { FRAMES, LENS_NOTE, LENS_INTRO } from "@/lib/lens";
 
 export default function Lens() {
   const [open, setOpen] = useState(null);
+  const [origin, setOrigin] = useState(null);
+  const returnTo = useRef(null);
+
+  const openAt = (i) => {
+    const photo = document.querySelector(`[data-frame="${FRAMES[i].n}"] [data-photo]`);
+    setOrigin(photo?.getBoundingClientRect() ?? null);
+    setOpen(i);
+  };
+  const step = (d) => setOpen((i) => (i + d + FRAMES.length) % FRAMES.length);
+  const close = (i) => {
+    returnTo.current = i;
+    setOpen(null);
+  };
+
+  // Focus goes back to the frame the viewer closed on, once the viewer has
+  // unmounted and lifted the inert lock off <main>.
+  useEffect(() => {
+    if (open !== null || returnTo.current === null) return;
+    document.querySelector(`[data-frame="${FRAMES[returnTo.current].n}"]`)?.focus();
+    returnTo.current = null;
+  }, [open]);
   const { col, row } = LENS_NOTE.area;
 
   return (
@@ -34,11 +56,10 @@ export default function Lens() {
       <div className="@container">
         <div
           data-lens-grid
-          data-open={open ?? undefined}
           className="grid grid-cols-2 gap-2.5 md:grid-cols-6 md:gap-4 md:auto-rows-[calc((100cqw_-_80px)/6*4/3)]"
         >
           {FRAMES.map((f, i) => (
-            <LensTile key={f.n} frame={f} index={i} onOpen={setOpen} />
+            <LensTile key={f.n} frame={f} index={i} onOpen={openAt} />
           ))}
 
           <div
@@ -71,6 +92,8 @@ export default function Lens() {
           </div>
         </div>
       </div>
+
+      {open !== null && <Viewer index={open} originRect={origin} onClose={close} onStep={step} />}
     </section>
   );
 }
