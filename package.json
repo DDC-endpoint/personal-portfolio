@@ -8,7 +8,8 @@
     "start": "next start",
     "optimize-photos": "node scripts/optimize-photos.mjs",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "process-portrait": "node scripts/process-portrait.mjs"
   },
   "dependencies": {
     "framer-motion": "^14.6.0",
