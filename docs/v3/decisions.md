@@ -187,10 +187,10 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 
 ## Status and next step (continue here)
 
-As of 2026-10-27, Phase 1 is built and merged into `v3` locally. [`README.md`](README.md) has the full status, what Phase 1 built, and how to test.
+As of the end of 2026-10-27, Phases 1 and 2 are built and merged into `v3` locally. Phase 3 is planned in [`plan-phase-3.md`](plan-phase-3.md), on branch `v3-phase-3`, and waits for Damian's review. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
 
 - **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26. His later revisions are in "Phase 1 review (2026-10-27)" above; where they conflict with older entries, they win.
-- **Next:** Phase 2 (Projects). Ask Damian the open questions, write `docs/v3/plan-phase-2.md` with `superpowers:writing-plans`, and build it on `v3-phase-2` off `v3`.
+- **Next:** Damian reviews the Phase 3 plan. Then build it on `v3-phase-3` (native inline execution, one fresh reviewer at the end) and merge it into `v3` locally on his approval. Phase 4 follows.
 - **Superseded:** "Loader frequency" (first visit per session) is replaced by the curtain on every reload. The page transition still covers Home ↔ `/services` navigation, but not reloads.
 - **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.

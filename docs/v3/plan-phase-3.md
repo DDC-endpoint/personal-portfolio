@@ -1,5 +1,7 @@
 # V3 Phase 3 Implementation Plan: Timeline, Lens and Contact
 
+> **Status: written 2026-10-27, waiting for Damian's review. Nothing is built yet.** Start at Task 1 on branch `v3-phase-3` once he approves. If he changes anything, update this plan and [`decisions.md`](decisions.md) first.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild three Home sections with the approved V3 motion and copy:
