@@ -71,6 +71,9 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 - **Section labels** (`§ 0N — …`) decode in when they enter view. **Serif section titles** keep the existing line-by-line rise (`SplitLines`).
 - **Link hover:** nav links and mono buttons (e.g. `SERVICES →`) briefly scramble and resolve. Serif text links keep the underline draw.
 - **Page transition (Home ↔ `/services`):** glyph dissolve, about 0.6 s. The outgoing page breaks into blue characters and the incoming page decodes in through the same wave as the hero loader.
+  - It also applies to in-page links between the two pages, such as `/#work`, and to reloads after the first visit of a session.
+  - Arriving on Home this way never replays the 2.4 s portrait wave: the portrait is already drawn.
+  - Builder's call: client-side navigation with a persistent transition overlay, rather than full reloads with a timed exit.
 - **Cursor:** the existing ring and dot. Over the hero portrait the ring grows into the lens (see Hero).
 - **Marquee:** removed from the page.
 - **Nav, scroll progress bar and footer** keep their current form, apart from the label and hover upgrades.
@@ -90,9 +93,16 @@ Section order: Hero → About → Leadership → Skills → Projects → Timelin
 
 Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
-- **Layout:** today's hero layout and copy on the left. The portrait sits in the right column on a 4:5 stage of `min(40vw, 72vh)`, with a mono `PORTRAIT · cols × rows CELLS` label above it. On mobile the order is kicker → name → portrait → lede.
+- **Layout:**
+  - Today's hero stays: nav, corner metadata, SERVICES button in its current spot, kicker, name at 13.5vw, lede, and the sky-blue blobs.
+  - The "Currently" line and the scroll indicator are removed.
+  - The portrait is bottom-anchored, slightly left of the right edge, with its height capped so its label clears the nav.
+  - It drifts and fades with the hero on scroll.
+  - Dark mode dims the orb behind it.
+  - Mobile order: kicker → name → portrait → lede → a full-width SERVICES button.
+  - Exact values are in `hero-portrait.md` → Layout.
 - **Rendering:** a canvas ASCII portrait made from the processed studio headshot. Glyph ramp ` .·:;-=+*#%@`, cell 4, mono electric blue. Shading uses tints of electric blue rather than opacity. The bottom and shoulders fade out.
-- **Loader:** a 2.4 s wave spreads from the face outward, from skeleton blocks through a noise front to the final glyphs. The hero text decodes as the wave reaches it, and this replaces `IntroStamp`. Hero text must be server-rendered and visible to LCP from the first paint.
+- **Loader:** plays on the **first visit per browser session** only. A 2.4 s wave spreads from the face outward, from skeleton blocks through a noise front to the final glyphs. The hero text decodes as the wave reaches it, and this replaces `IntroStamp`. Hero text must be server-rendered and visible to LCP from the first paint.
 - **Idle:** a scan band sweeps down every 6 s, plus sparse character flicker.
 - **Lens:** the cursor ring grows into a lens about 120 px in radius that shows the full-colour photo. It has a thin ring and an `x · y` readout. Touch: drag on the portrait to move the lens.
 
@@ -141,10 +151,10 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
   - The skeleton decodes through characters into a real screenshot of the site, and the tags and blurb appear.
   - Click or Enter opens the live site in a new tab.
   - When the pointer leaves, the card dissolves back into its skeleton after a short delay.
-- **Upcoming cards:** skeletons that never decode. On hover they scramble and stay as skeletons, with a `loading… 2026 →` label. They are not links. When a site goes live, flipping its status gives it the full treatment.
+- **Upcoming cards:** **generic** skeletons (Damian). Nothing of Interact's unreleased design goes in the public repo. Address bars read `interactdistrict3220.org` and `ai-studio`. They never decode. On hover they scramble and stay as skeletons, with a `loading… 2026 →` label. They are not links. When a site goes live, flipping its status gives it the full treatment.
 - **This Portfolio card:** recursive. Its skeleton is the V3 hero itself, including a tiny ASCII portrait, and it decodes into a screenshot of V3.
 - **End card:** an empty skeleton window whose address bar types out `your-site.com`, with "Your project next" and a "Start a project →" link to Contact.
-- **Mobile:** no pinning. A vertical stack with the same tilt. The card nearest the centre of the screen decodes automatically, and tapping opens the site.
+- **Mobile:** no pinning. Cards are full width and level, stacked vertically; the diagonal shows as a gentle alternating sideways offset (builder's call). The card nearest the centre of the screen decodes automatically, and tapping opens the site.
 - **Screenshots:** captured from each live site at 1440×900 (top of the page) and optimised to WebP.
 
 ### 6. Timeline: "How I got here" (wow)
@@ -163,7 +173,9 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 ### 8. Lens: "Off-duty, through glass" (wow)
 
-- **Layout:** an editorial asymmetric grid, with photos at mixed sizes on an offset grid like a magazine spread. Designed for 6–10 photos; Damian will add more to the current 4.
+- **Layout:** an editorial asymmetric grid, with photos at mixed sizes on an offset grid like a magazine spread.
+  - **Content dependency (Damian):** Damian will add more photos **before Phase 3**, and the grid gets composed around the real set.
+  - If they aren't in when Phase 3 starts, build Timeline and Contact first and do the Lens layout last.
 - **Caption:** place + month (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number, in mono.
 - **Develop:**
   - Each photo starts as a halftone of round electric-blue dots sized by tone, and resolves into full colour as it scrolls into view.
@@ -191,7 +203,7 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 ## `/services`
 
 - Shared motion basics apply: label decode, link scramble, glyph-dissolve transition and cursor.
-- **§ 02 How it works:** the four steps get the running-stitch thread.
+- **§ 02 How it works:** the 2×2 grid of steps becomes a single column, so the running-stitch thread from the Timeline can be reused unchanged (builder's call).
 - **§ 03 Recent work:**
   - Cards become small skeleton browser windows that decode on hover, the same component as Projects.
   - The cards are This Portfolio, Spades Solutions, Aloys Travels (new URL) and Danella De Cruz (new).

@@ -12,7 +12,7 @@ node docs/v3/spike/process-headshot.cjs "/path/to/Professional Young Man’s Stu
 # 2. Serve the folder (canvas pixel reads need http, not file://).
 node docs/v3/spike/serve.cjs            # PORT=3201 to change the port
 
-# 3. Open http://localhost:3200/portrait-spike.html
+# 3. Open http://localhost:3200/portrait-spike.html (portrait on its own) or http://localhost:3200/hero-live.html (portrait inside a replica of the live hero, with nav, SERVICES button and blobs)
 ```
 
 `cutout.png` and `cutout-preview.jpg` are gitignored. Don't commit them here; the production copy goes through the normal image pipeline.

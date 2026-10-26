@@ -4,11 +4,31 @@ Settled with Damian on 2026-10-26 through a series of live prototypes. The refer
 
 ## Layout
 
-- Keep the current hero exactly as it is on the live site: corner metadata (coordinates top-left, `(001) Index / Landing` top-right), mono kicker, giant serif **DAMIAN / *de* CRUZ.**, lede paragraph. Only the portrait is new.
-- Portrait sits in the **right column** of a two-column hero grid (`1.25fr 1fr`), right-aligned, vertically centred.
-- Portrait stage: **4:5**, width `min(40vw, 72vh)`.
-- Small mono label above the stage, top-left: `PORTRAIT · {cols} × {rows} CELLS` (e.g. `160 × 130` on a 1440×900 desktop). Kept by Damian.
-- **Mobile (≤760px):** single column in this order — kicker, name, portrait, lede. Portrait centred, width `min(86vw, 60vh)`.
+Verified against the live hero at 1440×900, 1280×720 and 1024×768 and on mobile. The reference is [`spike/hero-live.html`](spike/hero-live.html).
+
+- **Stays as today (Damian):**
+  - the nav;
+  - the corner metadata: coordinates top-left, and `(001) Index / Landing` top-right;
+  - the **SERVICES → button in its current place** under `(001)`. At 1440×900 it sits in the empty top-right corner of the portrait stage, beside the head, and doesn't overlap the face;
+  - the mono kicker;
+  - the name at today's **13.5vw**, which still fits the left side because "DE CRUZ." spans about 41vw;
+  - the lede, with copy per `copy.md`;
+  - the sky-blue blur blobs.
+- **Removed (Damian):** the "Currently — learning, shipping, breaking things." line and the "scroll" indicator.
+- **Portrait stage:**
+  - Absolutely positioned in the hero and **anchored to the bottom edge**, so it rises out of the page.
+  - Horizontal position: `right: calc(40px + 5vw)`, shifted a little left of the edge (Damian).
+  - Width: `min(40vw, 72vh, (100vh − 190px) × 0.8)`, at 4:5. The height cap keeps the label clear of the 80 px nav on short screens.
+  - At ≤1100 px wide: `right: 40px` and width up to `38vw`, so it doesn't crowd the name.
+- **Label:** a small mono `PORTRAIT · {cols} × {rows} CELLS` at the top-left of the stage. Kept by Damian.
+- **On scroll (Damian):** the portrait drifts and fades with the rest of the hero, as the text does today: y goes from 0 to −100 px across the hero's height, and opacity reaches 0 at 80%.
+- **Dark-mode orb (Damian):** the sky blob behind the portrait clashed with the blue glyphs. Drop it from `dark:bg-sky/40` to about `dark:bg-sky/15`, and make the mist blob slightly darker.
+- **Mobile (≤760px):** one column in this order:
+  - kicker
+  - name
+  - portrait, centred, width `min(86vw, 60vh)`
+  - lede
+  - a **full-width electric SERVICES → button**. This is new; the button is hidden on mobile today (Damian).
 
 ## Source image
 
@@ -55,6 +75,7 @@ The fade starts around chest level ("stronger" setting, Damian's choice) so the 
 
 ## Loader (replaces the current IntroStamp curtain)
 
+- **When it plays (Damian):** on the **first visit per browser session** only. Reloads and returns from `/services` use the 0.6 s glyph-dissolve page transition instead, with the portrait already drawn and no wave.
 - Duration ~**2.4 s**, kept as is (Damian).
 - Wave origin: the face, at `(0.5, 0.38)` of the stage. Per-cell reveal time `tr = 0.3 + dist/maxDist × 2.6 + jitter × 0.15` s (row distance scaled by cell aspect).
 - Before `tr − 0.25`: faint skeleton block (40% of the cell, opacity 0.10–0.15, shimmering).

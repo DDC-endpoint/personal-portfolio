@@ -109,6 +109,22 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Facts to include:** Damian is now in **second year** of the BSc (Hons) Computer Science at IIT; new upcoming projects (Interact District 3220, ai-studio); Aloys Travels URL change.
 - Real copy only, no fake metrics.
 
+## Builder review answers (2026-10-26)
+
+- **Hero pieces (Damian):**
+  - Kept: SERVICES button in its current spot (verified to clear the portrait), the sky-blue blobs, and the name at 13.5vw.
+  - Removed: the "Currently" line and the scroll indicator.
+- **Portrait placement (Damian):** bottom-anchored, nudged a little left, with responsive sizing. On scroll it drifts and fades with the hero.
+- **Dark-mode orb (Damian):** dimmed, because it clashed with the blue glyphs.
+- **Mobile SERVICES button (Damian):** shown full width under the lede.
+- **Loader frequency (Damian):** first visit per browser session. Otherwise the 0.6 s transition plays and the portrait is already drawn.
+- **Gallery photos (Damian):** more coming before Phase 3.
+- **Upcoming project cards (Damian):** generic skeletons, so no unreleased client design is published.
+- **Builder's calls:**
+  - Mobile Projects uses an alternating sideways offset instead of a tilted path.
+  - The `/services` steps become one column for the thread.
+  - Page transitions use client-side navigation with a persistent overlay.
+
 ## Builder's calls so far
 
 - **Custom canvas renderer, not the `ascii-reveal` npm package.** The package is v0.3, three weeks old, single maintainer, and has no hooks for the palette, the lens, or dark mode.
