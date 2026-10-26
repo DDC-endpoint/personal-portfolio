@@ -110,6 +110,14 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Facts to include:** Damian is now in **second year** of the BSc (Hons) Computer Science at IIT; new upcoming projects (Interact District 3220, ai-studio); Aloys Travels URL change.
 - Real copy only, no fake metrics.
 
+## Phase 2 planning (2026-10-27)
+
+- **Pin engine (Damian):** CSS `position: sticky` plus framer-motion `useScroll`, not GSAP ScrollTrigger. It works with Lenis as is and keeps GSAP out of the Home bundle (it stays lab-only).
+- **Card decode (Damian):** a glyph-grid canvas over the card. Noise characters sweep in, then clear cell by cell to reveal the screenshot, and the sweep reverses on leave. It uses the same noise set as the hero.
+- **Screenshots (Damian):** captured with Playwright at 1440×900 (top of page), with banners dismissed, and converted to WebP. This Portfolio is captured from the V3 hero in local dev, after the curtain. Damian sees the set before it is committed.
+- **Merge (Damian):** `v3-phase-2` merges into `v3` locally, like Phase 1. No push.
+- **Interact District 3220** returned 404 on 2026-10-27, which is consistent with its upcoming status.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
