@@ -10,7 +10,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "process-portrait": "node scripts/process-portrait.mjs",
-    "capture-projects": "node scripts/capture-projects.mjs"
+    "capture-projects": "node scripts/capture-projects.mjs",
+    "mini-portrait": "node scripts/mini-portrait.mjs"
   },
   "dependencies": {
     "framer-motion": "^14.6.0",
