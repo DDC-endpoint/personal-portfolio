@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import { SPRING } from "@/lib/motion";
+import { DecodeLabel } from "./Scramble";
 
 const entries = [
   {
@@ -123,7 +124,7 @@ export default function Timeline() {
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-3">
           <div className="md:sticky md:top-32">
-            <div className="section-label">§ 05 — Timeline</div>
+            <DecodeLabel className="section-label">§ 05 — Timeline</DecodeLabel>
           </div>
         </div>
 

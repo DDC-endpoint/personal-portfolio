@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import { ScrambleText } from "./Scramble";
 import Availability from "./Availability";
 import { NAV_LINKS, SHORT_YEAR } from "@/lib/site";
 import { EASE } from "@/lib/motion";
@@ -94,7 +95,7 @@ export default function Nav() {
                 href={resolveHref(l.href)}
                 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink link-line"
               >
-                {l.label}
+                <ScrambleText text={l.label} />
               </a>
             ))}
           </nav>

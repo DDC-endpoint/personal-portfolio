@@ -1,6 +1,7 @@
 "use client";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
+import { DecodeLabel, ScrambleText } from "./Scramble";
 
 export default function About() {
   return (
@@ -9,7 +10,7 @@ export default function About() {
         <div className="col-span-12 md:col-span-3">
           <Reveal>
             <div className="sticky top-32">
-              <h2 className="section-label mb-3">§ 01 — About</h2>
+              <DecodeLabel as="h2" className="section-label mb-3">§ 01 — About</DecodeLabel>
               <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
                 Notes on the maker
               </div>
@@ -38,7 +39,7 @@ export default function About() {
                 data-hover
                 className="group mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-electric link-line"
               >
-                Services &amp; pricing
+                <ScrambleText text="Services & pricing" />
                 <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
               </a>
             </Reveal>

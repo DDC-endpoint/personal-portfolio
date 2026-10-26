@@ -2,13 +2,14 @@
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import { EMAIL } from "@/lib/site";
+import { DecodeLabel, ScrambleText } from "./Scramble";
 
 export default function Resume() {
   return (
     <section id="resume" className="relative px-6 md:px-10 py-32 md:py-44 border-t border-rule">
       <div className="grid grid-cols-12 gap-6 items-center">
         <div className="col-span-12 md:col-span-3">
-          <div className="section-label">§ 06 — Résumé</div>
+          <DecodeLabel className="section-label">§ 06 — Résumé</DecodeLabel>
         </div>
 
         <div className="col-span-12 md:col-span-6">
@@ -31,7 +32,7 @@ export default function Resume() {
               className="group inline-flex items-center gap-3 px-6 py-4 border border-ink rounded-full hover:bg-ink hover:text-ivory transition-colors duration-500"
             >
               <span className="font-mono text-[11px] uppercase tracking-[0.2em]">
-                Request CV
+                <ScrambleText text="Request CV" />
               </span>
               <span className="inline-block transition-transform duration-500 group-hover:translate-x-0.5">
                 →
