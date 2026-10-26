@@ -42,7 +42,7 @@ export default function LensTile({ frame, index, onOpen }) {
       onKeyDown={() => (pointer.current = "")}
       onClick={onClick}
       style={{ "--col": `${area.col[0]} / ${area.col[1]}`, "--row": `${area.row[0]} / ${area.row[1]}` }}
-      className={`group relative flex flex-col cursor-pointer border border-rule bg-ivory text-left outline-none focus-visible:outline-none md:[grid-column:var(--col)] md:[grid-row:var(--row)] ${
+      className={`group relative flex flex-col cursor-pointer border border-rule bg-ivory text-left md:[grid-column:var(--col)] md:[grid-row:var(--row)] ${
         hero ? "col-span-2 p-2.5" : "p-2"
       }`}
     >

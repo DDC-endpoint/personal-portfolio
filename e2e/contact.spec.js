@@ -101,3 +101,27 @@ test("buttons keep their width while scrambling", async ({ page }, info) => {
   }
   expect(widths).toEqual(Array(10).fill(before));
 });
+
+test("keyboard focus ring shows on the electric card", async ({ page }, info) => {
+  desktopOnly(info);
+  await page.goto("/");
+  await cardTopAt(page, 0.2);
+  await page.locator('a:has-text("Request CV")').focus();
+  const seen = {};
+  for (let i = 0; i < 30 && Object.keys(seen).length < 2; i++) {
+    await page.keyboard.press("Tab");
+    const s = await page.evaluate(() => {
+      const a = document.activeElement;
+      if (!a.closest("[data-contact-card]")) return null;
+      const cs = getComputedStyle(a);
+      const bg = getComputedStyle(document.querySelector("[data-contact-card]")).backgroundColor;
+      return { name: a.textContent, ring: cs.outlineColor, bg, radius: cs.borderTopLeftRadius, pill: a.classList.contains("rounded-full") };
+    });
+    if (s && /hello@/.test(s.name)) seen.email = s;
+    if (s && /LinkedIn/.test(s.name)) seen.social = s;
+  }
+  for (const s of Object.values(seen)) expect(s.ring).not.toBe(s.bg);
+  expect(seen.email.ring).toBe("rgb(246, 246, 241)");
+  expect(parseFloat(seen.email.radius)).toBeGreaterThan(20); // the pill keeps its shape
+  expect(seen.social.ring).toBe("rgb(246, 246, 241)");
+});
