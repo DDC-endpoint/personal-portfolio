@@ -9,7 +9,7 @@ Living record of the V3 redesign of damiandc.com. Everything decided so far is w
 | Dependencies | **Done.** PR #3 (`upgrade/deps`) merged to `main`. |
 | Hero ASCII portrait | **Settled.** Full spec in [`hero-portrait.md`](hero-portrait.md); reference prototype in [`spike/`](spike/). |
 | Projects, Timeline, Lens, Contact, quiet sections, `/services` | **Settled** (see `decisions.md`). |
-| Copy refresh | Agreed to do now; drafts **not yet written**. |
+| Copy refresh | Draft in [`copy.md`](copy.md), **awaiting approval**. |
 | Written design → plan → build | Not started. Nothing gets built until the full design is approved. |
 
 ## How V3 ships
