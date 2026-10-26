@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (end of session, 2026-10-26)
+## Where we are (2026-10-27)
 
 | Track | State |
 |---|---|
@@ -12,16 +12,14 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | Lens (gallery) | **Locked.** 10 photos, a compact mixed grid, framed tiles, a tracing highlighter. Mockup: [`spike/gallery-mockup.html`](spike/gallery-mockup.html). |
 | Copy refresh | **Approved.** [`copy.md`](copy.md). |
 | Design doc | **Approved by Damian, 2026-10-26**, with all 10 builder's calls confirmed. |
-| Implementation plan / build | Phase 1 plan in progress: [`plan-phase-1.md`](plan-phase-1.md). |
+| Phase 1 (motion primitives, hero portrait + loader, cursor lens, Marquee removal) | **Built on `v3-phase-1`** per [`plan-phase-1.md`](plan-phase-1.md). Tests are green and Lighthouse is at parity with `main`. Waiting on review, then a PR into `v3`. |
+| Phases 2–4 | Not started. |
 
 ### The next step
 
-1. Ask Damian whether [`design.md`](design.md) is approved. That was the last open question of the session.
-   - Have him confirm the 10 builder's calls listed at the bottom of [`decisions.md`](decisions.md) → "Status and next step".
-2. Once it's approved, write the **Phase 1 implementation plan** with the `superpowers:writing-plans` skill.
-   - Phase 1 covers the motion primitives (decode, label decode, link scramble), the hero portrait plus the loader that replaces `IntroStamp`, the cursor lens, and Marquee removal.
-   - Save the plan in `docs/v3/`, e.g. `docs/v3/plan-phase-1.md`. Damian wants everything V3 in this folder.
-3. Build Phase 1 on a branch off `v3` and open a PR **into `v3`**.
+1. Damian reviews Phase 1 on `v3-phase-1`. Run `npm run dev`, then open `/` in a fresh tab (the loader plays once per browser session).
+2. Pushing needs Damian's OK, because `v3` has never been pushed. With it: `git push -u origin v3`, `git push -u origin v3-phase-1`, then open a PR into **`v3`**.
+3. Write the Phase 2 plan (Projects) with `superpowers:writing-plans` and save it as `docs/v3/plan-phase-2.md`.
 
 ## How V3 ships
 
