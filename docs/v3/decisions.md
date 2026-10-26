@@ -155,6 +155,20 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
   - The Lens viewer is a modal dialog with a focus trap. It reuses the site's scroll lock (`body` overflow, as in `Nav`).
 - **Plan approved (Damian, 2026-10-27).** He approved `plan-phase-3.md` as written and kept all three of its open calls: the Contact card grows by `clip-path`, the viewer reuses the `Nav` scroll lock, and the Head Prefect entry reads "Led the student body as Head Prefect in the year after my A-Levels." The build starts at Task 1.
 
+## Phase 3 build rulings (2026-10-27)
+
+- **Halftone tone (builder).** The plan's dot formula printed the night photos as solid blue slabs. Each photo is now auto-levelled (2nd–98th percentile), and the largest dot is 0.9 of a cell across, so dots stay round and separate. In dark mode the dots are sized by brightness, so the print reads as a positive on the navy field.
+- **Viewer backdrop at 95%, not 90% (builder).** At 90% the nav read through and collided with "Close".
+- **Viewer photo `sizes` (builder).** The 3:4 photo is height-bound on landscape screens, so `sizes` says about 62vh there rather than 92vw.
+- **Viewer taps close on `pointerup` (review fix).** After a quick touch flick Chrome swallowed the next tap's click, and the viewer wouldn't close.
+- **Touch trace keys off the tap (builder).** A tile shows the quick trace when the tap's `pointerType` is touch, rather than on a `(hover: none)` device.
+- **Timeline stitch is CSS (builder).** A dashed gradient revealed by `clip-path` from one `--d` property, instead of an SVG line, so no-JS and reduced motion get the full thread from CSS alone. Entries no longer use `Reveal`, which hid them in server HTML; the light-up is the entrance.
+- **Contact labels (builder).** The email button shows the address and WhatsApp says "WhatsApp"; arrows sit outside the scramble. The badge is built into the card, because `<Availability>`'s electric dot vanishes on it.
+- **Contact growth reaches its end (review fix).** On screens taller than about 1100 px the page ended before the card's top reached 25% of the screen, so the card never opened. The growth now ends at the bottom of the page when that comes first.
+- **Focus ring on the card (builder, keyboard pass).** The site's electric ring vanished on the electric card; there it takes the card's text colour, and the pill buttons stay round.
+- **Review minors, all fixed (Damian's standing preference):** the caption overlay uses tokens; a resize repaints the halftone at once and resamples once it settles; a hero tile taller than the screen still develops; the Timeline re-measures whenever its list resizes; card text is full ivory, not dimmed.
+- **Open for Damian:** dark-mode card contrast (about 3.4:1 for the small labels); see `README.md` → "The next step".
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.

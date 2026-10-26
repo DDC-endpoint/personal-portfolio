@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (end of session, 2026-10-27)
+## Where we are (2026-10-27, Phase 3 built)
 
 | Track | State |
 |---|---|
@@ -10,23 +10,18 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | Design, copy, decisions | **Approved by Damian (2026-10-26)**, with all 10 builder's calls confirmed. Later revisions are logged in [`decisions.md`](decisions.md) → "Phase 1 review (2026-10-27)". |
 | **Phase 1**: motion primitives, hero portrait + loader wave, cursor lens, Marquee removal | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-1.md`](plan-phase-1.md), plus Damian's follow-ups (see "What Phase 1 built"). Tests are green, and Lighthouse is at parity with `main`. |
 | **Phase 2**: Projects (diagonal skeleton showcase) | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-2.md`](plan-phase-2.md), reviewed, and every review finding is fixed. Damian approved the screenshots. Tests are green, and Lighthouse is at parity with `main`. |
-| **Phase 3**: Timeline, Lens (gallery) and Contact | **Planned, not started (2026-10-27).** Damian answered the open questions (see [`decisions.md`](decisions.md) → "Phase 3 planning"). The plan is [`plan-phase-3.md`](plan-phase-3.md), on branch `v3-phase-3`. It waits for Damian's review before any code. |
+| **Phase 3**: Timeline, Lens (gallery) and Contact | **Built on `v3-phase-3`, waiting for Damian's visual approval (2026-10-27).** Damian approved [`plan-phase-3.md`](plan-phase-3.md) unchanged. It was built test-first, reviewed by a fresh reviewer, and every finding is fixed (see "What Phase 3 built"). Tests are green, and Lighthouse is at parity with `main`. Not merged yet. |
 | Phase 4: copy refresh, Leadership rows, Skills terminal, `/services`, page transition | Not started. |
 
-### The next step: Damian reviews the Phase 3 plan, then build it
+### The next step: Damian's visual gate on Phase 3, then merge
 
-1. **Check out the branch:** `git switch v3-phase-3`. It is cut from `v3` and so far holds only the plan commit (`2e227b4`).
-2. **Get Damian's OK on [`plan-phase-3.md`](plan-phase-3.md).** He was asked "Does the plan capture what you want?" at the end of the 2026-10-27 session and hadn't answered yet. Three of the plan's own calls are open for him to change:
-   - Contact growth uses a `clip-path`.
-   - The viewer reuses the `Nav` scroll lock.
-   - The Head Prefect entry reads "Led the student body as Head Prefect in the year after my A-Levels."
-3. **Build it** with native inline execution (`superpowers:executing-plans`), which he chose for Phases 1 and 2:
-   - Tests first for every change.
-   - One fresh reviewer (most capable model) over the whole branch at the end.
-   - Fix the Critical and Important findings test-first. Damian also wants the minors fixed (he asked for that in Phase 2), so fix those too and list them.
-4. **Gate:** show Damian the screenshots and the dev page (open `http://localhost:3000/#lens` etc. in his browser). On his approval, run `git switch v3 && git merge --no-ff v3-phase-3` and delete the branch.
-5. **Then Phase 4** (copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition), followed by `v3` → `main`. See "Before `v3` merges to `main`".
-6. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+1. **Branch:** `v3-phase-3` holds the whole Phase 3 build; nothing is merged into `v3` yet.
+2. **Gate:** Damian looks at the dev page (`http://localhost:3000/#timeline`, `#lens`, `#contact`) and the screenshots. Two questions are open for him:
+   - **Dark-mode Contact card contrast.** In dark mode the card is the brightened electric (#3B82F6) under light text, about 3.4:1. That's fine for the headline but below AA (4.5:1) for the small mono labels and the body copy. Within the token set, navy text reaches only 4.49:1. A real fix needs his call: keep the light-mode electric (#2563EB) for the card in both themes (one exception to the tokens-only rule), or accept the current pairing.
+   - **The halftone look.** The dots are auto-levelled per photo, and in dark mode they are sized by brightness so the print stays a positive (see `decisions.md` → "Phase 3 build rulings"). This is a taste check.
+3. **On his approval:** `git switch v3 && git merge --no-ff v3-phase-3`, delete the branch, and mark Phase 3 merged here.
+4. **Then Phase 4** (copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition), followed by `v3` → `main`. See "Before `v3` merges to `main`".
+5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
 
 ## Before `v3` merges to `main`
 
@@ -127,6 +122,45 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Canvases size from the ResizeObserver entry,** never `getBoundingClientRect` (a Phase 1 test counts canvas measurements).
 - **Keyboard e2e tests wait for `hydrated(page)`** before pressing keys.
 
+## What Phase 3 built (on `v3-phase-3`)
+
+**§ 05 Timeline (oldest first):**
+- Ten entries from `copy.md`, plus the new "2024–2025 · Head Prefect" entry after A-Levels.
+- An electric running stitch (7 px on, 5 off), led by a small needle, sews down the list with scroll and unpicks on the way back.
+- Each milestone the needle passes gets a cross-stitch ×, its year decodes from scrambled digits (dashes and month names stay), and its text goes from faint to full ink. Milestones below the needle are faint, and they decode again on the next pass.
+- One sprung motion value drives it all through the `--d` custom property, so the per-frame work is CSS only. Thresholds re-measure whenever the list resizes.
+- No JS or reduced motion: fully stitched, everything lit, no needle.
+
+**§ 07 Lens:**
+- The locked compact grid: six columns of 3:4 tiles, two 2×2 heroes and the note tile. Each tile has a hairline border, an ivory mat and the highlighter trace on hover or keyboard focus. Hover captions show on desktop; on phones the captions sit in the mat.
+- **Develop:** every photo rests as a print of round electric dots sized by tone. It develops into colour over 1.2 s each time it comes 35% into view (or fills most of the screen, for a tile taller than it), and drops straight back when it leaves.
+- **Viewer:** a modal dialog that expands from the tile, steps with the arrow keys or a swipe (wrapping), and closes with Esc or a tap back into the current frame's tile, with focus returning to it. It uses the `Nav` scroll lock.
+- Six new photos, EXIF-free, for ten in all.
+
+**§ 08 Contact:**
+- A 96 px electric tile under the label grows right and down into the full card with scroll, and shrinks back. It's a `clip-path`, so nothing reflows. The growth ends at the bottom of the page if the card's top can't reach 25% of the screen, so it opens fully on tall screens.
+- Focus inside the card holds it fully open.
+- The card holds the "Got something in *mind*?" headline, the body copy, the email and WhatsApp buttons, the pulsing `Available · 2026` badge, the four socials and a live `Colombo · hh:mm` clock.
+
+**Code map:**
+- **Pure maths, unit-tested:**
+  - `lib/lens.js`: frames, grid areas, the note tile.
+  - `lib/halftone.js`: dot size, develop mix, auto-levels, dark-mode tone, the in-view test.
+  - `lib/timeline.js`: entries, `litCount`.
+  - `lib/contact.js`: copy, `growInset`, `growProgress`, `colomboClock`.
+  - `lib/decode.js`: `scrambleDigits`.
+- **Components:**
+  - `components/Lens.jsx`, `components/lens/LensTile.jsx`, `useDevelop.js` (writes `data-develop`: `halftone | developing | developed | static`), `Viewer.jsx`.
+  - `components/Timeline.jsx`, `components/Contact.jsx`.
+- **CSS:** a `can-hover` variant (md+ with a real hover) and the focus ring on the Contact card, in `globals.css`.
+
+**Rules that came out of Phase 3** (don't undo them):
+- **The global `:focus-visible` rule is unlayered**, so it beats Tailwind utilities: `outline-none` does nothing. On the electric card the ring takes the card's text colour (`globals.css`).
+- **Viewer taps close on `pointerup`, not `click`.** After a quick touch flick, Chrome can swallow the next tap's click.
+- **Scroll-scrubbed effects near the page end must stay reachable:** cap the end at the maximum scroll (`growProgress`).
+- **A canvas resize clears it:** repaint from the last sample at once and debounce any resample (`useDevelop`).
+- **The hero portrait also calls `createImageBitmap` on resize.** Tests that count samples must filter by source.
+
 ## Testing
 
 - **Unit:** `npm test` runs Vitest over `tests/unit/` (the pure `lib/` modules).
@@ -149,21 +183,24 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   | `main` | 100 | 78 | 2159 ms | 715 ms |
   | `v3-phase-2` | 100 | 78 | 2061 ms | 754 ms |
 
+  Phase 3 result (medians of 3, same worktree route):
+
+  | | Desktop | Mobile | Mobile LCP | Mobile TBT |
+  |---|---|---|---|---|
+  | `main` | 100 | 80 | 2125 ms | 656 ms |
+  | `v3-phase-3` | 100 | 79 | 2083 ms | 697 ms |
+
   The worktree route: `git worktree add --detach <dir> <branch>`, then `npm ci && npx next build && npx next start -p <port>` in each. Copy any uncommitted `public/` assets in first.
 
 ## Repo state at hand-off
 
 - **Branches:**
   - `v3` is local only, with no upstream. `v3-phase-1` and `v3-phase-2` are merged and deleted.
-  - `v3-phase-3` (current) is cut from `v3` and holds only the Phase 3 plan.
+  - `v3-phase-3` (current) is cut from `v3` and holds the whole Phase 3 build, not merged yet.
   - The working tree is clean.
 - **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing".
 - **`AGENTS.md`** is generated by `next dev` on every run. It is gitignored (Damian's call); don't commit it.
-- **Photos for Phase 3:**
-  - The 6 new gallery originals are in `assets/photography-originals/`, which is gitignored. They still contain EXIF and GPS data.
-  - Run them through `npm run optimize-photos` and verify there's no EXIF before committing. Plan Task 1 has the steps.
-  - The script rewrites all 10 outputs, so restore the 4 already-committed ones with `git checkout -- public/photography`.
-  - The 4 existing gallery photos are already in `public/photography/`.
+- **Gallery photos:** all 10 are committed in `public/photography/`, EXIF-free. The originals stay in `assets/photography-originals/` (gitignored; they still carry EXIF and GPS). `npm run optimize-photos` rewrites every output, so restore unchanged ones with `git checkout -- public/photography`.
 - **Hero headshot:** the original ("Professional Young Man's Studio Headshot.png") is in Damian's Downloads folder and must never be committed. The processed `public/hero/portrait.webp` is committed; Damian approved publishing it, and it has no EXIF.
 
 ## Files
@@ -174,7 +211,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`decisions.md`](decisions.md): every decision with who made it and why, the rejected options (don't reintroduce them), and the status.
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
-- [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **waiting for Damian's review**; nothing has been built yet.
+- [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **built** on `v3-phase-3` and waiting for Damian's visual approval; read its status note for where the build departed from it.
 - [`research-reels.md`](research-reels.md): notes on the six Instagram reels and the ASCII reference video that shaped V3.
 - [`spike/`](spike/): throwaway prototypes and helper scripts. These are reference only, not production code; see [`spike/README.md`](spike/README.md).
   - `portrait-spike.html`: the portrait on its own, with controls.
