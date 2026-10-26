@@ -9,22 +9,18 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | Dependencies | **Done.** PR #3 (`upgrade/deps`) is merged to `main`. |
 | Design, copy, decisions | **Approved by Damian (2026-10-26)**, with all 10 builder's calls confirmed. Later revisions are logged in [`decisions.md`](decisions.md) → "Phase 1 review (2026-10-27)". |
 | **Phase 1**: motion primitives, hero portrait + loader wave, cursor lens, Marquee removal | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-1.md`](plan-phase-1.md), plus Damian's follow-ups (see "What Phase 1 built"). Tests are green, and Lighthouse is at parity with `main`. |
-| **Phase 2**: Projects (diagonal skeleton showcase) | **Built on `v3-phase-2` (2026-10-27), waiting for Damian.** It was built per [`plan-phase-2.md`](plan-phase-2.md), reviewed, and the review fixes are in. Tests are green, and Lighthouse is at parity with `main`. Two gates remain: Damian approves the six screenshots (uncommitted in `public/projects/`), then the local merge into `v3`. |
+| **Phase 2**: Projects (diagonal skeleton showcase) | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-2.md`](plan-phase-2.md), reviewed, and every review finding is fixed. Damian approved the screenshots. Tests are green, and Lighthouse is at parity with `main`. |
 | Phase 3: Timeline, Lens (gallery) and Contact | Not started. |
 | Phase 4: copy refresh, Leadership rows, Skills terminal, `/services`, page transition | Not started. |
 
-### The next step: close Phase 2, then Phase 3
+### The next step: Phase 3
 
-1. **Phase 2 gates (Damian):**
-   - Approve the six screenshots in `public/projects/` (uncommitted until then). Re-capture any he rejects with `npm run capture-projects -- <slug>`; the portfolio shot needs `next dev` running.
-   - Check that they have no metadata, then commit them.
-   - On approval, run `git switch v3 && git merge --no-ff v3-phase-2`, then delete the branch.
-2. **Phase 3 (Timeline, Lens, Contact):**
+1. **Phase 3 (Timeline, Lens, Contact):**
    - Read [`design.md`](design.md) → "6. Timeline", "8. Lens" and "9. Contact", plus the matching sections of [`decisions.md`](decisions.md) and [`copy.md`](copy.md).
    - Ask Damian the open questions (multiple choice, up to four at a time).
    - Write `docs/v3/plan-phase-3.md` with `superpowers:writing-plans`, then build it on `v3-phase-3` off `v3`.
    - He chose native inline execution again for Phase 2, with one fresh reviewer at the end, and a local merge.
-3. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+2. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
 
 ## Before `v3` merges to `main`
 
@@ -88,13 +84,13 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Accessible names:** scrambling text keeps its real accessible name. ScrambleText always carries an sr-only copy; DecodeLabel shows its sr-only copy only while decoding. An empty `aria-hidden=""` is ignored by screen readers, so always set `"true"`.
 - **Lens target:** `data-lens` sits on the portrait canvas only.
 
-## What Phase 2 built (on `v3-phase-2`)
+## What Phase 2 built (on `v3`)
 
 **§ 04 Selected Work:**
 - **Desktop (≥ 768 px, motion allowed, JS on):** the section pins for 3 screens of scroll. A strip of browser-window cards (45vw, capped so the shot stays under 55vh) slides along a 12° path from lower-left to upper-right, then the end card arrives.
 - **Cards:** each shows a hand-traced skeleton of its site. The active card decodes through a canvas of noise glyphs into its screenshot (700 ms), and dissolves back 600 ms after it stops being active (450 ms). Tags and blurb show while active. Live cards open in a new tab; This Portfolio links to `#top`.
 - **Upcoming cards** (Interact District 3220, ai-studio) have a generic skeleton. Noise passes over them and leaves the skeleton, with a `loading… 2026 →` line. They are not links.
-- **End card:** the address bar types `your-site.com` in view; "Start a project →" links to `#contact`.
+- **End card:** the address bar types `your-site.com` in view; "Start a project →" links to `#contact`. Only its letters scramble, never the arrow.
 - **Below md:** a vertical stack with an alternating offset. The card nearest the centre decodes.
 - **Reduced motion or no JS:** a plain list. Reduced motion shows every screenshot decoded, with tags and blurb.
 - **The intro line** is now "Six projects out in the world, two more on the way. The shelf keeps growing, so check back."
@@ -119,7 +115,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **CSS:** a `js:` variant in `globals.css` (`html.js` is set pre-paint) gates the pin.
 
 **Rules that came out of Phase 2** (don't undo them):
-- **The pin needs JS.** It is gated on `js:motion-safe:md:`. Without the `js` gate, the cards sit clipped in the sticky viewport.
+- **The pin needs JS.** It is gated on `js:motion-safe:md:`. Without the `js` gate, the cards sit clipped in the sticky viewport. The track height is `--pin-track`, set from `STRIP.PIN_SCREENS`, in `svh`.
+- **Button arrows stay outside the scramble** ("Start a project", SERVICES), so a button never changes width.
 - **The viewport is `overflow: clip`, not `hidden`,** so the browser's focus scrolling can't shift it sideways.
 - **Canvases size from the ResizeObserver entry,** never `getBoundingClientRect` (a Phase 1 test counts canvas measurements).
 - **Keyboard e2e tests wait for `hydrated(page)`** before pressing keys.
@@ -150,7 +147,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 ## Repo state at hand-off
 
-- **Branch:** `v3-phase-2`, off `v3`, local only. It is not merged yet; see "The next step". `public/projects/*.webp` are deliberately untracked until Damian approves them.
+- **Branch:** `v3`, local only, no upstream. `v3-phase-1` and `v3-phase-2` are merged and deleted. The working tree is clean.
 - **`AGENTS.md`** is generated by `next dev` on every run. It is gitignored (Damian's call); don't commit it.
 - **Photos for Phase 3:**
   - The 6 new gallery originals are in `assets/photography-originals/`, which is gitignored. They still contain EXIF and GPS data.
@@ -165,7 +162,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`copy.md`](copy.md): the approved copy for Home and `/services`, current vs new.
 - [`decisions.md`](decisions.md): every decision with who made it and why, the rejected options (don't reintroduce them), and the status.
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
-- [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **built**; read its status note for where the build departed from it.
+- [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
 - [`research-reels.md`](research-reels.md): notes on the six Instagram reels and the ASCII reference video that shaped V3.
 - [`spike/`](spike/): throwaway prototypes and helper scripts. These are reference only, not production code; see [`spike/README.md`](spike/README.md).
   - `portrait-spike.html`: the portrait on its own, with controls.

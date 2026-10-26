@@ -1,6 +1,6 @@
 # V3 Phase 2 Implementation Plan: Projects
 
-> **Status: built on `v3-phase-2` (2026-10-27), waiting for Damian's screenshot approval and the local merge. Don't re-execute it.** The build departed from this plan in these ways, all logged in [`decisions.md`](decisions.md) → "Phase 2 build rulings":
+> **Status: done. Merged into `v3` locally on 2026-10-27, after Damian approved the screenshots. Don't re-execute it.** The build departed from this plan in these ways, all logged in [`decisions.md`](decisions.md) → "Phase 2 build rulings":
 > - **Screenshots stay uncommitted** until Damian approves them. The capture prep waits out Aloys' slideshow and hides the cursor and the dev badge.
 > - **Review fixes:**
 >   - Only keyboard focus scrolls the strip, and Tab makes focus beat a parked mouse.
@@ -9,6 +9,7 @@
 >   - Canvases size from the ResizeObserver entry.
 > - **Keyboard-pass fixes:** the end card scrolls into view on focus, and counts in nearest-to-centre.
 > - **One e2e change:** the reduced-motion test checks "not sticky", not "track < 3 screens"; a stacked list is legitimately taller.
+> - **Damian's follow-ups:** "Start a project" scrambles only its letters, never the arrow. Every review minor is fixed too.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

@@ -130,14 +130,18 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Pin gated on JS (review fix).** It is gated on `html.js`, so no-JS visitors get the plain list.
 - **The end card counts (builder).** It is a nearest-to-centre candidate, so centring it leaves no project card active, and focusing its link scrolls it into view.
 - **Card links (review fix).** Each card link's description is its blurb (`aria-describedby`), so screen readers hear what the project is.
-- **Deferred minors from the review:**
-  - The reveal row fades about 1 s before the screenshot dissolves.
-  - Under reduced motion, a failed screenshot shows an empty frame.
-  - The pointer hit-test runs while the track is off screen.
-  - `PIN_SCREENS` and the 400vh class are tied only by a comment.
-  - iPad: `innerHeight` vs `100vh`, and Safari toolbar resizes re-lay out the strip mid-scroll.
-  - No e2e test reverses a decode mid-run.
-  - `activate()` can start a rAF after unmount, the EndCard writes into a React text node, and hybrid touch laptops get no centre fallback.
+- **Review minors, all fixed at Damian's request (2026-10-27):**
+  - The tags and blurb stay while the screenshot does, not only while the card is active.
+  - Under reduced motion the skeleton stays under the screenshot, so a failed image still shows it.
+  - The pointer hit-test stops while the track is off screen.
+  - The track height comes from `STRIP.PIN_SCREENS` (a `--pin-track` custom property).
+  - Heights are in `svh`, and the layout reads the sticky viewport's own height, so mobile toolbars don't re-lay out the strip.
+  - An e2e test re-hovers mid-dissolve.
+  - The decode never starts after unmount.
+  - A touch on a fine-pointer device switches to nearest-to-centre until the mouse moves.
+- **The EndCard still types into its React-rendered text node (builder).** That is the same idiom as `useScramble` in `Scramble.jsx`, and the domain never changes.
+- **"Start a project" scrambles only its letters (Damian).** The arrow sits outside the scramble, like the hero's SERVICES arrow, so the button never changes width.
+- **Screenshots approved (Damian, 2026-10-27).** All six are committed with no metadata. Phase 2 is merged into `v3` locally.
 
 ## Phase 1 review (2026-10-27)
 
