@@ -82,6 +82,17 @@ test.describe("desktop", () => {
     await expect.poll(() => decodeState(card(page, 5)), { timeout: 5000 }).toBe("shot");
   });
 
+  test("tabbing past the last card brings the end card into view", async ({ page }) => {
+    await page.goto("/");
+    await card(page, 5).focus();
+    await page.keyboard.press("Tab");
+    const link = page.locator('[data-end-card] a[href="#contact"]');
+    await expect(link).toBeFocused();
+    await page.waitForTimeout(300);
+    const { vw, vh } = await trackInfo(page);
+    expect(inViewport(await link.boundingBox(), vw, vh)).toBe(true);
+  });
+
   test("enter opens the site", async ({ page }) => {
     await page.goto("/");
     await card(page, 3).focus();
@@ -133,6 +144,14 @@ test.describe("mobile", () => {
     await card(page, 2).evaluate((el) => el.scrollIntoView({ block: "center" }));
     await expect.poll(() => decodeState(card(page, 2)), { timeout: 5000 }).toBe("shot");
     await expect.poll(() => decodeState(card(page, 1)), { timeout: 5000 }).toBe("skeleton");
+  });
+
+  test("centring the end card leaves no project card active", async ({ page }) => {
+    await page.goto("/");
+    await card(page, 7).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await expect(card(page, 7)).toHaveAttribute("data-active", "true");
+    await page.locator("[data-end-card]").evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await expect(card(page, 7)).toHaveAttribute("data-active", "false");
   });
 });
 

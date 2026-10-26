@@ -70,14 +70,16 @@ export default function Projects() {
     const vw = document.documentElement.clientWidth, vh = window.innerHeight;
     const t = track.getBoundingClientRect();
     if (t.bottom <= 0 || t.top >= vh) return focused.current;
-    const cards = [...strip.querySelectorAll("[data-card]")];
+    // The end card is a candidate too: when it is nearest, no project card is.
+    const items = [...strip.querySelectorAll("[data-card], [data-end-card]")];
     const inStrip = !!layoutRef.current;
-    const centres = cards.map((c) => {
+    const centres = items.map((c) => {
       const r = c.getBoundingClientRect();
       return inStrip ? r.left + r.width / 2 : r.top + r.height / 2;
     });
     const i = nearestToCentre(centres, inStrip ? vw : vh);
-    return i < 0 ? focused.current : Number(cards[i].dataset.card);
+    if (i < 0) return focused.current;
+    return items[i].dataset.card === undefined ? null : Number(items[i].dataset.card);
   }, []);
 
   const schedule = useCallback(() => {
@@ -139,18 +141,22 @@ export default function Projects() {
     };
   }, [scrollYProgress, place, schedule]);
 
+  // In the strip, brings item i (a card, or the end card) to its leading slot.
+  const scrollStripTo = useCallback((i) => {
+    const L = layoutRef.current, track = trackRef.current;
+    if (!L || !track) return;
+    const top = track.getBoundingClientRect().top + window.scrollY;
+    const p = progressForCard(i, L);
+    window.scrollTo({ top: top + p * (track.offsetHeight - window.innerHeight), behavior: "instant" });
+  }, []);
+
   const onFocusCard = useCallback(
     (i) => {
       focused.current = i;
-      const L = layoutRef.current, track = trackRef.current;
-      if (L && track) {
-        const top = track.getBoundingClientRect().top + window.scrollY;
-        const p = progressForCard(i, L);
-        window.scrollTo({ top: top + p * (track.offsetHeight - window.innerHeight), behavior: "instant" });
-      }
+      scrollStripTo(i);
       schedule();
     },
-    [schedule]
+    [scrollStripTo, schedule]
   );
 
   const onBlur = (e) => {
@@ -198,7 +204,7 @@ export default function Projects() {
             {PROJECTS.map((p, i) => (
               <ProjectCard key={p.slug} project={p} index={i} active={active === i} onFocusCard={onFocusCard} {...at(i)} />
             ))}
-            <EndCard {...at(PROJECTS.length)} />
+            <EndCard onFocus={() => scrollStripTo(PROJECTS.length)} {...at(PROJECTS.length)} />
           </motion.div>
         </div>
       </div>

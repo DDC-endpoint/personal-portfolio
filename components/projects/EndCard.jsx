@@ -12,7 +12,7 @@ import { END_CARD } from "@/lib/projects";
 
 const TYPE_MS = 70;
 
-export default function EndCard({ style, className = "" }) {
+export default function EndCard({ style, className = "", onFocus }) {
   const rootRef = useRef(null);
   const addressRef = useRef(null);
 
@@ -42,7 +42,7 @@ export default function EndCard({ style, className = "" }) {
   }, []);
 
   return (
-    <div ref={rootRef} data-end-card="" style={style} className={className}>
+    <div ref={rootRef} data-end-card="" style={style} className={className} onFocus={onFocus}>
       <BrowserFrame domain={END_CARD.domain} addressRef={addressRef}>
         <SKELETONS.empty />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 text-center">
