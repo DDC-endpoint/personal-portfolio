@@ -84,7 +84,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 
 ## Lens — photo gallery (wow #4)
 
-- **Layout (Damian):** editorial asymmetric grid — photos at mixed sizes on an offset grid like a magazine spread, each with a mono caption + date.
+- **Layout (Damian, revised 2026-10-26):** a **small grid**: 10 equal tiles, five across × two rows on desktop and two columns on mobile, with alternate columns nudged down. This replaces the earlier editorial asymmetric grid with mixed-size photos, which Damian found too big ("massive pictures").
 - **Wow:** each photo "develops" from a blue halftone into full colour as it scrolls into view.
 - **Viewer (Damian):** click opens a full-screen viewer expanding from the photo's spot; arrow keys / swipe for next, Esc or click to close.
 - **More photos (Damian):** Damian will add more; design the grid for 6–10 photos. New originals go in `assets/photography-originals/` and through `npm run optimize-photos` (EXIF stripped) before commit.

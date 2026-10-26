@@ -173,27 +173,29 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 ### 8. Lens: "Off-duty, through glass" (wow)
 
-- **Layout:** an editorial asymmetric grid, with photos at mixed sizes on an offset grid like a magazine spread.
+- **Layout (Damian, revised):** a **small grid** of equal tiles, not big magazine-sized photos.
 
   - **The set (Damian, 2026-10-26):** 10 photos, all 3:4 portrait. The 4 already in `public/photography/` stay, and 6 new originals are in `assets/photography-originals/` (gitignored; they go through `npm run optimize-photos` before commit). Curated order and captions:
 
-    | Frame | File | Caption | Size |
-    |---|---|---|---|
-    | 01 | IMG_20260503_071804386 | Sigiriya, from Pidurangala · May 2026 | Large |
-    | 02 | IMG_20260415_173730095 | Small tenant · Apr 2026 | Small |
-    | 03 | IMG_20250511_192659821 | Architecture at nightfall · May 2025 | Medium |
-    | 04 | IMG_20250905_165813446 | Thalpe, low tide · Sep 2025 | Medium |
-    | 05 | IMG_20260117_104051821 | Pink in the green · Jan 2026 | Small |
-    | 06 | IMG_20260113_070907135 | Above the mist, Sigiriya · Jan 2026 | Large |
-    | 07 | IMG_20260117_182647746 | A dahlia after dark, Nuwara Eliya · Jan 2026 | Small |
-    | 08 | IMG_20260120_081200993 | Getting lost up Ella Rock · Jan 2026 | Large |
-    | 09 | IMG_20251010_181954209 | Colombo skyline, blue hour · Oct 2025 | Medium |
-    | 10 | IMG_20260912_173751573 | Storm light · Sep 2026 | Large |
+    | Frame | File | Caption |
+    |---|---|---|
+    | 01 | IMG_20260503_071804386 | Sigiriya, from Pidurangala · May 2026 |
+    | 02 | IMG_20260415_173730095 | Small tenant · Apr 2026 |
+    | 03 | IMG_20250511_192659821 | Architecture at nightfall · May 2025 |
+    | 04 | IMG_20250905_165813446 | Thalpe, low tide · Sep 2025 |
+    | 05 | IMG_20260117_104051821 | Pink in the green · Jan 2026 |
+    | 06 | IMG_20260113_070907135 | Above the mist, Sigiriya · Jan 2026 |
+    | 07 | IMG_20260117_182647746 | A dahlia after dark, Nuwara Eliya · Jan 2026 |
+    | 08 | IMG_20260120_081200993 | Getting lost up Ella Rock · Jan 2026 |
+    | 09 | IMG_20251010_181954209 | Colombo skyline, blue hour · Oct 2025 |
+    | 10 | IMG_20260912_173751573 | Storm light · Sep 2026 |
 
-  - **Desktop grid:** a 12-column grid built from five two-photo spreads, with large tiles 6 columns wide, medium 4 and small 3, and staggered top offsets.
-    - Placement: 01 (cols 1–6) + 02 (8–10, low); 03 (3–6) + 04 (8–11, low); 05 (1–3, low) + 06 (5–10); 08 (2–7) + 07 (9–11, low); 09 (2–5, low) + 10 (7–12).
-    - Mobile: one column; large photos full width, medium 78%, small 58%, alternating left/right/centre.
-    - Reference: `spike/gallery-mockup.html`.
+  - **Desktop grid:** 10 equal 3:4 tiles, **five columns × two rows**, max width about 1200 px, right-aligned under the section text.
+    - Every other column sits 2.5 rem lower, for a light stagger.
+    - Captions sit in three mono lines under each tile: `FRAME NN`, the caption, then the month.
+  - **Mobile:** two columns, with every other one nudged down 1.5 rem.
+  - The full-size view comes from the full-screen viewer on click. The develop effect plays per tile.
+  - Reference: `spike/gallery-mockup.html`.
 - **Caption:** place + month (e.g. `Sigiriya, from Pidurangala · May 2026`) plus the frame number, in mono.
 - **Develop:**
   - Each photo starts as a halftone of round electric-blue dots sized by tone, and resolves into full colour as it scrolls into view.

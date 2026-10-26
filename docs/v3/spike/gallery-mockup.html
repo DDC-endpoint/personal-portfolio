@@ -18,25 +18,18 @@
   h2 { font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(3rem,6vw,4.5rem); line-height:.95; letter-spacing:-.01em; }
   h2 i { color:var(--electric); }
   .intro { margin-top:1.5rem; max-width:36rem; font-size:1.1rem; color:var(--ink-soft); }
-  /* editorial grid: explicit spreads, mixed sizes, staggered tops */
-  .grid { display:grid; grid-template-columns:repeat(12,1fr); column-gap:24px; row-gap:5rem; align-items:start; }
+  /* small grid: equal tiles, five across, alternate columns nudged down */
+  .grid { display:grid; grid-template-columns:repeat(5,1fr); column-gap:24px; row-gap:3rem; max-width:1200px; margin-left:auto; }
+  figure:nth-child(even) { transform:translateY(2.5rem); }
   figure img { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; }
-  figcaption { margin-top:.75rem; display:flex; justify-content:space-between; gap:1rem; font:400 10px 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+  figcaption { margin-top:.6rem; display:flex; flex-direction:column; gap:.2rem; font:400 10px 'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); line-height:1.4; }
   figcaption b { font-weight:500; color:var(--ink-soft); }
-  .f01 { grid-column:1/span 6; grid-row:1; }       .f02 { grid-column:8/span 3; grid-row:1; margin-top:12rem; }
-  .f03 { grid-column:3/span 4; grid-row:2; }       .f04 { grid-column:8/span 4; grid-row:2; margin-top:7rem; }
-  .f05 { grid-column:1/span 3; grid-row:3; margin-top:9rem; } .f06 { grid-column:5/span 6; grid-row:3; }
-  .f07 { grid-column:9/span 3; grid-row:4; margin-top:4rem; } .f08 { grid-column:2/span 6; grid-row:4; }
-  .f09 { grid-column:2/span 4; grid-row:5; margin-top:8rem; } .f10 { grid-column:7/span 6; grid-row:5; }
   .foot { margin-top:6rem; display:flex; justify-content:space-between; align-items:end; }
   .foot a { font-family:'Instrument Serif',serif; font-style:italic; font-size:2.25rem; color:var(--ink); text-decoration:none; }
   @media (max-width: 760px) {
     section { padding:5rem 20px; } .head { display:block; margin-bottom:3rem; } .head .label { margin-bottom:1rem; }
-    .grid { display:flex; flex-direction:column; gap:3rem; }
-    figure { margin:0 !important; }
-    .f01, .f06, .f08, .f10 { width:100%; }
-    .f03, .f04, .f09 { width:78%; } .f04, .f09 { align-self:flex-end; }
-    .f02, .f05, .f07 { width:58%; } .f05 { align-self:flex-end; } .f02, .f07 { align-self:center; }
+    .grid { grid-template-columns:repeat(2,1fr); column-gap:14px; row-gap:2rem; }
+    figure:nth-child(even) { transform:translateY(1.5rem); }
     .foot { flex-direction:column; align-items:flex-start; gap:1rem; }
   }
 </style>
@@ -65,7 +58,7 @@ const photos = [
 ];
 document.getElementById('grid').innerHTML = photos.map(([cap, when], i) => {
   const n = String(i + 1).padStart(2, '0');
-  return `<figure class="f${n}"><img src="gal/f${n}.jpg" alt="${cap}" loading="lazy"><figcaption><span><b>Frame ${n}</b> · ${cap}</span><span>${when}</span></figcaption></figure>`;
+  return `<figure class="f${n}"><img src="gal/f${n}.jpg" alt="${cap}" loading="lazy"><figcaption><b>Frame ${n}</b><span>${cap}</span><span>${when}</span></figcaption></figure>`;
 }).join('');
 </script>
 </body>
