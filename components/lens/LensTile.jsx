@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { useDevelop } from "./useDevelop";
 
 // One framed photo in the § 07 grid: a hairline border, an ivory mat and the
 // photo, with a highlighter that traces the frame clockwise on hover or
@@ -14,6 +15,9 @@ export default function LensTile({ frame, index, onOpen }) {
   const ref = useRef(null);
   const pointer = useRef("");
   const timers = useRef([]);
+  const canvasRef = useRef(null);
+  const imgRef = useRef(null);
+  useDevelop({ rootRef: ref, canvasRef, imgRef });
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
@@ -43,7 +47,9 @@ export default function LensTile({ frame, index, onOpen }) {
       }`}
     >
       <div data-photo className="relative aspect-3/4 w-full overflow-hidden bg-mist md:aspect-auto md:min-h-0 md:flex-1">
+        <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full" />
         <Image
+          ref={imgRef}
           src={frame.src}
           alt=""
           fill
