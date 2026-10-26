@@ -2,86 +2,62 @@
 import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useEffect, useRef, useState } from "react";
-import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import { SPRING } from "@/lib/motion";
+import { ENTRIES, litCount } from "@/lib/timeline";
+import { scrambleDigits, TICK_MS } from "@/lib/decode";
 import { DecodeLabel } from "./Scramble";
 
-const entries = [
-  {
-    year: "2026",
-    title: "This portfolio",
-    place: "Personal project · Next.js & Framer Motion",
-    detail:
-      "Designed and built this site as a living journal of my work — something I'll keep refining across the rest of university.",
-    accent: true,
-  },
-  {
-    year: "2026",
-    title: "Personal Dashboard",
-    place: "Side project",
-    detail: "A self-updating homepage I open every morning. RSS, reading queue, and quick links.",
-  },
-  {
-    year: "2025 — 2026",
-    title: "Completed first year",
-    place: "IIT · University of Westminster",
-    detail:
-      "Wrapped up the first year of my BSc (Hons) Computer Science, building the fundamentals across programming, systems, and problem-solving.",
-  },
-  {
-    year: "Sep 2025",
-    title: "Began BSc (Hons) Computer Science",
-    place: "IIT · University of Westminster",
-    detail:
-      "Started my degree — the formal beginning of turning a self-taught hobby into a craft.",
-  },
-  {
-    year: "2022 — 2024",
-    title: "Edexcel A-Levels",
-    place: "St. Joseph's College, Colombo 10",
-    detail:
-      "Pearson Edexcel IAL in Mathematics, Physics, and Chemistry — alongside leading the student body as Head Prefect.",
-  },
-  {
-    year: "2024",
-    title: "First lines of code",
-    place: "Self-taught · web development",
-    detail:
-      "Started teaching myself web development — HTML, CSS, then JavaScript — and began collecting small projects on GitHub.",
-  },
-  {
-    year: "2020",
-    title: "Video games as a hobby",
-    place: "Curiosity",
-    detail:
-      "Fell deep into video games — equal parts play and a quiet fascination with how the worlds behind the screen were actually built.",
-  },
-  {
-    year: "2018",
-    title: "Where it began",
-    place: "Self-taught · Scratch, Micro:bit & Arduino",
-    detail:
-      "My very first taste of making things — block-coding in Scratch, then wiring up Micro:bit and Arduino. The spark that started this whole journey.",
-  },
-];
+// § 05 Timeline — a running stitch (Damian). An electric dashed thread, led by
+// a needle, sews down the list as you scroll and unpicks as you scroll back.
+// Each milestone the needle passes gets a cross-stitch ×, its year decodes
+// from scrambled digits and its text goes from faint to full ink; milestones
+// below the needle stay faint. One sprung motion value drives it all through
+// the --d custom property, so the per-frame work is CSS only.
+// No JS or reduced motion: fully stitched, every milestone lit, no needle. The
+// faint state and the clip only apply under js:motion-safe:.
+
+const YEAR_MS = 500;
+
+// Decodes one year in place: digits scramble and resolve left to right.
+function decodeYear(el, year, raf) {
+  if (!el) return;
+  cancelAnimationFrame(raf.current);
+  const start = performance.now();
+  let last = -Infinity;
+  const step = (now) => {
+    const t = now - start;
+    if (t >= YEAR_MS) {
+      el.textContent = year;
+      return;
+    }
+    if (now - last >= TICK_MS) {
+      last = now;
+      el.textContent = scrambleDigits(year, t / YEAR_MS);
+    }
+    raf.current = requestAnimationFrame(step);
+  };
+  raf.current = requestAnimationFrame(step);
+}
 
 export default function Timeline() {
   const wrapperRef = useRef(null);
+  const yearRefs = useRef([]);
+  const yearRafs = useRef(ENTRIES.map(() => ({ current: 0 })));
   const reduce = useReducedMotion();
 
-  // The electric line draws down the list as it moves through the viewport:
-  // starts when the list top reaches 70% down the screen, completes when the
-  // list end passes just below the midpoint.
+  // The thread sews down the list as it moves through the viewport: it
+  // starts when the list top reaches 70% down the screen and completes when
+  // the list end passes just below the midpoint.
   const { scrollYProgress } = useScroll({
     target: wrapperRef,
     offset: ["start 0.7", "end 0.55"],
   });
   const drawn = useSpring(scrollYProgress, SPRING.draw);
 
-  // Dots fill as the (sprung) line tip passes them. Thresholds are each li's
-  // dot position as a fraction of the list height — one batched measure after
-  // fonts settle, recomputed on debounced resize.
+  // Milestones light as the needle passes their dot. Thresholds are each
+  // dot's position as a fraction of the list height: one batched measure
+  // after fonts settle, recomputed on debounced resize.
   const [thresholds, setThresholds] = useState([]);
   const [lit, setLit] = useState(0);
 
@@ -90,9 +66,14 @@ export default function Timeline() {
       const wrap = wrapperRef.current;
       if (!wrap) return;
       const h = wrap.offsetHeight || 1;
-      const items = wrap.querySelectorAll("ol > li");
-      // +17px ≈ the dot's center (top-3 = 12px + half of the 10px dot)
-      setThresholds(Array.from(items).map((li) => (li.offsetTop + 17) / h));
+      wrap.style.setProperty("--h", `${h}px`);
+      const items = wrap.querySelectorAll("[data-milestone]");
+      const next = Array.from(items).map((li) => {
+        const dot = li.querySelector("[data-dot]");
+        return (li.offsetTop + dot.offsetTop + dot.offsetHeight / 2) / h;
+      });
+      setThresholds(next);
+      setLit(litCount(drawn.get(), next));
     };
     let t;
     const onResize = () => {
@@ -106,19 +87,30 @@ export default function Timeline() {
       measure();
     })();
     window.addEventListener("resize", onResize);
+    const rafs = yearRafs.current;
     return () => {
       clearTimeout(t);
       window.removeEventListener("resize", onResize);
+      rafs.forEach((r) => cancelAnimationFrame(r.current));
     };
-  }, []);
+  }, [drawn]);
 
-  useMotionValueEvent(drawn, "change", (v) => {
-    let count = 0;
-    for (const th of thresholds) if (v >= th) count++;
-    setLit(count);
-  });
+  useMotionValueEvent(drawn, "change", (v) => setLit(litCount(v, thresholds)));
 
-  const litCount = reduce ? entries.length : lit;
+  // A milestone that lights up decodes its year; one that goes dark is
+  // simply faint again, ready to decode the next time the needle passes.
+  const prevLit = useRef(0);
+  useEffect(() => {
+    if (reduce) return;
+    for (let i = prevLit.current; i < lit; i++) decodeYear(yearRefs.current[i], ENTRIES[i].year, yearRafs.current[i]);
+    for (let i = lit; i < prevLit.current; i++) {
+      cancelAnimationFrame(yearRafs.current[i].current);
+      if (yearRefs.current[i]) yearRefs.current[i].textContent = ENTRIES[i].year;
+    }
+    prevLit.current = lit;
+  }, [lit, reduce]);
+
+  const litNow = reduce ? ENTRIES.length : lit;
 
   return (
     <section id="timeline" className="relative px-6 md:px-10 py-32 md:py-44 border-t border-rule bg-paper">
@@ -134,36 +126,69 @@ export default function Timeline() {
             How I got <span className="italic text-electric">here</span>.
           </SplitLines>
 
-          <div ref={wrapperRef} className="relative mt-16 md:mt-24">
-            {/* static base rule + electric draw overlay */}
+          <motion.div
+            ref={wrapperRef}
+            data-timeline-list
+            style={{ "--d": drawn }}
+            className="relative mt-16 md:mt-24"
+          >
+            {/* faint base rule, the running stitch over it, and the needle at its tip */}
             <div className="absolute left-4 md:left-0 top-0 bottom-0 w-px rule-v" aria-hidden />
-            <motion.div
+            <div
               aria-hidden
-              style={{ scaleY: reduce ? 1 : drawn }}
-              className="absolute left-4 md:left-0 top-0 bottom-0 w-px bg-electric origin-top"
+              className="absolute left-4 md:left-0 top-0 bottom-0 w-[1.5px] bg-[repeating-linear-gradient(to_bottom,rgb(var(--c-electric))_0_7px,transparent_7px_12px)] js:motion-safe:[clip-path:inset(0_0_calc((1_-_var(--d,1))*100%)_0)]"
             />
+            <div
+              data-needle
+              aria-hidden
+              className="absolute left-4 md:left-0 top-0 hidden js:motion-safe:block [transform:translate(-50%,calc(var(--d,0)*var(--h,0px)_-_100%))]"
+            >
+              <svg width="6" height="16" viewBox="0 0 6 16" className="block overflow-visible">
+                <ellipse cx="3" cy="3" rx="1.6" ry="2.4" className="fill-none stroke-electric" strokeWidth="1" />
+                <path d="M3 5.6 L3 16" className="stroke-electric" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
 
             <ol className="flex flex-col gap-12 md:gap-16">
-              {entries.map((e, i) => (
-                <Reveal as="li" key={i} delay={i * 0.07} className="relative pl-12 md:pl-20">
-                  <span
-                    className={`absolute left-[11px] md:left-[-5px] top-3 w-2.5 h-2.5 rounded-full ${
-                      i < litCount ? "bg-electric" : "bg-ink"
-                    }`}
-                  />
-                  <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft mb-2">
-                    {e.year} &mdash; {e.place}
-                  </div>
-                  <h3 className="font-display text-3xl md:text-5xl leading-tight text-ink">
-                    {e.title}
-                  </h3>
-                  <p className="mt-3 max-w-xl text-base md:text-lg text-ink-soft">
-                    {e.detail}
-                  </p>
-                </Reveal>
-              ))}
+              {ENTRIES.map((e, i) => {
+                const on = i < litNow;
+                return (
+                  <li
+                    key={`${e.year}-${e.title}`}
+                    data-milestone
+                    data-lit={on}
+                    className="group relative pl-12 md:pl-20"
+                  >
+                    <span
+                      data-dot
+                      aria-hidden
+                      className="absolute left-[12px] md:left-[-4px] top-[13px] h-2 w-2 rounded-full border border-rule bg-paper"
+                    />
+                    <span
+                      data-stitch
+                      aria-hidden
+                      className={`absolute left-[10px] md:left-[-6px] top-[11px] h-3 w-3 transition-transform duration-300 ease-out ${
+                        on ? "scale-100" : "js:motion-safe:scale-0"
+                      }`}
+                    >
+                      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-[11px] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-full bg-electric" />
+                      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-[11px] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-electric" />
+                    </span>
+                    <div className="transition-opacity duration-500 js:motion-safe:group-data-[lit=false]:opacity-45">
+                      <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft mb-2">
+                        <span ref={(el) => (yearRefs.current[i] = el)} data-year aria-hidden="true">
+                          {e.year}
+                        </span>
+                        <span className="sr-only">{e.year}</span> &mdash; {e.place}
+                      </div>
+                      <h3 className="font-display text-3xl md:text-5xl leading-tight text-ink">{e.title}</h3>
+                      <p className="mt-3 max-w-xl text-base md:text-lg text-ink-soft">{e.detail}</p>
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>
