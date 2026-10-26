@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 
 // Velocity Marquee — the drag/momentum ribbon physics from
-// components/Marquee.jsx (offset + velocity blend, exponential settle),
+// the former homepage Marquee (offset + velocity blend, exponential settle),
 // evolved: the track shears with its own velocity, so a hard throw puts the
 // type visibly under tension before it settles back to cruise.
 const WORDS = [

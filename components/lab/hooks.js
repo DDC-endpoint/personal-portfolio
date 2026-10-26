@@ -54,7 +54,7 @@ export function usePrefersReducedMotion() {
 }
 
 // Latest-value ref for pointer positions read inside rAF loops without
-// re-rendering (the Marquee.jsx direct-mutation pattern).
+// re-rendering (the former homepage Marquee direct-mutation pattern).
 export function useLatest(value) {
   const ref = useRef(value);
   ref.current = value;

@@ -5,6 +5,7 @@ import SplitLines from "./SplitLines";
 import Parallax from "./Parallax";
 import { SOCIALS, EMAIL } from "@/lib/site";
 import { EASE } from "@/lib/motion";
+import { DecodeLabel } from "./Scramble";
 
 export default function Contact() {
   return (
@@ -16,7 +17,7 @@ export default function Contact() {
 
         {/* Left column — label at top, "hello." vertical beside the socials grid */}
         <div className="col-span-12 md:col-span-3 flex flex-col">
-          <div className="section-label md:sticky md:top-32">§ 08 — Contact</div>
+          <DecodeLabel className="section-label md:sticky md:top-32">§ 08 — Contact</DecodeLabel>
 
           <div className="hidden md:flex flex-1 items-center justify-start mt-8 overflow-hidden">
             <Parallax distance={30}>

@@ -1,5 +1,6 @@
 "use client";
-import { motion, useScroll, useSpring, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useSpring } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { SPRING } from "@/lib/motion";
 
 // Thin electric line along the very top edge tracking page scroll.

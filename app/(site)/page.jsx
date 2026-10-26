@@ -1,6 +1,5 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
-import Marquee from "@/components/Marquee";
 import About from "@/components/About";
 import Leadership from "@/components/Leadership";
 import Skills from "@/components/Skills";
@@ -23,7 +22,6 @@ export default function Home() {
       <Nav />
       <main className="relative">
         <Hero />
-        <Marquee />
         <About />
         <Leadership />
         <Skills />

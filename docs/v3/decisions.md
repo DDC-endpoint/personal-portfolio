@@ -110,6 +110,15 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Facts to include:** Damian is now in **second year** of the BSc (Hons) Computer Science at IIT; new upcoming projects (Interact District 3220, ai-studio); Aloys Travels URL change.
 - Real copy only, no fake metrics.
 
+## Phase 1 review (2026-10-27)
+
+- **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
+- **The cursor dot hides inside the lens (Damian).** The dot blended teal over the colour photo.
+- **High contrast counts as static (spec).** Forced-colours mode gets the finished portrait, with no loader, idle animation or lens.
+- **Curtain back, on every reload (Damian, supersedes "Loader frequency" below).** The live site's `IntroStamp` curtain stays on Home and plays on every load or reload. The portrait's ASCII wave plays as the curtain lifts, also on every load. The hero text floats in as on the live site; the letter decode on the kicker and name is dropped. Only Home ↔ `/services` navigation will use the glyph-dissolve transition, built in Phase 4 as planned.
+- **Reduced-motion hydration fix rides with V3 (Damian).** `SplitLines`, `Parallax`, `Timeline` and `ScrollProgress` branched their markup on framer's `useReducedMotion()`, which differs between server and client. The hydration failure rebuilt the page and reset the theme. They now use the hydration-safe `lib/useReducedMotion.js`. The fix ships when `v3` merges to `main`, not as a separate hotfix.
+- **A wave nobody can see is skipped (builder's call).** In a background tab or on a landing below the hero, the finished portrait shows instead.
+
 ## Builder review answers (2026-10-26)
 
 - **Hero pieces (Damian):**

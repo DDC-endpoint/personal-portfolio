@@ -5,6 +5,7 @@ import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import Parallax from "./Parallax";
 import { EASE } from "@/lib/motion";
+import { DecodeLabel } from "./Scramble";
 
 // Drop JPEGs into /public/photography/ and fill in src + caption.
 // Leave src as null to render a placeholder card.
@@ -97,7 +98,7 @@ export default function Lens() {
     >
       <div className="grid grid-cols-12 gap-6 mb-16 md:mb-24">
         <div className="col-span-12 md:col-span-3">
-          <div className="section-label">§ 07 — Lens</div>
+          <DecodeLabel className="section-label">§ 07 — Lens</DecodeLabel>
         </div>
         <div className="col-span-12 md:col-span-9 md:col-start-4">
           <SplitLines as="h2" className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight text-ink">

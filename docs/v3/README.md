@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (end of session, 2026-10-26)
+## Where we are (2026-10-27)
 
 | Track | State |
 |---|---|
@@ -12,16 +12,17 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | Lens (gallery) | **Locked.** 10 photos, a compact mixed grid, framed tiles, a tracing highlighter. Mockup: [`spike/gallery-mockup.html`](spike/gallery-mockup.html). |
 | Copy refresh | **Approved.** [`copy.md`](copy.md). |
 | Design doc | **Approved by Damian, 2026-10-26**, with all 10 builder's calls confirmed. |
-| Implementation plan / build | Phase 1 plan in progress: [`plan-phase-1.md`](plan-phase-1.md). |
+| Phase 1 (motion primitives, hero portrait + loader, cursor lens, Marquee removal) | **Merged into `v3` locally (2026-10-27)**, built per [`plan-phase-1.md`](plan-phase-1.md) plus Damian's follow-ups: the IntroStamp curtain is kept, and underlined links don't scramble. Tests are green and Lighthouse is at parity with `main`. |
+| Phases 2–4 | Not started. |
 
 ### The next step
 
-1. Ask Damian whether [`design.md`](design.md) is approved. That was the last open question of the session.
-   - Have him confirm the 10 builder's calls listed at the bottom of [`decisions.md`](decisions.md) → "Status and next step".
-2. Once it's approved, write the **Phase 1 implementation plan** with the `superpowers:writing-plans` skill.
-   - Phase 1 covers the motion primitives (decode, label decode, link scramble), the hero portrait plus the loader that replaces `IntroStamp`, the cursor lens, and Marquee removal.
-   - Save the plan in `docs/v3/`, e.g. `docs/v3/plan-phase-1.md`. Damian wants everything V3 in this folder.
-3. Build Phase 1 on a branch off `v3` and open a PR **into `v3`**.
+1. Write the Phase 2 plan (Projects) with `superpowers:writing-plans` and save it as `docs/v3/plan-phase-2.md`. Build it on a `v3-phase-2` branch off `v3`.
+2. `v3` is still local only. Pushing needs Damian's OK (`git push -u origin v3`).
+
+## Before `v3` merges to `main`
+
+- **Ships a live-site bug fix (2026-10-27).** On damiandc.com today, visitors with reduced motion get a React hydration error (#418), and React rebuilds the page, which resets them to light mode. It's fixed on `v3` (`lib/useReducedMotion.js`), not on `main`, by Damian's choice, so the live site keeps the bug until `v3` merges. Mention it in the `v3` → `main` PR and check it on the live site after the redeploy: turn on reduced motion, choose dark mode, and reload `/` and `/services`.
 
 ## How V3 ships
 

@@ -11,7 +11,7 @@ import { useEffect, useRef } from "react";
 // everything else heals back to sentence A. Cells render CONTINUOUSLY from
 // energy (per-frame rotateX/opacity writes, no class toggle) so the wave rolls
 // through intermediate flip angles instead of stepping all-or-nothing. All
-// per-frame work is direct style mutation via refs — the Marquee.jsx pattern —
+// per-frame work is direct style mutation via refs — the former homepage Marquee pattern —
 // zero React state.
 
 // The two sentences share identical word boundaries (spaces at the same

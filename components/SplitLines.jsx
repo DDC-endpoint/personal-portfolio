@@ -1,5 +1,6 @@
 "use client";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "react";
 import { EASE, VIEWPORT } from "@/lib/motion";
 
