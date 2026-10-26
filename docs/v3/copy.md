@@ -67,7 +67,7 @@ damian@colombo ~ $ ▍
   4. **Spades Solutions — 2026.** Website for a growing solutions company, built to look sharp and turn visitors into enquiries.
   5. **Danella De Cruz — 2026.** Portfolio and booking site for a Colombo cover artist, putting her music, story and performance schedule on one clean stage.
   6. **Kahatagaha Graphite — 2026.** Two homepage concepts for a Sri Lankan crystalline graphite producer, one dark and technical, one light and editorial, built from the same content and eleven material grades.
-  7. **Interact District 3220 — 2026** (upcoming, no link). New website for Rotary Interact District 3220, in progress. *(See question 2.)*
+  7. **Interact District 3220 — 2026** (upcoming, no link). New website for Interact District 3220, in progress. (Damian: plain, no "Rotary".)
   8. **ai-studio — 2026** (upcoming, no link). In the works · 2026
   9. **End card.** Address bar types `your-site.com`. Line: *Your project next.* Link: Start a project →
 
@@ -77,11 +77,11 @@ damian@colombo ~ $ ▍
 - Entries:
   1. **2018 · Where it began** — Self-taught · Scratch, Micro:bit & Arduino. My first taste of making things: block-coding in Scratch, then wiring up a Micro:bit and an Arduino.
   2. **2020 · Video games as a hobby** — Curiosity. Fell deep into video games, half for the play and half out of curiosity about how the worlds behind the screen were built.
-  3. **2022–2024 · Edexcel A-Levels** — St. Joseph's College, Colombo 10. Pearson Edexcel IAL in Mathematics, Physics and Chemistry, while leading the student body as Head Prefect. *(See question 3.)*
+  3. **2022–2024 · Edexcel A-Levels** — St. Joseph's College, Colombo 10. Pearson Edexcel IAL in Mathematics, Physics and Chemistry, alongside serving as Senior Prefect and Interact Club President. (Damian: Head Prefect was 2024–2025, after A-Levels.)
   4. **2024 · First lines of code** — Self-taught · web development. Taught myself web development (HTML, CSS, then JavaScript) and started collecting small projects on GitHub.
   5. **Sep 2025 · Began BSc (Hons) Computer Science** — IIT · University of Westminster. The formal start of turning a self-taught hobby into a craft.
   6. **2025–2026 · Completed first year** — IIT · University of Westminster. Finished the first year of my degree, with the fundamentals in programming, systems and problem-solving.
-  7. **2026 · Began second year** (new) — IIT · University of Westminster. Started the second year of my BSc (Hons) Computer Science. *(See question 4.)*
+  7. **Sep 2026 · Began second year** (new) — IIT · University of Westminster. Started the second year of my BSc (Hons) Computer Science.
   8. **2026 · Personal Dashboard** — Side project. A self-updating homepage I open every morning: RSS, a reading queue and quick links.
   9. **2026 · This portfolio** — Personal project · Next.js & Framer Motion. Designed and built this site as a living journal of my work. I'll keep refining it through the rest of university.
 
@@ -117,7 +117,7 @@ What changed: dropped the closing "The spark that started this whole journey." (
 
 - "© 2026 — Damian De Cruz" → "© 2026 Damian De Cruz"
 - "Made by hand, in Colombo." **(keep)**
-- "v:03 / Always evolving" *(see question 1)*
+- "v:03 / Always evolving" → "v:04 / Always evolving" (Damian: bump to v04)
 
 ---
 
@@ -189,11 +189,14 @@ Service descriptions (titles, "includes" lists, prices and turnarounds unchanged
 - Replaced "roadmap" with "plan" and "days, not months" with "within days".
 - Kept every heading, the "Currently" line, the footer tagline, all prices, turnarounds and the deposit policy's meaning.
 
-## Questions for Damian
+## Answered (2026-10-26)
 
-1. **Footer version label.** It already says `v:03`, and the marquee said "Portfolio Vol. 03". Since this redesign is "V3", keep `v:03`, or bump it to `v:04`?
-2. **Interact District 3220 blurb.** You held District Interact Representative for District 3220 (2024–2025). Mention it ("New website for Rotary Interact District 3220, the district I once represented.") or keep the plain version?
-3. **A-Levels vs Head Prefect dates.** The timeline says A-Levels 2022–2024 "while leading the student body as Head Prefect", but Leadership lists Head Prefect as 2024–2025. Which is right?
-4. **Second year start.** What month did second year begin (e.g. Sep 2026)?
-5. **/services recent work.** Add Danella De Cruz (your strongest client build) to the three cards there?
+1. Footer version → `v:04`.
+2. Interact card → plain, "Interact District 3220" without "Rotary".
+3. Head Prefect was 2024–2025 → A-Levels entry credits Senior Prefect + Interact Club President instead.
+4. Second year began Sep 2026.
+
+## Still open
+
+5. **/services recent work.** Add Danella De Cruz to the three cards there?
 6. **Contact headline.** A, B or C?
