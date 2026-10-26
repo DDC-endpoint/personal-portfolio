@@ -3,21 +3,14 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import EagerReveal from "./EagerReveal";
 import HeroPortrait from "./HeroPortrait";
+import { ScrambleText } from "./Scramble";
 import { EASE, INTRO_OFFSET, shouldPlayIntro } from "@/lib/motion";
 
-function Word({ children, delay = 0 }) {
-  // No overflow-hidden here — clipping is handled at the line-div level so
-  // italic glyph overhang is never cut on either side.
-  return (
-    <motion.span
-      initial={{ y: "110%" }}
-      animate={{ y: 0 }}
-      transition={{ duration: 1, ease: EASE, delay }}
-      className="inline-block"
-    >
-      {children}
-    </motion.span>
-  );
+const SERVICES_BUTTON =
+  "items-center gap-2 bg-electric text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300 group";
+
+function ServicesArrow() {
+  return <span className="transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>;
 }
 
 export default function Hero() {
@@ -35,9 +28,10 @@ export default function Hero() {
 
   return (
     <section id="top" ref={ref} className="relative min-h-screen w-full overflow-hidden pt-44 md:pt-52">
-      {/* atmospheric blue blob */}
-      <div className="absolute -top-40 -right-32 w-[60vw] h-[60vw] rounded-full bg-sky/70 dark:bg-sky/40 blur-3xl blob pointer-events-none" />
-      <div className="absolute top-1/3 -left-40 w-[40vw] h-[40vw] rounded-full bg-mist blur-3xl blob pointer-events-none" style={{ animationDelay: "-6s" }} />
+      {/* atmospheric blue blobs — dimmed in dark mode so the sky orb behind
+          the portrait doesn't fight the blue glyphs */}
+      <div className="absolute -top-40 -right-32 w-[60vw] h-[60vw] rounded-full bg-sky/70 dark:bg-sky/15 blur-3xl blob pointer-events-none" />
+      <div className="absolute top-1/3 -left-40 w-[40vw] h-[40vw] rounded-full bg-mist dark:bg-[#122848] blur-3xl blob pointer-events-none" style={{ animationDelay: "-6s" }} />
 
       {/* corner metadata — coordinates top-left, index top-right; both fade out on scroll */}
       <motion.div
@@ -64,13 +58,17 @@ export default function Hero() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: at(1.3), duration: 0.6, ease: EASE }}
-          className="hidden md:inline-flex items-center gap-2 bg-electric text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300 group"
+          className={`hidden md:inline-flex ${SERVICES_BUTTON}`}
         >
-          Services
-          <span className="transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
+          <ScrambleText text="Services" />
+          <ServicesArrow />
         </motion.a>
       </div>
 
+      {/* The drifting content is three siblings sharing one scroll drift, so
+          on mobile the portrait sits between the name and the lede while on
+          desktop it is absolute against the section (a transformed parent
+          would otherwise become its containing block). */}
       <motion.div style={{ y, opacity }} className="relative px-6 md:px-10">
         {/* Role kicker — fades in before the name animates. EagerReveal keeps
             it painted in the SSR HTML (early LCP) and replays the entrance
@@ -85,68 +83,47 @@ export default function Hero() {
         </EagerReveal>
 
         <h1 className="font-display tracking-tightest leading-[0.82] text-ink text-[17vw] md:text-[13.5vw] uppercase">
-          {/* Each line rises as one unit from behind its line-level mask. */}
-          <div className="overflow-hidden pb-[0.04em] flex flex-wrap items-end gap-x-[0.04em]">
-            <Word delay={at(0.25)}>Damian</Word>
+          <div className="pb-[0.04em]">
+            <span>Damian</span>
           </div>
-          <div className="overflow-hidden pb-[0.04em] flex flex-wrap items-end gap-x-[0.04em] -mt-2 md:-mt-4">
-            <Word delay={at(0.4)}>
-              <span className="italic font-display text-electric">de&nbsp;</span>
-            </Word>
-            <Word delay={at(0.4)}>Cruz.</Word>
+          <div className="pb-[0.04em] -mt-2 md:-mt-4">
+            <span className="italic font-display text-electric">de&nbsp;</span>
+            <span>Cruz.</span>
           </div>
         </h1>
+      </motion.div>
 
+      {/* Portrait stage — 4:5, bottom-anchored on desktop, height-capped so
+          its label clears the nav (values: docs/v3/hero-portrait.md) */}
+      <motion.div
+        style={{ y, opacity }}
+        className="mx-auto mt-8 w-[min(86vw,60vh)] aspect-[4/5] md:absolute md:bottom-0 md:mt-0 md:right-[calc(40px+5vw)] md:w-[min(40vw,72vh,calc((100vh-190px)*0.8))] max-[1100px]:md:right-10 max-[1100px]:md:w-[min(38vw,72vh,calc((100vh-190px)*0.8))]"
+      >
+        <HeroPortrait />
+      </motion.div>
+
+      <motion.div style={{ y, opacity }} className="relative px-6 md:px-10 pb-16 md:pb-0">
         <div className="mt-10 md:mt-16 grid grid-cols-12 gap-6 items-end">
           {/* The largest above-fold text block = the LCP element on both form
               factors — replay={false} keeps it painted from the very first
-              frame (the intro curtain covers it until the entrance anyway). */}
+              frame and it never fades (Damian, V3 planning). */}
           <EagerReveal
             as="p"
             replay={false}
             className="col-span-12 md:col-span-5 text-lg md:text-xl leading-snug text-ink-soft max-w-md"
           >
-            Reading <span className="italic font-display text-ink">BSc (Hons) Computer Science</span>{" "}
-            at the Informatics Institute of Technology, Colombo — University of Westminster&rsquo;s
-            campus in Sri Lanka. Building things on the internet at the seam of code, design, and curiosity.
-          </EagerReveal>
-
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: at(0.95), duration: 0.9 }}
-            className="hidden md:block col-span-3"
-          />
-
-          <EagerReveal
-            delay={at(0.95)}
-            y={20}
-            className="col-span-12 md:col-span-4 flex flex-col gap-2 md:items-end"
-          >
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">
-              Currently
-            </div>
-            <div className="font-display text-3xl md:text-4xl italic text-ink leading-tight md:text-right">
-              learning, shipping, breaking things.
-            </div>
+            In my second year of <span className="italic font-display text-ink">BSc (Hons) Computer Science</span>{" "}
+            at the Informatics Institute of Technology, Colombo, the University of Westminster&rsquo;s
+            campus in Sri Lanka. Building things on the internet at the seam of code, design and curiosity.
           </EagerReveal>
         </div>
-      </motion.div>
 
-      <div className="hidden md:block absolute bottom-0 right-[calc(40px+5vw)] w-[min(40vw,72vh,calc((100vh-190px)*0.8))] aspect-[4/5]">
-        <HeroPortrait />
-      </div>
-
-      {/* scroll indicator — purely decorative, hidden from assistive tech */}
-      <motion.div
-        aria-hidden
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: at(1.7), duration: 1 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-      >
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-soft">scroll</span>
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="w-px h-10 bg-ink/40"
-        />
+        {/* Mobile only: the top-right CTA is hidden below md, so the hero
+            ends on a full-width Services button instead */}
+        <a href="/services" data-hover className={`md:hidden mt-6 flex w-full justify-center ${SERVICES_BUTTON}`}>
+          <ScrambleText text="Services" />
+          <ServicesArrow />
+        </a>
       </motion.div>
     </section>
   );
