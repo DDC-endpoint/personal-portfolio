@@ -12,14 +12,13 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | Lens (gallery) | **Locked.** 10 photos, a compact mixed grid, framed tiles, a tracing highlighter. Mockup: [`spike/gallery-mockup.html`](spike/gallery-mockup.html). |
 | Copy refresh | **Approved.** [`copy.md`](copy.md). |
 | Design doc | **Approved by Damian, 2026-10-26**, with all 10 builder's calls confirmed. |
-| Phase 1 (motion primitives, hero portrait + loader, cursor lens, Marquee removal) | **Built on `v3-phase-1`** per [`plan-phase-1.md`](plan-phase-1.md). Tests are green and Lighthouse is at parity with `main`. Waiting on review, then a PR into `v3`. |
+| Phase 1 (motion primitives, hero portrait + loader, cursor lens, Marquee removal) | **Merged into `v3` locally (2026-10-27)**, built per [`plan-phase-1.md`](plan-phase-1.md) plus Damian's follow-ups: the IntroStamp curtain is kept, and underlined links don't scramble. Tests are green and Lighthouse is at parity with `main`. |
 | Phases 2–4 | Not started. |
 
 ### The next step
 
-1. Damian reviews Phase 1 on `v3-phase-1`. Run `npm run dev`, then open `/`. The curtain and the portrait wave play on every reload.
-2. Pushing needs Damian's OK, because `v3` has never been pushed. With it: `git push -u origin v3`, `git push -u origin v3-phase-1`, then open a PR into **`v3`**.
-3. Write the Phase 2 plan (Projects) with `superpowers:writing-plans` and save it as `docs/v3/plan-phase-2.md`.
+1. Write the Phase 2 plan (Projects) with `superpowers:writing-plans` and save it as `docs/v3/plan-phase-2.md`. Build it on a `v3-phase-2` branch off `v3`.
+2. `v3` is still local only. Pushing needs Damian's OK (`git push -u origin v3`).
 
 ## Before `v3` merges to `main`
 
