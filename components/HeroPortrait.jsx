@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   RAMP, cellSize, fadeAt, glyphIndex, buildField, density, shadeRGB, glyphAlpha,
   scanBand, bandWeight, flickerCount, revealTime, cellPhase, FACE, LOADER_S,
+  LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE,
 } from "@/lib/portrait";
 import { noiseChar } from "@/lib/decode";
 import { shouldPlayLoader } from "@/lib/motion";
 import { heroWave } from "@/lib/heroWave";
+import { ring, customCursorShown } from "@/lib/cursor";
 
 // The V3 hero: Damian's studio headshot redrawn as an electric-blue ASCII
 // portrait on a canvas. Spec: docs/v3/hero-portrait.md. All maths lives in
@@ -22,6 +24,11 @@ import { heroWave } from "@/lib/heroWave";
 // then the final glyphs — and starts lib/heroWave so the hero text lands
 // with it. If image + font arrive later than 2.5 s into the load, the wave is
 // skipped: content that has been on screen for seconds must not blink away.
+//
+// Lens: over the portrait the site cursor's ring grows into a lens that shows
+// the full-colour photo (same fade mask), with the glyphs under it cleared.
+// With the custom cursor the lens sits under the ring (lib/cursor); on touch,
+// or without the custom cursor, it follows the pointer and draws its own rim.
 
 const SRC = "/hero/portrait.webp";
 const SUPERSAMPLE = 3;
@@ -35,8 +42,12 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const { font, cw, ch } = cellSize();
   let W = 0, H = 0, dpr = 1, cols = 0, rows = 0, n = 0;
-  let field = null, fade = null, rest = null, reveal = null;
-  let electric, bg, dark;
+  let field = null, fade = null, rest = null, reveal = null, fadeMask = null;
+  let electric, bg, faint, dark;
+  // own: the lens follows the pointer itself (touch / no custom cursor)
+  const lens = { x: 0, y: 0, tx: 0, ty: 0, s: 0, on: false, own: true };
+  const lensCv = document.createElement("canvas");
+  const lensCtx = lensCv.getContext("2d");
   const flickUntil = new Map(); // cell → [expiry ms, glyph]
   let idleStart = performance.now();
   const waveStart = performance.now();
@@ -52,6 +63,7 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
     const styles = getComputedStyle(document.documentElement);
     electric = rgbVar(styles, "--c-electric");
     bg = rgbVar(styles, "--c-ivory");
+    faint = rgbVar(styles, "--c-ink-faint");
     dark = document.documentElement.classList.contains("dark");
   }
 
@@ -64,6 +76,8 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
     H = r.height;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
+    lensCv.width = canvas.width;
+    lensCv.height = canvas.height;
     cols = Math.floor(W / cw);
     rows = Math.floor(H / ch);
     n = cols * rows;
@@ -82,6 +96,12 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
         reveal[y * cols + x] = revealTime(x, y, cols, rows, ch / cw, Math.random());
       }
     }
+    fadeMask = document.createElement("canvas");
+    fadeMask.width = cols;
+    fadeMask.height = rows;
+    const fm = fadeMask.getContext("2d"), fd = fm.createImageData(cols, rows);
+    for (let i = 0; i < n; i++) fd.data[i * 4 + 3] = fade[i] * 255;
+    fm.putImageData(fd, 0, 0);
     flickUntil.clear();
     onLayout(cols, rows);
     buildRest();
@@ -175,16 +195,93 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
     ctx.globalAlpha = 1;
   }
 
+  // Soft-edged disc: solid to LENS_SOLID of the radius, gone at the radius.
+  function lensGradient(c) {
+    const g = c.createRadialGradient(lens.x, lens.y, 0, lens.x, lens.y, LENS_R);
+    g.addColorStop(0, `rgba(0,0,0,${lens.s})`);
+    g.addColorStop(LENS_SOLID, `rgba(0,0,0,${lens.s})`);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    return g;
+  }
+
+  function drawLens() {
+    if (lens.own) {
+      lens.x += (lens.tx - lens.x) * FOLLOW;
+      lens.y += (lens.ty - lens.y) * FOLLOW;
+    } else {
+      const r = canvas.getBoundingClientRect();
+      lens.x = ring.x - r.left;
+      lens.y = ring.y - r.top;
+    }
+    lens.s += ((lens.on ? 1 : 0) - lens.s) * STRENGTH_EASE;
+    if (lens.s < 0.01) return;
+    // clear the glyphs under the lens
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = lensGradient(ctx);
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "source-over";
+    // the photo, masked by the portrait fade and the lens disc
+    lensCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    lensCtx.globalCompositeOperation = "source-over";
+    lensCtx.clearRect(0, 0, W, H);
+    lensCtx.drawImage(img, 0, 0, W, H);
+    lensCtx.globalCompositeOperation = "destination-in";
+    lensCtx.drawImage(fadeMask, 0, 0, W, H);
+    lensCtx.fillStyle = lensGradient(lensCtx);
+    lensCtx.fillRect(0, 0, W, H);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(lensCv, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (lens.own) {
+      ctx.globalAlpha = 0.5 * lens.s;
+      ctx.strokeStyle = css(electric);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(lens.x, lens.y, LENS_R * 0.98, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.8 * lens.s;
+    ctx.fillStyle = css(faint);
+    ctx.font = `400 9px ${family}`;
+    ctx.fillText(`x ${Math.round(lens.x)} · y ${Math.round(lens.y)}`, lens.x + LENS_R * 0.72, lens.y + LENS_R * 0.78);
+    ctx.globalAlpha = 1;
+  }
+
   function drawFrame(now) {
     if (waving) {
       const t = (now - waveStart) / 1000;
-      if (t < LOADER_S) return drawWave(t);
-      waving = false;
-      idleStart = now;
-      onWaveEnd();
+      if (t < LOADER_S) drawWave(t);
+      else {
+        waving = false;
+        idleStart = now;
+        onWaveEnd();
+      }
     }
-    drawIdle(now);
+    if (!waving) drawIdle(now);
+    drawLens();
   }
+
+  // Pointer → lens target, in canvas coordinates.
+  function aim(e) {
+    lens.own = !(e.pointerType === "mouse" && customCursorShown());
+    const r = canvas.getBoundingClientRect();
+    lens.tx = e.clientX - r.left;
+    lens.ty = e.clientY - r.top;
+    if (lens.s < 0.01) {
+      lens.x = lens.tx;
+      lens.y = lens.ty;
+    }
+  }
+  const lensOn = (e) => {
+    lens.on = true;
+    aim(e);
+  };
+  const lensOff = () => (lens.on = false);
+  const lensUp = (e) => {
+    if (e.pointerType !== "mouse") lens.on = false;
+  };
+  const pointerEvents = { pointerenter: lensOn, pointerdown: lensOn, pointermove: aim, pointerleave: lensOff, pointercancel: lensOff, pointerup: lensUp };
 
   const tick = (now) => {
     drawFrame(now);
@@ -230,6 +327,7 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
   });
   io.observe(wrapper);
   document.addEventListener("visibilitychange", sync);
+  if (!reduced) for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn);
   sync();
 
   return {
@@ -244,6 +342,7 @@ function createPortrait({ wrapper, canvas, img, family, onLayout, wave, onWaveEn
       mo.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", sync);
+      for (const [type, fn] of Object.entries(pointerEvents)) canvas.removeEventListener(type, fn);
     },
   };
 }
