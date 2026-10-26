@@ -136,9 +136,9 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 
 As of 2026-10-26 every area is designed, the copy is approved, the builder review is resolved and the gallery is locked.
 
-- **Waiting on:** Damian's approval of [`design.md`](design.md). It was asked at the end of the session and is not yet answered.
-- **After approval:** write the Phase 1 implementation plan with the `superpowers:writing-plans` skill. Phase 1 covers the motion primitives, the hero portrait and loader, the cursor lens, and Marquee removal.
-- **Builder's calls Damian hasn't explicitly confirmed** (they are listed in `design.md`; confirm them during approval):
+- **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26.
+- **Next:** write the Phase 1 implementation plan with the `superpowers:writing-plans` skill. Phase 1 covers the motion primitives, the hero portrait and loader, the cursor lens, and Marquee removal.
+- **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.
   2. Client-side page transitions with a persistent overlay, which also cover links like `/#work`.
   3. Mobile Projects uses an alternating sideways offset.
