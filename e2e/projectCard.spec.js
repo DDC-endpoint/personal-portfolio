@@ -25,6 +25,33 @@ test("leave waits, then dissolves", async ({ page }) => {
   await expect.poll(() => decodeState(card(page, 2)), { timeout: 3000 }).toBe("skeleton");
 });
 
+test("tags and blurb stay while the screenshot does", async ({ page }) => {
+  await page.goto("/");
+  await hoverCard(page, 2);
+  await expect.poll(() => decodeState(card(page, 2)), { timeout: 5000 }).toBe("shot");
+  await pointerAway(page);
+  await page.waitForTimeout(300);
+  expect(await decodeState(card(page, 2))).toBe("shot");
+  await expect(card(page, 2).locator("[data-reveal]")).toHaveCSS("opacity", "1");
+});
+
+test("re-hovering during the dissolve turns back to the screenshot", async ({ page }) => {
+  await page.goto("/");
+  await hoverCard(page, 2);
+  await expect.poll(() => decodeState(card(page, 2)), { timeout: 5000 }).toBe("shot");
+  const { x, y } = await visibleCentre(card(page, 2).locator("[data-shot-area]"));
+  await pointerAway(page);
+  await expect.poll(() => decodeState(card(page, 2)), { timeout: 2000, intervals: [20] }).toBe("dissolving");
+  await page.mouse.move(x, y);
+  const seen = new Set();
+  for (let i = 0; i < 25; i++) {
+    seen.add(await decodeState(card(page, 2)));
+    await page.waitForTimeout(40);
+  }
+  expect(seen.has("skeleton")).toBe(false);
+  await expect.poll(() => decodeState(card(page, 2)), { timeout: 3000 }).toBe("shot");
+});
+
 test("quick in-out ends as skeleton", async ({ page }) => {
   await page.goto("/");
   await scrollToCard(page, 2);

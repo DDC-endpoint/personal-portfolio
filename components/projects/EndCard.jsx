@@ -49,9 +49,13 @@ export default function EndCard({ style, className = "", onFocus }) {
           <p className="font-display text-4xl italic leading-none text-ink md:text-5xl">{END_CARD.line}</p>
           <a
             href={END_CARD.href}
-            className="inline-flex items-center gap-2 bg-electric px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ivory transition-colors duration-300 hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90"
+            className="group inline-flex items-center gap-2 bg-electric px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ivory transition-colors duration-300 hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90"
           >
             <ScrambleText text={END_CARD.cta} />
+            {/* Outside the scramble, like the hero's SERVICES arrow, so the button never changes width. */}
+            <span data-arrow aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
+              →
+            </span>
           </a>
         </div>
       </BrowserFrame>

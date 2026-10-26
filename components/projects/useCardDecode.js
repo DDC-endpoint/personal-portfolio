@@ -32,7 +32,7 @@ export function useCardDecode({ active, rootRef, canvasRef, imgRef, hasShot }) {
     const seed = (Math.random() * 1e6) | 0;
     let W = 0, H = 0, cols = 0, rows = 0, thresholds = null, glyphs = [];
     let progress = 0, target = 0, raf = 0, last = 0, lastTick = 0, delay = 0;
-    let failed = false, wanted = false, colours = null;
+    let failed = false, wanted = false, disposed = false, colours = null;
 
     // Sized from the observer entry, so it never forces a layout of its own.
     const resize = ([entry]) => {
@@ -138,7 +138,7 @@ export function useCardDecode({ active, rootRef, canvasRef, imgRef, hasShot }) {
         failed = true; // no screenshot: the card stays its skeleton
         return;
       }
-      if (wanted) go(1);
+      if (wanted && !disposed) go(1);
     }
 
     function deactivate() {
@@ -150,6 +150,7 @@ export function useCardDecode({ active, rootRef, canvasRef, imgRef, hasShot }) {
 
     run.current = { activate, deactivate };
     return () => {
+      disposed = true;
       run.current = null;
       ro.disconnect();
       cancelAnimationFrame(raf);

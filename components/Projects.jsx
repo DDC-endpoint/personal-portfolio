@@ -7,7 +7,7 @@ import { DecodeLabel } from "./Scramble";
 import ProjectCard from "./projects/ProjectCard";
 import EndCard from "./projects/EndCard";
 import { PROJECTS } from "@/lib/projects";
-import { stripLayout, cardPosition, stripOffset, progressForCard, nearestToCentre } from "@/lib/strip";
+import { STRIP, stripLayout, cardPosition, stripOffset, progressForCard, nearestToCentre } from "@/lib/strip";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 // § 04 Selected Work (docs/v3/design.md → 5. Projects).
@@ -18,13 +18,14 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 // (lib/strip.js). Below md, under reduced motion and without JS, the same
 // cards are a plain vertical list. The pin itself is CSS (js:motion-safe:md:,
 // the `js` class set pre-paint by the layout's inline script), so the server
-// HTML is right for everyone; only the card positions need JS. The 400vh
-// track is 1 + STRIP.PIN_SCREENS screens; keep the two in step.
+// HTML is right for everyone; only the card positions need JS. Heights are
+// in svh, so mobile browser toolbars showing and hiding never re-lay it out.
 //
 // One card is active at a time, and only it decodes:
 //   fine pointer: the card under the pointer, re-checked as the strip scrolls
 //                 under a resting pointer (Damian's stationary-hover rule)
-//   touch:        the card nearest the centre of the screen
+//   touch:        the card nearest the centre of the screen (also on a
+//                 fine-pointer device, after a touch, until the mouse moves)
 //   keyboard:     the focused card; in the strip, Tab focus scrolls it into view
 // Input modality decides between the last two: a Tab press hands control to
 // focus (a parked mouse no longer counts) until the pointer next moves, and
@@ -36,6 +37,8 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 const COUNT = PROJECTS.length + 1; // + the end card
 const FINE = "(hover: hover) and (pointer: fine)";
 const WIDE = "(min-width: 768px)";
+// The track: one screen of sticky viewport plus PIN_SCREENS of scroll.
+const TRACK_STYLE = { "--pin-track": `${(1 + STRIP.PIN_SCREENS) * 100}svh` };
 const STACK_ITEM = "w-[86%] even:ml-auto md:w-full md:max-w-3xl md:ml-[25%] md:even:ml-[25%]";
 
 export default function Projects() {
@@ -47,6 +50,8 @@ export default function Projects() {
   const pointer = useRef(null);
   const focused = useRef(null);
   const keyboard = useRef(false);
+  const touch = useRef(false);
+  const viewportRef = useRef(null);
   const raf = useRef(0);
   const [layout, setLayout] = useState(null);
   const [active, setActive] = useState(null);
@@ -68,15 +73,15 @@ export default function Projects() {
   const pick = useCallback(() => {
     const strip = stripRef.current, track = trackRef.current;
     if (reducedRef.current || !strip || !track) return null;
-    if (window.matchMedia(FINE).matches) {
+    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    const t = track.getBoundingClientRect();
+    if (t.bottom <= 0 || t.top >= vh) return focused.current;
+    if (window.matchMedia(FINE).matches && !touch.current) {
       const pt = pointer.current;
       const el = pt && document.elementFromPoint(pt.x, pt.y)?.closest("[data-card]");
       if (el && strip.contains(el)) return Number(el.dataset.card);
       return focused.current;
     }
-    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
-    const t = track.getBoundingClientRect();
-    if (t.bottom <= 0 || t.top >= vh) return focused.current;
     // The end card is a candidate too: when it is nearest, no project card is.
     const items = [...strip.querySelectorAll("[data-card], [data-end-card]")];
     const inStrip = !!layoutRef.current;
@@ -104,7 +109,11 @@ export default function Projects() {
     const measure = () => {
       const L =
         wide.matches && !reduced
-          ? stripLayout({ vw: document.documentElement.clientWidth, vh: window.innerHeight, count: COUNT })
+          ? stripLayout({
+              vw: document.documentElement.clientWidth,
+              vh: viewportRef.current?.clientHeight || window.innerHeight,
+              count: COUNT,
+            })
           : null;
       layoutRef.current = L;
       setLayout(L);
@@ -129,11 +138,17 @@ export default function Projects() {
     const onMove = (e) => {
       if (e.pointerType === "touch") return;
       keyboard.current = false;
+      touch.current = false;
       pointer.current = { x: e.clientX, y: e.clientY };
       schedule();
     };
-    const onPointerDown = () => {
+    const onPointerDown = (e) => {
       keyboard.current = false;
+      if (e.pointerType === "touch") {
+        touch.current = true;
+        pointer.current = null;
+        schedule();
+      }
     };
     const onKey = (e) => {
       if (e.key !== "Tab") return;
@@ -211,10 +226,11 @@ export default function Projects() {
         </div>
       </div>
 
-      <div ref={trackRef} data-strip-track className="relative mt-16 md:mt-24 js:motion-safe:md:h-[400vh]">
+      <div ref={trackRef} data-strip-track style={TRACK_STYLE} className="relative mt-16 md:mt-24 js:motion-safe:md:h-(--pin-track)">
         <div
+          ref={viewportRef}
           data-strip-viewport
-          className="js:motion-safe:md:sticky js:motion-safe:md:top-0 js:motion-safe:md:h-screen js:motion-safe:md:overflow-clip"
+          className="js:motion-safe:md:sticky js:motion-safe:md:top-0 js:motion-safe:md:h-svh js:motion-safe:md:overflow-clip"
         >
           <motion.div
             ref={stripRef}

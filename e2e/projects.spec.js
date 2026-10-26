@@ -151,6 +151,51 @@ test.describe("desktop", () => {
     await expect(end.locator('a[href="#contact"]')).toHaveCount(1);
   });
 
+  test("end card button keeps its width and arrow while scrambling", async ({ page }) => {
+    await page.goto("/");
+    await hydrated(page);
+    await scrollToProgress(page, 1);
+    const link = page.locator('[data-end-card] a[href="#contact"]');
+    await expect(link).toHaveAccessibleName("Start a project");
+    const arrow = link.locator("[data-arrow]");
+    await expect(arrow).toHaveText("→");
+    const width = (await link.boundingBox()).width;
+    await link.hover();
+    let scrambled = false;
+    for (let i = 0; i < 10; i++) {
+      const box = await link.boundingBox();
+      expect(box.width).toBeCloseTo(width, 0);
+      await expect(arrow).toHaveText("→");
+      if ((await link.locator('[aria-hidden="true"]').first().textContent()) !== "Start a project") scrambled = true;
+      await page.waitForTimeout(40);
+    }
+    expect(scrambled).toBe(true);
+  });
+
+  test("no hit-testing while the track is off screen", async ({ page }) => {
+    await page.goto("/");
+    await hydrated(page);
+    await page.evaluate(() => {
+      window.__hits = 0;
+      const orig = document.elementFromPoint.bind(document);
+      document.elementFromPoint = (x, y) => (window.__hits++, orig(x, y));
+    });
+    for (let i = 0; i < 6; i++) await page.mouse.move(300 + i * 100, 400);
+    await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.__hits)).toBe(0);
+  });
+
+  test("touch on a fine-pointer device falls back to the centre card", async ({ page }) => {
+    await page.goto("/");
+    await hydrated(page);
+    await page.evaluate(() =>
+      window.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", clientX: 5, clientY: 5 }))
+    );
+    await scrollToCard(page, 2);
+    await expect.poll(() => card(page, 2).getAttribute("data-active"), { timeout: 3000 }).toBe("true");
+  });
+
   test("resize mid-pin keeps the leading card on screen", async ({ page }) => {
     await page.goto("/");
     await scrollToProgress(page, 0.5);
@@ -198,6 +243,14 @@ test.describe("mobile", () => {
   });
 });
 
+test("reduced motion keeps the skeleton when a screenshot fails", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("**/projects/aloys-travels.webp", (r) => r.abort());
+  await page.goto("/");
+  await card(page, 2).scrollIntoViewIfNeeded();
+  await expect(card(page, 2).locator("[data-skeleton]")).toBeVisible();
+});
+
 test("reduced motion is a plain decoded list", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
@@ -205,7 +258,6 @@ test("reduced motion is a plain decoded list", async ({ page }) => {
   expect(pos).not.toBe("sticky");
   for (const i of [0, 1, 2, 3, 4, 5]) {
     await expect(card(page, i).locator("img")).toHaveCSS("opacity", "1");
-    await expect(card(page, i).locator("[data-skeleton]")).toBeHidden();
   }
   for (let i = 0; i < CARD_COUNT - 1; i++) await expect(card(page, i)).toHaveAttribute("data-decode", "static");
   await card(page, 2).scrollIntoViewIfNeeded();

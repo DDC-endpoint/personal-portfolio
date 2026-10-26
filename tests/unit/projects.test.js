@@ -79,7 +79,7 @@ test("end card copy", () => {
   expect(END_CARD).toEqual({
     domain: "your-site.com",
     line: "Your project next.",
-    cta: "Start a project →",
+    cta: "Start a project", // the arrow sits beside it, outside the scramble
     href: "#contact",
   });
 });

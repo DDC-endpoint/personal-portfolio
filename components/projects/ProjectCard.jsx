@@ -12,7 +12,8 @@ import { LINK_MS } from "@/lib/decode";
 // parent decides which card is active (pointer, centre or focus); this card
 // only plays it. Live cards are links; upcoming cards are plain, unfocusable
 // divs that scramble and stay skeletons. Reduced motion shows the screenshot
-// and the reveal row outright (CSS only).
+// (over the skeleton, which shows through if the image fails) and the reveal
+// row outright (CSS only).
 
 const LOADING = "loading… 2026 →";
 
@@ -34,9 +35,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
   const body = (
     <>
       <BrowserFrame domain={p.domain}>
-        <div className={live ? "motion-reduce:hidden" : undefined}>
-          <Skeleton />
-        </div>
+        <Skeleton />
         {live && (
           <img
             ref={imgRef}
@@ -57,7 +56,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
         </span>
         <span
           data-reveal
-          className="flex flex-wrap gap-1.5 opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 motion-reduce:opacity-100"
+          className="flex flex-wrap gap-1.5 opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100"
         >
           {live ? (
             p.tags.map((t) => (
@@ -75,7 +74,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
           )}
         </span>
       </div>
-      <p id={blurbId} className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 motion-reduce:opacity-100">
+      <p id={blurbId} className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100">
         {p.blurb}
       </p>
     </>
