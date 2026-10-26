@@ -7,3 +7,10 @@ test("home renders with no errors", async ({ page }) => {
   await expect(page.locator("h1")).toContainText("Damian");
   expect(errors).toEqual([]);
 });
+
+test("marquee is gone", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("✦")).toHaveCount(0);
+  const next = await page.locator("main > #top").evaluate((el) => el.nextElementSibling?.id);
+  expect(next).toBe("about");
+});

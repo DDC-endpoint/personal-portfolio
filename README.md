@@ -7,7 +7,7 @@ Personal portfolio + landing page, plus a freelance **`/services`** page. Built 
 - **Aesthetic:** Editorial / Swiss-modern — light, minimalist, professional, with a full **dark mode** (navy palette) toggled from the nav and persisted to `localStorage` (no-flash inline script sets it before first paint).
 - **Palette:** Ivory (`#F6F6F1`) + deep ink blue (`#0B1F3A`) + electric blue (`#2563EB`) + sky tint. All colours are CSS-variable-backed tokens, so the whole site re-themes by flipping one class.
 - **Typography:** Instrument Serif (display, italic accents) + Manrope (body) + JetBrains Mono (labels). All via `next/font/google`.
-- **Motion:** Oversized hero with line-mask reveal behind an every-load "decrypt" intro stamp, an interactive grab-to-drag marquee, sticky section labels, scroll reveals, a custom dot+ring cursor, an animated canvas "glitch/decrypt" field behind upcoming projects, and Lenis smooth scroll. All motion respects `prefers-reduced-motion`, and above-the-fold content stays SSR-visible so entrances never cost LCP.
+- **Motion:** Oversized hero with line-mask reveal behind an every-load "decrypt" intro stamp, sticky section labels, scroll reveals, a custom dot+ring cursor, an animated canvas "glitch/decrypt" field behind upcoming projects, and Lenis smooth scroll. All motion respects `prefers-reduced-motion`, and above-the-fold content stays SSR-visible so entrances never cost LCP.
 - **Lighthouse:** Accessibility / Best Practices / SEO all **100**; Performance **100 on desktop** for both pages (verified on a production build).
 
 ## Run locally

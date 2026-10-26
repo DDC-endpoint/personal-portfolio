@@ -164,8 +164,6 @@ html:not(.js) .intro-stamp { display: none !important; }
 /* Vertical rule */
 .rule-v { background: linear-gradient(to bottom, transparent 0%, rgb(var(--c-rule)) 12%, rgb(var(--c-rule)) 88%, transparent 100%); }
 
-/* Marquee — JS-driven (see components/Marquee.jsx); auto-scroll + grab-to-drag */
-
 /* Hero blob */
 @keyframes float-slow {
   0%, 100% { transform: translate3d(0,0,0) scale(1); }
@@ -244,7 +242,7 @@ html:not(.js) .intro-stamp { display: none !important; }
 
 /* ------------------------------------------------------------------ */
 /*  Reduced motion — honour the OS setting. Neutralises CSS-driven     */
-/*  loops (marquee, blobs, pulse) and the theme cross-fade. Framer     */
+/*  loops (blobs, pulse) and the theme cross-fade. Framer         */
 /*  animations are handled via MotionConfig reducedMotion="user", and  */
 /*  Lenis is skipped in SmoothScroll.jsx.                              */
 /* ------------------------------------------------------------------ */
