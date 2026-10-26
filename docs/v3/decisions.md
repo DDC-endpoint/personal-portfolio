@@ -142,6 +142,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **The EndCard still types into its React-rendered text node (builder).** That is the same idiom as `useScramble` in `Scramble.jsx`, and the domain never changes.
 - **"Start a project" scrambles only its letters (Damian).** The arrow sits outside the scramble, like the hero's SERVICES arrow, so the button never changes width.
 - **Screenshots approved (Damian, 2026-10-27).** All six are committed with no metadata. Phase 2 is merged into `v3` locally.
+- **Lens fade test made load-proof (builder, after the merge).** The Phase 1 test `with the lens off the portrait stops measuring itself` assumed the lens finishes fading within 2 s. Under a busy parallel run it sometimes didn't, and the extra weight Phase 2 adds to Home made that show up. It now polls until the measuring stops (8 s cap). The behaviour it checks is unchanged.
 
 ## Phase 1 review (2026-10-27)
 

@@ -120,10 +120,18 @@ test("with the lens off the portrait stops measuring itself", async ({ page }, i
   await page.mouse.move(p.x, p.y, { steps: 5 });
   await page.waitForTimeout(400);
   await page.mouse.move(20, 450, { steps: 5 });
-  await page.waitForTimeout(2000); // lens fades out
-  await page.evaluate(() => (window.__measures = 0));
-  await page.waitForTimeout(500);
-  expect(await page.evaluate(() => window.__measures)).toBe(0);
+  // The lens eases out a little each frame; a loaded machine runs fewer
+  // frames, so wait for the fade to finish rather than a fixed 2 s.
+  await expect
+    .poll(
+      async () => {
+        await page.evaluate(() => (window.__measures = 0));
+        await page.waitForTimeout(500);
+        return page.evaluate(() => window.__measures);
+      },
+      { timeout: 8000, intervals: [0] }
+    )
+    .toBe(0);
 });
 
 test("forced colours has no lens", async ({ page }, info) => {
