@@ -1,5 +1,11 @@
 # V3 Phase 1 Implementation Plan
 
+> **Status: done. Merged into `v3` locally on 2026-10-27. Don't re-execute it.** The build departed from this plan in these ways, all logged in [`decisions.md`](decisions.md):
+> - **Curtain kept (Damian).** The `IntroStamp` curtain stays and plays on every reload. The portrait wave starts as it lifts, on every load. Task 9's per-session gate (`shouldPlayLoader`), the hero letter decode (`DecodeText`) and `lib/heroWave.js` were built, then removed. The hero text floats in as on the live site.
+> - **No scramble on underlined links (Damian).** Nav links and "Services & pricing" don't scramble; only mono buttons do. The cursor dot hides inside the lens.
+> - **Review fixes.** The draw loop survives a zero-size stage. The theme observer is attached before the first layout. Forced colours gets a static portrait. Field sampling uses `createImageBitmap`, a perf fix. `data-lens` is on the canvas. § labels keep their real accessible text.
+> - **A live-site bug fixed on `v3`.** The reduced-motion hydration failure is fixed via `lib/useReducedMotion.js`; see [`README.md`](README.md) → "Before `v3` merges to `main`".
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship the V3 motion primitives (text decode, section-label decode, link scramble), the electric-blue ASCII hero portrait with its first-visit loader (replacing `IntroStamp`), the cursor lens, and remove the Marquee.

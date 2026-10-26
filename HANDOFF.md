@@ -1,7 +1,7 @@
 # DDC Portfolio — Session Handoff
 > Generated: 2026-06-06 | Updated: 2026-10-27 | Branch: `main` (+ V3 in progress on `v3`)
 
-> **V3 is in progress on the local `v3` branch.** Everything below describes `main` unless a line says "V3". The V3 record (design, decisions, plans, status) lives in `docs/v3/`; start with `docs/v3/README.md`. V3 Phase 1 (branch `v3-phase-1`) removed `Marquee.jsx` and added the ASCII hero portrait (its wave plays as the kept `IntroStamp` curtain lifts) and the cursor lens — see *V3 Phase 1* below.
+> **V3 is in progress on the local `v3` branch.** Everything below describes `main` unless a line says "V3". The V3 record (design, decisions, plans, status) lives in `docs/v3/`; start with `docs/v3/README.md`. V3 Phase 1 is **merged into `v3`** (2026-10-27; `v3` is local only, not pushed). It removed `Marquee.jsx` and added the ASCII hero portrait (its wave plays as the kept `IntroStamp` curtain lifts) and the cursor lens — see *V3 Phase 1* below. **Next: Phase 2 (Projects)** — see `docs/v3/README.md` → "The next step".
 
 ---
 
@@ -291,7 +291,7 @@ All tokens are CSS-variable-backed (`rgb(var(--c-*) / <alpha-value>)`) so `/opac
 
 ---
 
-## V3 Phase 1 (branch `v3-phase-1`, 2026-10-27)
+## V3 Phase 1 (merged into `v3`, 2026-10-27)
 
 Plan: `docs/v3/plan-phase-1.md`; spec: `docs/v3/design.md` + `docs/v3/hero-portrait.md`.
 - **Hero portrait:** `public/hero/portrait.webp` (800×1000, EXIF-free) comes from `npm run process-portrait "<headshot.png>"`. The original headshot stays outside the repo. The canvas samples it with `createImageBitmap` (off the main thread). Don't switch back to `drawImage` + `getImageData` on the full image: that readback was a ~65 ms task on a throttled phone.
