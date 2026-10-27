@@ -86,6 +86,29 @@ test("resize keeps milestones in step", async ({ page }, info) => {
   expect(await lit(page).count()).toBeGreaterThan(0);
 });
 
+test("needle, thread and milestones share one axis", async ({ page }) => {
+  await page.goto("/");
+  await scrollToProgress(page, 0.5);
+  await page.waitForTimeout(1200);
+  const centres = await page.evaluate(() => {
+    const mid = (el) => {
+      const r = el.getBoundingClientRect();
+      return r.left + r.width / 2;
+    };
+    const [rule, thread] = document.querySelectorAll("[data-timeline-list] > div");
+    return {
+      rule: mid(rule),
+      thread: mid(thread),
+      needle: mid(document.querySelector("[data-needle] path")),
+      dot: mid(document.querySelector("#timeline [data-dot]")),
+      stitch: mid(document.querySelector("#timeline [data-stitch]")),
+    };
+  });
+  for (const [name, x] of Object.entries(centres)) {
+    expect(Math.abs(x - centres.thread), `${name} at ${x}, thread at ${centres.thread}`).toBeLessThanOrEqual(0.1);
+  }
+});
+
 test.describe("reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
   test("reduced motion is fully stitched", async ({ page }) => {

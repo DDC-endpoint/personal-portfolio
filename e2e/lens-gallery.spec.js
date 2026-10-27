@@ -216,7 +216,10 @@ test("resize repaints the print at once and samples once it settles", async ({ p
   });
   expect(painted).toBe(255); // the ivory field is there, not a blank mat
   await page.waitForTimeout(600);
-  expect(await page.evaluate(() => window.__samples) - before).toBeLessThanOrEqual(10);
+  // Debounced, that's about one sample per tile (10). Without the debounce it
+  // is one per tile per resize (50). Under full-suite load a resize step can
+  // outlast the 150 ms debounce and add a sample, so allow up to two per tile.
+  expect(await page.evaluate(() => window.__samples) - before).toBeLessThan(20);
 });
 
 test("a hero tile taller than the screen still develops", async ({ page }, info) => {

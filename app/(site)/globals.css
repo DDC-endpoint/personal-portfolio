@@ -211,9 +211,11 @@ html:not(.js) .intro-stamp { display: none !important; }
   }
 }
 
+/* The cursor sits above every layer, the Lens viewer (z-100) included: the
+   native cursor is hidden, so anything over it hides the pointer. */
 .cursor-dot, .cursor-ring {
   position: fixed; top: 0; left: 0;
-  pointer-events: none; z-index: 70;
+  pointer-events: none; z-index: 110;
   border-radius: 9999px;
   transform: translate(-50%, -50%);
   mix-blend-mode: difference;

@@ -135,11 +135,12 @@ export default function Timeline() {
             style={{ "--d": drawn }}
             className="relative mt-16 md:mt-24"
           >
-            {/* faint base rule, the running stitch over it, and the needle at its tip */}
-            <div className="absolute left-4 md:left-0 top-0 bottom-0 w-px rule-v" aria-hidden />
+            {/* faint base rule, the running stitch over it, and the needle at its tip,
+                all centred on one axis with the dots and cross-stitches */}
+            <div className="absolute left-4 md:left-0 top-0 bottom-0 w-px -translate-x-1/2 rule-v" aria-hidden />
             <div
               aria-hidden
-              className="absolute left-4 md:left-0 top-0 bottom-0 w-[1.5px] bg-[repeating-linear-gradient(to_bottom,rgb(var(--c-electric))_0_7px,transparent_7px_12px)] js:motion-safe:[clip-path:inset(0_0_calc((1_-_var(--d,1))*100%)_0)]"
+              className="absolute left-4 md:left-0 top-0 bottom-0 w-[1.5px] -translate-x-1/2 bg-[repeating-linear-gradient(to_bottom,rgb(var(--c-electric))_0_7px,transparent_7px_12px)] js:motion-safe:[clip-path:inset(0_0_calc((1_-_var(--d,1))*100%)_0)]"
             />
             <div
               data-needle

@@ -169,6 +169,12 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Review minors, all fixed (Damian's standing preference):** the caption overlay uses tokens; a resize repaints the halftone at once and resamples once it settles; a hero tile taller than the screen still develops; the Timeline re-measures whenever its list resizes; card text is full ivory, not dimmed.
 - **Open for Damian:** dark-mode card contrast (about 3.4:1 for the small labels); see `README.md` → "The next step".
 
+## Phase 3 gate fixes (2026-10-27)
+
+- **The needle sat off the thread (Damian).** The rule and the thread were pinned by their left edge, so their centres sat 0.5 and 0.75 px right of the needle, dots and cross-stitches. Both are now centred on that axis. Test: "needle, thread and milestones share one axis".
+- **The cursor hid behind the open viewer (Damian).** The custom cursor was `z-index: 70` and the viewer `z-100`; with the native cursor hidden, the pointer vanished over the photo. The cursor is now `z-index: 110`, above every layer. Test: "the custom cursor stays above the open viewer".
+- **Lens resize test flake (builder).** Under full-suite load a resize step could outlast the 150 ms debounce and add one sample (11 against a cap of 10). The cap is now under 20, still well below the 50 an undebounced resize gives.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.

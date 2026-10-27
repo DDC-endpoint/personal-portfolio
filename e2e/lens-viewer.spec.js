@@ -23,6 +23,23 @@ test("click opens the viewer on that photo", async ({ page }, info) => {
   await expect(caption(page)).toContainText("FRAME 03");
 });
 
+test("the custom cursor stays above the open viewer", async ({ page }, info) => {
+  desktopOnly(info);
+  await toLens(page, "03");
+  await frame(page, "03").click();
+  await expect(dialog(page)).toBeVisible();
+  await page.waitForTimeout(500); // the open flight
+  const box = await dialog(page).locator("img").first().boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+  const z = await page.evaluate(() => ({
+    viewer: Number(getComputedStyle(document.querySelector('[role="dialog"]')).zIndex),
+    ring: Number(getComputedStyle(document.querySelector(".cursor-ring")).zIndex),
+    dot: Number(getComputedStyle(document.querySelector(".cursor-dot")).zIndex),
+  }));
+  expect(z.ring).toBeGreaterThan(z.viewer);
+  expect(z.dot).toBeGreaterThan(z.viewer);
+});
+
 test("arrows step and wrap", async ({ page }, info) => {
   desktopOnly(info);
   await toLens(page, "10");

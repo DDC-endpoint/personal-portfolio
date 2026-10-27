@@ -19,6 +19,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 2. **Gate:** Damian looks at the dev page (`http://localhost:3000/#timeline`, `#lens`, `#contact`) and the screenshots. Two questions are open for him:
    - **Dark-mode Contact card contrast.** In dark mode the card is the brightened electric (#3B82F6) under light text, about 3.4:1. That's fine for the headline but below AA (4.5:1) for the small mono labels and the body copy. Within the token set, navy text reaches only 4.49:1. A real fix needs his call: keep the light-mode electric (#2563EB) for the card in both themes (one exception to the tokens-only rule), or accept the current pairing.
    - **The halftone look.** The dots are auto-levelled per photo, and in dark mode they are sized by brightness so the print stays a positive (see `decisions.md` → "Phase 3 build rulings"). This is a taste check.
+
+   Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, and the custom cursor hid behind the open viewer.
 3. **On his approval:** `git switch v3 && git merge --no-ff v3-phase-3`, delete the branch, and mark Phase 3 merged here.
 4. **Then Phase 4** (copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition), followed by `v3` → `main`. See "Before `v3` merges to `main`".
 5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
@@ -160,6 +162,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Scroll-scrubbed effects near the page end must stay reachable:** cap the end at the maximum scroll (`growProgress`).
 - **A canvas resize clears it:** repaint from the last sample at once and debounce any resample (`useDevelop`).
 - **The hero portrait also calls `createImageBitmap` on resize.** Tests that count samples must filter by source.
+- **The custom cursor is the top layer (`z-index: 110`).** The native cursor is hidden, so any overlay above it hides the pointer. A new overlay goes below 110 (the Lens viewer is 100).
+- **Timeline marks share one axis.** The rule and the thread are centred on it with `-translate-x-1/2`, like the needle, dots and ×. A line pinned by its left edge sits half its width off-centre.
 
 ## Testing
 
