@@ -275,7 +275,7 @@ Damian, mid-build: "Let the initial load itself have the decode fade instead of 
 - **Home keeps its entrance.** After the reveal, the portrait's wave builds and the hero text rises, as they did after the curtain. Arriving by a page change still skips both.
 - **The stamp stays.** "DAMIAN DE CRUZ" and the coordinates still resolve from noise in the middle, now over the covered glyph field, before the sweep.
 - **Every load and reload,** like the curtain.
-- Reduced motion, forced colours and no JS: no cover at all, as before.
+- Reduced motion and no JS: no cover at all, as before. Forced colours keeps the plain stamp and its upward wipe, as before, without the glyph veil (builder's call: canvas colours ignore forced colours).
 
 This supersedes "Curtain back, on every reload" (Phase 1 review) for how the cover looks and where it plays; the timing rule (every load) stands.
 
