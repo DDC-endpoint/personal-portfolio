@@ -76,7 +76,7 @@ test.describe("motion basics (desktop)", () => {
 
   test("underlined links don't scramble", async ({ page }) => {
     await page.goto("/services");
-    const links = [page.locator('header nav a[href="#faq"]'), page.locator("#recent a.link-line")];
+    const links = [page.locator('header nav a[href="#faq"]'), page.locator("#recent a.link-line").first()];
     for (const l of links) {
       await l.scrollIntoViewIfNeeded();
       await l.hover();
@@ -239,9 +239,13 @@ test.describe("How it works without JS", () => {
 });
 
 // § 03 Recent work: full-width editorial rows (Damian), each a skeleton
-// browser frame that decodes on hover, beside its number, title, tag, blurb
-// and link, swapping sides down the list. The text side always shows.
+// browser frame beside its number, title, tag, blurb and "Visit the site"
+// link, swapping sides down the list. The text side always shows. Only the
+// screenshot decodes on hover, and only the screenshot and the link are
+// links; the link is the keyboard's stop (the screenshot's link is hidden
+// from it, as a duplicate).
 const workCards = (page) => page.locator("#recent [data-card]");
+const rowLinks = (page) => page.locator("#recent [data-row-link]");
 
 test("recent work: four rows in order with the right links", async ({ page }) => {
   await page.goto("/services");
@@ -249,14 +253,24 @@ test("recent work: four rows in order with the right links", async ({ page }) =>
   await expect(cards).toHaveCount(4);
   await expect(cards.locator("[data-row-n]")).toHaveText(["01", "02", "03", "04"]);
   await expect(cards.locator("[data-row-title]")).toHaveText(["This Portfolio", "Spades Solutions", "Aloys Travels", "Danella De Cruz"]);
-  const hrefs = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-  expect(hrefs).toEqual(["/", "https://enderguardian25.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"]);
-  await expect(cards.first()).not.toHaveAttribute("target", /.*/);
+  const HREFS = ["/", "https://enderguardian25.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"];
+  const links = rowLinks(page);
+  expect(await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")))).toEqual(HREFS);
+  await expect(links.first()).not.toHaveAttribute("target", /.*/);
   for (const i of [1, 2, 3]) {
-    await expect(cards.nth(i)).toHaveAttribute("target", "_blank");
-    await expect(cards.nth(i)).toHaveAttribute("rel", /noopener/);
+    await expect(links.nth(i)).toHaveAttribute("target", "_blank");
+    await expect(links.nth(i)).toHaveAttribute("rel", /noopener/);
   }
-  await expect(cards.first()).toHaveAttribute("aria-label", "This Portfolio, 2026 (portfolio home)");
+  await expect(links.first()).toHaveAttribute("aria-label", "This Portfolio, 2026 (portfolio home)");
+  // The screenshot links to the same place, hidden from keyboards and screen readers.
+  const shots = page.locator("#recent a[data-row-frame]");
+  expect(await shots.evaluateAll((els) => els.map((el) => el.getAttribute("href")))).toEqual(HREFS);
+  for (const a of await shots.all()) {
+    await expect(a).toHaveAttribute("tabindex", "-1");
+    await expect(a).toHaveAttribute("aria-hidden", "true");
+  }
+  // The rows themselves aren't links.
+  expect(await cards.evaluateAll((els) => els.map((el) => el.tagName))).toEqual(Array(4).fill("ARTICLE"));
 });
 
 test("recent work: reduced motion shows the screenshots", async ({ page }) => {
@@ -279,6 +293,8 @@ test.describe("recent work (desktop)", () => {
       expect(Math.round(box.width)).toBe(vw - 80);
       const frame = await row.locator("[data-shot-area]").boundingBox();
       const text = await row.locator("[data-row-title]").boundingBox();
+      // Damian: a bit shorter than the first cut (a 7-column frame, ~480 px tall here).
+      expect(frame.height).toBeLessThan(430);
       if (i % 2 === 0) expect(frame.x).toBeLessThan(text.x);
       else expect(frame.x).toBeGreaterThan(text.x);
     }
@@ -302,27 +318,48 @@ test.describe("recent work (desktop)", () => {
     expect(await look()).toBe(before);
   });
 
-  test("hover decodes the card under a still pointer", async ({ page }) => {
+  test("only the screenshot decodes on hover, under a still pointer", async ({ page }) => {
     await page.goto("/services");
     const card = workCards(page).nth(2);
     await card.scrollIntoViewIfNeeded();
-    const box = await card.boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
+    // Over the text side: nothing.
+    const title = await card.locator("[data-row-title]").boundingBox();
+    await page.mouse.move(title.x + 10, title.y + title.height / 2);
+    await page.waitForTimeout(400);
+    await expect(card).toHaveAttribute("data-active", "false");
+    // Over the screenshot: it decodes, and only this row.
+    const frame = await card.locator("[data-shot-area]").boundingBox();
+    await page.mouse.move(frame.x + frame.width / 2, frame.y + frame.height / 2);
     await expect(card).toHaveAttribute("data-decode", "shot", { timeout: 2500 });
     for (const i of [0, 1, 3]) await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "false");
   });
 
-  test("keyboard reaches every card in order, and Enter opens it", async ({ page }) => {
+  test("the Visit link draws its underline and nudges its arrow on hover", async ({ page }) => {
+    await page.goto("/services");
+    const link = rowLinks(page).nth(2);
+    await link.scrollIntoViewIfNeeded();
+    await page.mouse.move(5, 5);
+    const look = () =>
+      link.evaluate((el) => [getComputedStyle(el).backgroundSize, getComputedStyle(el.querySelector("[data-arrow]")).translate].join(" | ")); // Tailwind 4 moves with `translate`
+    const rest = await look();
+    expect(rest).toMatch(/^0% 1px \| none$/);
+    await link.hover();
+    await expect.poll(look).toMatch(/^100% 1px \| (?!none)/);
+    // Hovering the link doesn't decode the screenshot.
+    await expect(workCards(page).nth(2)).toHaveAttribute("data-active", "false");
+  });
+
+  test("keyboard reaches every row's link in order, decoding its row, and Enter opens it", async ({ page }) => {
     await page.goto("/services");
     // hydrated: the decode controller marks each card (house rule for key tests)
     await page.locator('#recent [data-card="0"][data-decode]').waitFor({ state: "attached" });
-    await page.locator("#recent a.link-line").focus();
+    await page.locator("#recent a.link-line").first().focus();
     for (let i = 0; i < 4; i++) {
       await page.keyboard.press("Tab");
-      await expect(workCards(page).nth(i)).toBeFocused();
+      await expect(rowLinks(page).nth(i)).toBeFocused();
       await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "true");
     }
-    await workCards(page).first().focus();
+    await rowLinks(page).first().focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/$/);
   });

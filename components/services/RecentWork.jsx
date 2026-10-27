@@ -10,10 +10,12 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 // Projects browser frame (skeleton, decode, screenshot) beside its text,
 // swapping sides down the list. One row is active at a time, picked like
 // Projects.jsx (see its header comment), minus the strip:
-//   fine pointer: the card under the pointer, re-checked on scroll so a
+//   fine pointer: the row whose screenshot is under the pointer (Damian:
+//                 not the whole row), re-checked on scroll so a
 //                 resting pointer works (Damian's stationary-hover rule)
 //   touch:        the card nearest the centre of the screen
-//   keyboard:     the focused card (a Tab press hands control to focus)
+//   keyboard:     the row whose link has focus (a Tab press hands control
+//                 to focus)
 // Reduced motion: every screenshot shows (ProjectCard's CSS).
 
 const FINE = "(hover: hover) and (pointer: fine)";
@@ -47,7 +49,7 @@ export default function RecentWork() {
     if (g.bottom <= 0 || g.top >= vh) return focused.current;
     if (window.matchMedia(FINE).matches && !touch.current) {
       const pt = pointer.current;
-      const el = pt && document.elementFromPoint(pt.x, pt.y)?.closest("[data-card]");
+      const el = pt && document.elementFromPoint(pt.x, pt.y)?.closest("[data-row-frame]")?.closest("[data-card]");
       if (el && grid.contains(el)) return Number(el.dataset.card);
       return focused.current;
     }

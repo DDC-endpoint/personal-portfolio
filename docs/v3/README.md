@@ -18,7 +18,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 ### The next step (resume here): Damian's visual gate for Phase 4, then merge
 
-**State at hand-off (end of 2026-10-27):** on `v3-phase-4`, working tree clean. All 11 tasks are built and committed, and the review fixes are in. Unit tests and e2e pass, apart from one Phase 1 cursor-lens test that flakes under full-suite load and passes on its own.
+**State at hand-off (end of 2026-10-27):** on `v3-phase-4`, working tree clean. All 11 tasks are built and committed, and the review fixes are in. Unit tests and e2e pass. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, and the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load").
 
 1. **Gate:** show Damian the screenshots and open the dev page (`Start-Process "http://localhost:3000/services"` and `/`). Questions for him:
    - **Spades' "Client design · not launched" tag.** It shows only while the card is active (hovered, focused or centred), like every card's tags, and always without JS. Should it always show on `/services`?
@@ -206,7 +206,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - The mono buttons scramble, with their arrows outside.
   - The FAQ questions are `h3`s.
 - **How it works:** the four steps on the Timeline's circuit (`components/services/HowItWorks.jsx`). Its § label and the current step's title pin beside the steps (`StepCounter.jsx`), desktop only.
-- **Recent work:** four full-width editorial rows (`RecentWork.jsx`, `WorkRow.jsx`): a skeleton browser frame that decodes on hover beside the project's text, swapping sides. Spades is tagged "Client design · not launched", always visible.
+- **Recent work:** four full-width editorial rows (`RecentWork.jsx`, `WorkRow.jsx`): a skeleton browser frame that decodes while the pointer is on the screenshot, beside the project's text and an underlined "Visit the site" link, swapping sides. Spades is tagged "Client design · not launched", always visible.
 - **Start a project:** the growing electric card, shared with Contact (`useGrowCard.js`, `StartCard.jsx`).
 
 **Shared pieces extracted:**
