@@ -155,7 +155,9 @@ test("phones: the viewer's arrows sit at the bottom of the screen, clear of the 
   const prev = await dialog.getByRole("button", { name: "Previous photo" }).boundingBox();
   const next = await dialog.getByRole("button", { name: "Next photo" }).boundingBox();
   expect(prev.x).toBeLessThan(next.x);
-  // They still step.
+  // They still step. (Next's dev-only badge sits in that corner on the dev
+  // server and would take the tap; the live site has no badge.)
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await dialog.getByRole("button", { name: "Next photo" }).click();
   await expect(dialog.locator("[data-viewer-caption]")).toContainText("FRAME 04");
 });
@@ -182,8 +184,9 @@ test("phones: while the year strip is pinned, nothing shows through behind the h
   await page.goto("/");
   await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
   const strip = page.locator("[data-counter=strip]");
-  // Before it pins: no cover above it.
-  await strip.scrollIntoViewIfNeeded();
+  // Before it pins (the Timeline's top mid-screen): no cover above it.
+  await page.locator("#timeline").evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight / 2));
+  await expect.poll(() => strip.evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(200);
   await expect(strip).not.toHaveAttribute("data-stuck");
   // Pinned mid-Timeline: the strip's background reaches the top of the screen.
   await page.locator("#timeline").evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY + el.offsetHeight / 2));
