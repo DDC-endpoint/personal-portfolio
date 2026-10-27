@@ -37,6 +37,15 @@ async function settle(page) {
 const mark = (page) => page.evaluate(() => { window.__marker = 1; window.__started = true; window.__portrait = []; });
 const sameDocument = (page) => page.evaluate(() => window.__marker === 1);
 
+// /services' Portfolio button: in the hero corner from md, in the menu on phones.
+async function clickPortfolio(page) {
+  const portfolio = page.locator('a[href="/"]').filter({ hasText: /^Portfolio/ });
+  if ((await page.viewportSize()).width < 768) {
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.getByRole("dialog").locator('a[href="/"]').filter({ hasText: /^Portfolio/ }).click();
+  } else await portfolio.locator("visible=true").click();
+}
+
 const idle = (page) => expect(veil(page)).toHaveAttribute("data-veil", "idle", { timeout: 8000 });
 
 test.describe("arriving on Home", () => {
@@ -56,7 +65,7 @@ test.describe("arriving on Home", () => {
         window.__heroAtReveal = { transform: s.transform, opacity: s.opacity };
       }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-veil"] });
     });
-    await page.getByRole("link", { name: "Portfolio" }).first().click();
+    await clickPortfolio(page);
     await expect(page).toHaveURL(/\/$/);
     await idle(page);
     expect(await sameDocument(page)).toBe(true);
@@ -147,7 +156,7 @@ test.describe("transitions", () => {
   test("/services → Home by Portfolio, at the top", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
-    await transitionTo(page, () => page.getByRole("link", { name: "Portfolio" }).first().click(), /\/$/);
+    await transitionTo(page, () => clickPortfolio(page), /\/$/);
     expect(await page.evaluate(() => scrollY)).toBe(0);
   });
 
