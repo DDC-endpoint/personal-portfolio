@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import { DecodeLabel } from "./Scramble";
@@ -31,7 +32,33 @@ const roles = [
   },
 ];
 
+// Roles draw in as the list scrolls into view: each row's top rule draws
+// left to right, then its text rises, staggered down the list. One observer
+// flips data-shown once; the rest is CSS. The hidden start state only applies
+// under js:motion-safe: with data-shown="false", so no-JS visitors and reduced
+// motion get the finished rows from the server HTML.
+const STAGGER = 120; // ms between rows
+const TEXT_LAG = 250; // ms from a row's rule to its text
+
 export default function Leadership() {
+  const listRef = useRef(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setShown(true);
+        io.disconnect();
+      },
+      { threshold: 0.2 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <section className="relative px-6 md:px-10 py-32 md:py-44 border-t border-rule bg-paper">
       <div className="grid grid-cols-12 gap-6 mb-16 md:mb-24">
@@ -59,10 +86,27 @@ export default function Leadership() {
             <h3 className="section-label">Roles held</h3>
           </Reveal>
         </div>
-        <div className="col-span-12 md:col-span-9 md:col-start-4">
+        <div
+          ref={listRef}
+          data-shown={shown ? "true" : "false"}
+          className="group/roles col-span-12 md:col-span-9 md:col-start-4"
+        >
           {roles.map((r, i) => (
-            <Reveal key={i} delay={i * 0.06}>
-              <div className="grid grid-cols-12 gap-4 items-baseline border-t border-rule py-6 first:border-t-0">
+            <div key={i} data-role-row className="relative py-6">
+              {/* The first row has no rule, as before. */}
+              {i > 0 && (
+                <span
+                  aria-hidden="true"
+                  data-role-rule
+                  style={{ transitionDelay: `${i * STAGGER}ms` }}
+                  className="absolute inset-x-0 top-0 h-px origin-left bg-rule transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] js:motion-safe:group-data-[shown=false]/roles:scale-x-0"
+                />
+              )}
+              <div
+                data-role-text
+                style={{ transitionDelay: `${i * STAGGER + TEXT_LAG}ms` }}
+                className="grid grid-cols-12 gap-4 items-baseline transition-[opacity,translate] duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)] js:motion-safe:group-data-[shown=false]/roles:translate-y-4 js:motion-safe:group-data-[shown=false]/roles:opacity-0"
+              >
                 <div className="col-span-12 md:col-span-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">
                   {r.years}
                 </div>
@@ -75,7 +119,7 @@ export default function Leadership() {
                   {r.org}
                 </div>
               </div>
-            </Reveal>
+            </div>
           ))}
         </div>
       </div>
