@@ -69,6 +69,8 @@ const SECTIONS = [
 
 export default function PrivacyPage() {
   const link = "text-electric link-line";
+  // External links: the arrow nudges up and right, as "Visit the site ↗" does.
+  const external = `group inline-flex items-center gap-2 ${link}`;
   return (
     <>
       <ClientEnhancements />
@@ -100,11 +102,17 @@ export default function PrivacyPage() {
                 <a href={`mailto:${EMAIL}?subject=${encodeURIComponent("Privacy request — damiandc.com")}`} className={link}>
                   {EMAIL}
                 </a>
-                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className={link}>
-                  Google’s privacy policy ↗
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className={external}>
+                  Google’s privacy policy
+                  <span data-arrow aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                    ↗
+                  </span>
                 </a>
-                <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className={link}>
-                  Google Analytics opt-out add-on ↗
+                <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className={external}>
+                  Google Analytics opt-out add-on
+                  <span data-arrow aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                    ↗
+                  </span>
                 </a>
               </div>
             </div>

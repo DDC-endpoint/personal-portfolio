@@ -180,13 +180,6 @@ html:not(.js) .intro-stamp { display: none !important; }
     radial-gradient(circle, rgb(var(--c-ivory)) 0, rgb(var(--c-ivory)) calc(var(--stamp-r) * 0.52), rgb(var(--c-ivory) / 0.6) calc(var(--stamp-r) * 0.86), rgb(var(--c-ivory) / 0) calc(var(--stamp-r) * 1.15)),
     radial-gradient(circle, rgb(var(--c-electric) / 0.1) 0, rgb(var(--c-electric) / 0.05) calc(var(--stamp-r) * 0.875), rgb(var(--c-electric) / 0) calc(var(--stamp-r) * 1.25));
 }
-/* Dark mode: a navy halo over bright glyphs shows its rim, so it fades out
-   longer and on an eased curve (Damian, Phase 5 gate). */
-.dark .intro-stamp[data-glyphs] {
-  background-image:
-    radial-gradient(circle, rgb(var(--c-ivory)) 0, rgb(var(--c-ivory)) calc(var(--stamp-r) * 0.32), rgb(var(--c-ivory) / 0.92) calc(var(--stamp-r) * 0.5), rgb(var(--c-ivory) / 0.75) calc(var(--stamp-r) * 0.7), rgb(var(--c-ivory) / 0.5) calc(var(--stamp-r) * 0.92), rgb(var(--c-ivory) / 0.28) calc(var(--stamp-r) * 1.15), rgb(var(--c-ivory) / 0.12) calc(var(--stamp-r) * 1.4), rgb(var(--c-ivory) / 0.04) calc(var(--stamp-r) * 1.65), rgb(var(--c-ivory) / 0) calc(var(--stamp-r) * 1.9)),
-    radial-gradient(circle, rgb(var(--c-electric) / 0.1) 0, rgb(var(--c-electric) / 0.05) calc(var(--stamp-r) * 0.875), rgb(var(--c-electric) / 0) calc(var(--stamp-r) * 1.25));
-}
 .intro-stamp [data-ch] {
   text-shadow: 0 0 6px rgb(var(--c-ivory)), 0 0 12px rgb(var(--c-ivory)), 0 0 18px rgb(var(--c-ivory));
 }

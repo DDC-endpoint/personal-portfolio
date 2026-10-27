@@ -95,18 +95,22 @@ test("the FAQ questions keep the custom cursor (no pointer finger)", async ({ pa
   await question.scrollIntoViewIfNeeded();
   await question.hover();
   await expect(question).toHaveCSS("cursor", "none");
+  // ...and the custom cursor's ring grows over them, as over every link.
+  await expect(page.locator(".cursor-ring")).toHaveCSS("width", "60px");
 });
 
-test("dark mode: the stamp's halo fades out over a longer, softer edge", async ({ page }, info) => {
+test("privacy: the Google links' arrows nudge up and right on hover", async ({ page }, info) => {
   desktopOnly(info);
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/services");
-  await page.locator(".intro-stamp[data-glyphs]").waitFor({ timeout: 8000 });
-  const halo = await page.locator(".intro-stamp").evaluate((s) => {
-    const first = getComputedStyle(s).backgroundImage.split(/radial-gradient/)[1];
-    const stops = [...first.matchAll(/(\d+(?:\.\d+)?)px/g)].map((m) => Number(m[1]));
-    return { stops, r: Math.max(150, 0.24 * Math.min(innerWidth, innerHeight)) };
-  });
-  expect(halo.stops.length).toBeGreaterThanOrEqual(6);
-  expect(Math.max(...halo.stops)).toBeGreaterThan(halo.r * 1.5);
+  await page.goto("/privacy");
+  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  for (const link of await page.locator("main a[target='_blank']").all()) {
+    const arrow = link.locator("[data-arrow]");
+    await expect(arrow).toHaveText("↗");
+    await expect(arrow).toHaveAttribute("aria-hidden", "true");
+    await link.scrollIntoViewIfNeeded();
+    await link.hover();
+    // Tailwind 4 moves it with the translate property.
+    await expect.poll(() => arrow.evaluate((el) => getComputedStyle(el).translate)).toMatch(/^[1-9][\d.]*px -[1-9][\d.]*px$/);
+    await page.mouse.move(5, 5);
+  }
 });
