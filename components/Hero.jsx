@@ -133,7 +133,7 @@ export default function Hero() {
           <EagerReveal
             as="p"
             replay={false}
-            className="col-span-12 md:col-span-5 text-lg md:text-xl leading-snug text-ink-soft max-w-md"
+            className="col-span-12 md:col-span-5 text-lg md:text-xl leading-snug text-ink-soft max-w-lg"
           >
             In my second year of <span className="italic font-display text-ink">BSc (Hons) Computer Science</span>{" "}
             at the Informatics Institute of Technology, Colombo, the University of Westminster&rsquo;s

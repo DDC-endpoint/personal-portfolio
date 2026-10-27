@@ -310,6 +310,7 @@ Damian's first look at the gate: "in the initial load and reload there is a flas
   - The electric cards' buttons get a soft tint on hover and keyboard focus: the filled pill softens to 85% so the blue shows through, and the outlined pill gets a 15% wash of the card's text colour.
   - The FAQ questions (`<summary>`) no longer show the pointer finger (`summary` joins the custom cursor's list in `globals.css`), and they get the custom cursor's hover growth (`data-hover`).
   - A softer dark-mode halo was tried (fading over 1.9× its radius) and reverted at Damian's request: the dark halo is the same as the light one.
+  - The hero lede is a little wider (Damian): `max-w-lg` (512 px) instead of `max-w-md` (448 px). On large screens it's five lines; from `md` to about 1280 px the grid column was already the limit, so nothing changes there, and it never reaches the portrait.
 
 ## Gate changes (2026-10-27)
 

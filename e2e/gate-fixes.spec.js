@@ -114,3 +114,18 @@ test("privacy: the Google links' arrows nudge up and right on hover", async ({ p
     await page.mouse.move(5, 5);
   }
 });
+
+test("the hero lede is a little wider, and never runs into the portrait", async ({ page }, info) => {
+  desktopOnly(info);
+  for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/");
+    await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+    const { lede, portrait } = await page.evaluate(() => ({
+      lede: document.querySelector("#top p").getBoundingClientRect().toJSON(),
+      portrait: document.querySelector("[data-portrait]").getBoundingClientRect().toJSON(),
+    }));
+    if (width === 1440) expect(lede.width).toBeGreaterThan(500);
+    expect(lede.right).toBeLessThan(portrait.left - 24);
+  }
+});
