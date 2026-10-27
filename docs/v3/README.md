@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (end of 2026-10-27: Phases 1–3 and the Timeline circuit merged, Phase 4 planned)
+## Where we are (end of 2026-10-27: Phases 1–3 and the Timeline circuit merged, Phase 4 and SEO/GEO built and at the gate)
 
 | Track | State |
 |---|---|
@@ -12,23 +12,22 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 2**: Projects (diagonal skeleton showcase) | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-2.md`](plan-phase-2.md), reviewed, and every review finding is fixed. Damian approved the screenshots. Tests are green, and Lighthouse is at parity with `main`. |
 | **Phase 3**: Timeline, Lens (gallery) and Contact | **Done and merged into `v3` locally (2026-10-27).** Damian approved [`plan-phase-3.md`](plan-phase-3.md) unchanged. It was built test-first, reviewed by a fresh reviewer, and every finding is fixed (see "What Phase 3 built"); Damian's gate fixes are in `decisions.md` → "Phase 3 gate fixes". Tests are green, and Lighthouse is at parity with `main`. |
 | **Timeline circuit** (replaces the running stitch) | **Done and merged into `v3` locally (2026-10-27)** from `v3-timeline-circuit`, on Damian's go-ahead after the prototype. See `decisions.md` → "Timeline circuit". |
-| Phase 4: copy refresh, Leadership rows, Skills terminal, `/services` | **Planned (2026-10-27), waiting for Damian's approval.** See [`plan-phase-4.md`](plan-phase-4.md). |
+| Phase 4: copy refresh, Leadership rows, Skills terminal, `/services` | **Built on `v3-phase-4` (2026-10-27), waiting at Damian's visual gate.** Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. See "What Phase 4 built". |
+| SEO and GEO upgrade (Phase 4 Task 11) | **Built on `v3-phase-4` (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (nginx `www` redirect, Search Console, profiles, testimonials). |
 | Phase 5: page transition (Home ↔ `/services`) | Not started. Split out of Phase 4 at Damian's request. |
 
-### The next step (resume here): Damian approves the Phase 4 plan, then build it
+### The next step (resume here): Damian's visual gate for Phase 4, then merge
 
-**State at hand-off (end of 2026-10-27):** on `v3`, working tree clean, last commit `docs(v3): …` (the hand-off docs). Phases 1–3 and the Timeline circuit are merged into `v3`. [`plan-phase-4.md`](plan-phase-4.md) is written and committed but **not approved yet**. Nothing of Phase 4 is built.
+**State at hand-off (end of 2026-10-27):** on `v3-phase-4`, working tree clean. All 11 tasks are built and committed, and the review fixes are in. Unit tests and e2e pass, apart from one Phase 1 cursor-lens test that flakes under full-suite load and passes on its own.
 
-1. **Get Damian's approval of [`plan-phase-4.md`](plan-phase-4.md).** It lists six "Builder's calls for Damian to confirm"; he hasn't answered them yet. The one most likely to change is the terminal's accent colour (`#60A5FA`, a second named exception to the token palette, because neither electric token passes AA on navy). If he changes a call, update the plan and `decisions.md` → "Phase 4 planning" before building.
-2. **On approval, build Phase 4:**
-   - Run `git switch v3 && git switch -c v3-phase-4`.
-   - Execute the plan task by task, inline (the `executing-plans` skill), test-first. Watch each test fail before writing code.
-   - Finish with one fresh reviewer on the most capable model over `git diff v3...v3-phase-4`, given the plan's Review Focus. Fix every finding, minors included.
-   - Verify with screenshots at 100% and 150% scaling, plus dark and reduced motion, and run Lighthouse for `/` and `/services`.
-3. **Gate:** show Damian the screenshots and open the dev page for him. On his approval, run `git switch v3 && git merge --no-ff v3-phase-4`, delete the branch and update these docs. No push.
-4. **Then Phase 5, the page transition (Home ↔ `/services`).** It was split out of Phase 4 at Damian's request (`decisions.md` → "Phase 4 planning"). The spec is `design.md` → "Global motion system" → "Page transition": a glyph dissolve of about 0.6 s, client-side navigation with a persistent overlay, and in-page links like `/#work` included. Reloads get the curtain, and arriving on Home this way never replays the portrait wave. Plan it the same way: questions first, then a `plan-phase-5.md` for his approval.
-5. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
-6. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+1. **Gate:** show Damian the screenshots and open the dev page (`Start-Process "http://localhost:3000/services"` and `/`). Questions for him:
+   - **Spades' "Client design · not launched" tag.** It shows only while the card is active (hovered, focused or centred), like every card's tags, and always without JS. Should it always show on `/services`?
+   - **The privacy page text** (`app/(site)/privacy/page.jsx`) is the builder's draft. He should read it; it isn't legal advice.
+   - **Mobile Lighthouse is 2–4 points below `main`.** Most of that gap was already in `v3` before Phase 4 (see "Testing"). Does he want a performance pass before `v3` → `main`?
+2. **On his approval,** run `git switch v3 && git merge --no-ff v3-phase-4`, delete the branch and update these docs. No push.
+3. **Then Phase 5, the page transition (Home ↔ `/services`).** The spec is `design.md` → "Global motion system" → "Page transition": a glyph dissolve of about 0.6 s, client-side navigation with a persistent overlay, and in-page links like `/#work` included. Reloads get the curtain, and arriving on Home this way never replays the portrait wave. Plan it the same way: questions first, then a `plan-phase-5.md` for his approval.
+4. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`". After the redeploy Damian applies the server-side SEO items in [`seo-geo.md`](seo-geo.md).
+5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
 
 **History, for context:**
 - Phase 3 merged as `60c1725`. At its gate Damian settled the dark-mode Contact card (`#2563EB` in both themes) and raised five fixes (`decisions.md` → "Phase 3 gate fixes").
@@ -181,6 +180,66 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Timeline marks share one axis.** The trace's SVG boxes are centred on it with `-translate-x-1/2`, like the pads. A line pinned by its left edge sits half its width off-centre.
 - **Class names are literal.** Tailwind only generates classes it can read in the source; a prefix kept in a variable and joined in a template string (`${PREFIX}:bg-paper`) silently produces nothing.
 
+## What Phase 4 built (on `v3-phase-4`)
+
+**Home:**
+- **Copy refresh** from `copy.md`: About, the Leadership intro, Résumé and the footer.
+- **Leadership rows:** each row's rule draws, then its text rises, staggered down the list, once in view.
+- **Skills terminal** (`components/skills/Terminal.jsx`, `lib/skills.js`):
+  - A navy panel types `ls tools/` and the four folders as columns from `lg`. Below `lg` it types one `ls tools/<dir>` listing per folder.
+  - It types once, at 40% in view, and ends on a blinking block cursor.
+  - Every string is real text in the server HTML that "types" by un-clipping (`--n`, `.term-t`).
+  - Interruptions (a layout swap, a stalled tab) end it finished. The accent is `--c-term-accent` (`#60A5FA`).
+- **Footer B:**
+  - © and the trading name, the tagline with Home · Services · Privacy, and the version.
+  - The columns are centred on phones.
+
+**`/services`:**
+- **Data:** all copy and data live in `lib/services.js`, and the FAQ JSON-LD is built from it.
+- **The business page for "DDC Web Services":**
+  - The hero block reads "DDC Web Services / by Damian De Cruz".
+  - The lead adds "working as DDC Web Services".
+  - The H1 holds the kicker "Freelance web designer · Colombo, Sri Lanka".
+  - A "Prices updated October 2026." line follows the prices.
+- **Motion:**
+  - The section labels decode.
+  - The mono buttons scramble, with their arrows outside.
+  - The FAQ questions are `h3`s.
+- **How it works:** the four steps on the Timeline's circuit (`components/services/HowItWorks.jsx`).
+- **Recent work:** four skeleton browser cards that activate like Projects (`RecentWork.jsx`). Spades is tagged "Client design · not launched".
+- **Start a project:** the growing electric card, shared with Contact (`useGrowCard.js`, `StartCard.jsx`).
+
+**Shared pieces extracted:**
+- `components/circuit/`, used by the Timeline and "How it works". It now completes by the bottom of the page (`reachableEnd`).
+- `components/useGrowCard.js`.
+
+**SEO and GEO** (details in [`seo-geo.md`](seo-geo.md)):
+- **Structured data** (`lib/structuredData.js`): one `@id` graph.
+  - WebSite.
+  - Person: the portrait as image, Colombo, IIT and Westminster as affiliations, St. Joseph's as `alumniOf`.
+  - Organization "DDC Web Services".
+  - ProfilePage on Home.
+  - One Service on `/services`, whose offers carry the visible LKR and USD prices, with the retainer per month.
+- **Metadata:**
+  - Home's title is "Damian De Cruz — Freelance Web Designer & Developer"; `/services`' is "Web Design Services in Colombo | DDC Web Services".
+  - Descriptions put the price first.
+  - Every page has its own canonical and `og:url`.
+  - The sitemap uses real dates and lists `/privacy`.
+  - `poweredByHeader` is off.
+- **Share cards:** `public/og.jpg` and `public/og-services.jpg` (static, per HANDOFF), rendered by `spike/og-cards.cjs`.
+- **New page:** `/privacy`.
+- **Alt text** on project shots and gallery photos.
+- **`data-nosnippet`** on the scrambled curtain, the ASCII mini portrait, the year counter and "loading…".
+- **Fixes:** the lab title no longer says "Lab" twice, and the H1 reads "De".
+
+**No JS** (partly a live-site bug): nothing starts hidden any more. See `decisions.md` → "Phase 4 build and review".
+
+**Rules that came out of Phase 4** (don't undo them):
+- **Nothing hides without JS.** framer `initial` states are shown by the `html:not(.js)` rule in `globals.css`. A class-based hidden state needs a `nojs:` reset or a `js:` gate. `e2e/seo.spec.js` checks every text with JS off.
+- **Share images are static files in `public/`** (`lib/shareImages.js`). Never add an `opengraph-image` route or file (HANDOFF rule 2).
+- **Structured data states only what the page shows.** Build it from the same modules the page renders (`lib/services.js`, `lib/site.js`).
+- **Typed text is clipped, never removed.** The terminal un-clips spans with `--n`, so screen readers, crawlers and no-JS visitors always get the whole stack.
+
 ## Testing
 
 - **Unit:** `npm test` runs Vitest over `tests/unit/` (the pure `lib/` modules).
@@ -210,13 +269,27 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   | `main` | 100 | 80 | 2125 ms | 656 ms |
   | `v3-phase-3` | 100 | 79 | 2083 ms | 697 ms |
 
+  Phase 4 result (mobile medians of 5, interleaved; desktop medians of 3). Batches from different runs differ by up to about 150 ms of LCP on this machine, so compare within a table:
+
+  | | Mobile `/` | LCP | TBT | Mobile `/services` | LCP | TBT |
+  |---|---|---|---|---|---|---|
+  | `main` | 77 | 2159 ms | 802 ms | 80 | 2102 ms | 700 ms |
+  | `v3-phase-4` | 76 | 2302 ms | 792 ms | 77 | 2297 ms | 751 ms |
+
+  | | Mobile `/` | LCP | TBT | Mobile `/services` | LCP | TBT |
+  |---|---|---|---|---|---|---|
+  | `v3` (before Phase 4) | 74 | 2281 ms | 901 ms | 80 | 2190 ms | 637 ms |
+  | `v3-phase-4` | 74 | 2321 ms | 883 ms | 79 | 2273 ms | 677 ms |
+
+  Desktop is 100 on both pages for every branch. LCP equals FCP throughout: the LCP element is the hero text, and the page's first paint is what moves. Phase 4's own cost against `v3` is 0–1 point. The gap to `main` was mostly already there before Phase 4, so a performance pass before `v3` → `main` is Damian's call (see "The next step").
+
   The worktree route: `git worktree add --detach <dir> <branch>`, then `npm ci && npx next build && npx next start -p <port>` in each. Copy any uncommitted `public/` assets in first.
 
 ## Repo state at hand-off
 
 - **Branches:**
   - `v3` (current) is local only, with no upstream. `v3-phase-1`, `v3-phase-2`, `v3-phase-3` and `v3-timeline-circuit` are merged and deleted.
-  - The working tree is clean. `v3-phase-4` doesn't exist yet; cut it from `v3` once the plan is approved.
+  - `v3-phase-4` holds Phase 4 and the SEO/GEO work, waiting at the gate; the working tree is clean.
   - Other local branches, `main` and `upgrade/deps`, are untouched by V3.
 - **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another.
 - **Prototype server:** `node docs/v3/spike/serve.cjs` on :3200 (see "Running the prototypes"). It may still be running from the last session.
@@ -233,12 +306,15 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **done**; read its status note for where the build departed from it.
-- [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`). **Planned**, waiting for Damian's approval.
+- [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`, and Task 11, SEO and GEO). **Built**, at the gate; read its status note.
+- [`seo-geo.md`](seo-geo.md): the SEO and GEO audit summary, Damian's decisions, what we built, what Damian does outside the repo, and the monthly GEO prompt set.
 - [`research-reels.md`](research-reels.md): notes on the six Instagram reels and the ASCII reference video that shaped V3.
 - [`spike/`](spike/): throwaway prototypes and helper scripts. These are reference only, not production code; see [`spike/README.md`](spike/README.md).
   - `portrait-spike.html`: the portrait on its own, with controls.
   - `hero-live.html`: the portrait inside a replica of the live hero.
   - `gallery-mockup.html`: the locked gallery, the reference for Phase 3.
+  - `footer-mock.html`: the three footer options (Damian chose B).
+  - `og-cards.html`, `og-cards.cjs`, `og-portrait.png`: the share-card template, its renderer and the exported ASCII portrait.
   - `process-headshot.cjs`, `make-gallery-copies.cjs`, `serve.cjs`: helper scripts.
 
 ## How Damian likes to work

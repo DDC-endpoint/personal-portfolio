@@ -45,7 +45,7 @@ See [`plan-phase-4.md`](plan-phase-4.md) → Task 11 for the steps and tests. In
    - A WebSite node.
    - A Person (with the portrait as `image`, Colombo as locality, and `knowsAbout`), who works for and founded the Organization "DDC Web Services". The Person's `affiliation` is IIT and the University of Westminster; `alumniOf` is St. Joseph's College.
    - A ProfilePage on Home.
-   - One Service on `/services`, whose offers are built from `lib/services.js` in LKR and USD, with the retainer priced per month, plus a BreadcrumbList.
+   - One Service on `/services`, whose offers are built from `lib/services.js` in LKR and USD, with the retainer priced per month. (A BreadcrumbList was dropped at review: the page shows no breadcrumb.)
    - The site-wide Service leaves the layout, so Home and `/services` stop competing for the same query.
 2. **Metadata:**
    - Home title "Damian De Cruz — Freelance Web Designer & Developer".
@@ -57,7 +57,7 @@ See [`plan-phase-4.md`](plan-phase-4.md) → Task 11 for the steps and tests. In
 4. **Snippet hygiene:** `data-nosnippet` on the scrambled intro curtain, the mini ASCII portrait, the Timeline's odometer digits and the "loading…" lines.
 5. **Alt text** on project screenshots and gallery photos (a v3 regression).
 6. **Privacy page** (`/privacy`) and footer B.
-7. **Share images:** a fresh 1200×630 card for Home and one for `/services`.
+7. **Share images:** a fresh 1200×630 card for Home and one for `/services`. They are static files (`public/og.jpg`, `public/og-services.jpg`) because HANDOFF forbids `opengraph-image` routes, and are rendered by `spike/og-cards.cjs`.
 8. **Small fixes:**
    - The lab title no longer says "Lab" twice.
    - `poweredByHeader: false`.
