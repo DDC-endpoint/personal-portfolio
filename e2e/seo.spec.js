@@ -175,3 +175,9 @@ test.describe("share images", () => {
     });
   }
 });
+
+test("the lab's title says Lab once", async ({ page, isMobile }) => {
+  test.skip(isMobile);
+  await page.goto("http://lab.localhost:3000/");
+  await expect(page).toHaveTitle("Lab — Damian De Cruz");
+});
