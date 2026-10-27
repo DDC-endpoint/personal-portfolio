@@ -2,6 +2,7 @@ import { Instrument_Serif, Manrope, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import MotionProvider from "@/components/MotionProvider";
+import { ldJson } from "@/lib/jsonld";
 
 const GA_ID = "G-PC1HZKKSEC";
 
@@ -96,9 +97,6 @@ const serviceJsonLd = {
     url: "https://damiandc.com",
   },
 };
-
-// JSON for a <script> tag: "<" escaped so the data can never close it.
-const ldJson = (data) => JSON.stringify(data).replace(/</g, "\\u003c");
 
 export default function RootLayout({ children }) {
   return (

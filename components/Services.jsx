@@ -6,116 +6,8 @@ import EagerReveal from "./EagerReveal";
 import SplitLines from "./SplitLines";
 import { EMAIL, WHATSAPP_LINK } from "@/lib/site";
 import { EASE } from "@/lib/motion";
-
-const services = [
-  {
-    n: "01",
-    title: "Web design & development",
-    desc: "A clean, fast, custom website built from scratch — landing pages, personal sites, and one-pagers that load quickly and look sharp on every screen.",
-    includes: ["Custom responsive design", "Fast, hand-built code", "Basic on-page SEO"],
-    fromLKR: "LKR 18,000",
-    fromUSD: "$150",
-    turnaround: "~2–3 days",
-  },
-  {
-    n: "02",
-    title: "Business & portfolio sites",
-    desc: "Multi-page sites that give a business or creative a proper home online — services, about, gallery, and contact, wired for search and enquiries.",
-    includes: ["Up to ~5 pages", "Contact form & socials", "SEO + analytics setup"],
-    fromLKR: "LKR 40,000",
-    fromUSD: "$500",
-    turnaround: "~1 week",
-  },
-  {
-    n: "03",
-    title: "Booking & scheduling sites",
-    desc: "Let clients book you online — appointment calendars, reservations, and payment-ready scheduling built into a polished, branded site.",
-    includes: ["Calendar / booking flow", "Payment gateway integration", "Email confirmations"],
-    fromLKR: "LKR 65,000",
-    fromUSD: "$800",
-    turnaround: "1–2 weeks",
-  },
-  {
-    n: "04",
-    title: "Redesigns & speed fixes",
-    desc: "Already have a site? I'll modernise the look or fix what's slow — Core Web Vitals, mobile layout, and the rough edges that quietly lose visitors.",
-    includes: ["Performance & speed tuning", "Visual refresh", "Mobile & accessibility fixes"],
-    fromLKR: "LKR 25,000",
-    fromUSD: "$200",
-    turnaround: "1–3 days",
-  },
-  {
-    n: "05",
-    title: "SEO & AI visibility audit",
-    desc: "A full audit of how your site performs on Google and in AI answers — ChatGPT, Perplexity, Google AI Overviews. You get a plain-English report of what's holding you back and a prioritised roadmap to fix it.",
-    includes: ["On-page & technical SEO", "GEO / AI answer visibility score", "Priority recommendations report"],
-    fromLKR: "LKR 50,000",
-    fromUSD: "$299",
-    turnaround: "2–4 days",
-  },
-  {
-    n: "06",
-    title: "SEO & GEO implementation",
-    desc: "The audit scopes the work — once I know exactly what your site needs, I quote the final price. I then implement the technical fixes, schema markup, content restructuring, and AI snippet optimisation identified in your report.",
-    includes: ["Technical & on-page fixes", "Schema & structured data", "AI snippet optimisation"],
-    fromLKR: "LKR 65,000",
-    fromUSD: "$400",
-    turnaround: "1–2 weeks",
-  },
-  {
-    n: "07",
-    title: "Ongoing SEO & GEO retainer",
-    desc: "For clients who want continued management — monthly health checks, content updates, and AI visibility monitoring across Google, ChatGPT, and Perplexity, with a performance report each month.",
-    includes: ["Monthly SEO health checks", "GEO monitoring & updates", "Monthly performance report"],
-    fromLKR: "LKR 48,000",
-    fromUSD: "$225",
-    turnaround: "Monthly",
-  },
-];
-
-const steps = [
-  { n: "01", title: "Brief", desc: "You tell me what you need — a few messages or a quick call. I send back a clear scope and a fixed starting price." },
-  { n: "02", title: "Design", desc: "I shape the look and structure, sharing previews early so you can steer the direction before anything's locked in." },
-  { n: "03", title: "Build", desc: "I build it fast and clean — responsive, quick to load, and ready for search engines from day one." },
-  { n: "04", title: "Launch", desc: "We go live on your domain. I hand everything over and stay around for tweaks and support." },
-];
-
-const work = [
-  { title: "This Portfolio", note: "Personal portfolio built with Next.js, Tailwind & Framer Motion — see the full body of work.", href: "/", tag: "Portfolio" },
-  { title: "Spades Solutions", note: "A sharp, professional web presence for a growing solutions company.", href: "https://enderguardian25.github.io/spades-solutions/index.html", tag: "Business site" },
-  { title: "Aloys Travels", note: "Web presence for a travel company — clean booking flows and an inviting, journey-led design.", href: "https://aloys-travels.pages.dev/", tag: "Travel site" },
-];
-
-const faqs = [
-  {
-    q: "What's included in a build?",
-    a: "Every site comes fully responsive (great on phones, tablets, and desktops), quick to load, and with basic on-page SEO so Google can find it. Business builds add a contact form, analytics, and social links. Anything beyond the agreed scope is quoted up front — no surprises.",
-  },
-  {
-    q: "How fast can you really deliver?",
-    a: "A single-page site is usually ~2–3 days, a small business site about a week, and booking sites 1–2 weeks. Those timelines assume your content (text, images, logo) is ready and feedback is prompt — speed is a two-way street.",
-  },
-  {
-    q: "What about domain and hosting?",
-    a: "Those are small recurring costs paid to providers, not to me — a domain runs about LKR 3,000/year and hosting roughly LKR 10,000–20,000/year. I'll recommend and set it all up for you, or build on hosting you already have.",
-  },
-  {
-    q: "How does payment work?",
-    a: "Typically 30–40% up front to begin, with the balance on delivery. For larger projects we can split it across milestones. I'll confirm the full price before any work starts.",
-  },
-  {
-    q: "What happens to the deposit if the project is cancelled?",
-    a: "The upfront deposit covers the scoping and design work done before a single line of code is written — that time is spent regardless of what happens next. If you cancel after work has started, the deposit is non-refundable, but you keep everything produced up to that point (designs, wireframes, any partial build). If I fail to deliver what was agreed, I'll refund in full. Either way, the full price is locked in writing before work begins — no surprises.",
-  },
-  {
-    q: "Do you work with clients outside Sri Lanka?",
-    a: "Yes — I work with clients anywhere. International projects are quoted in USD (roughly the figures shown), and we handle everything over email, WhatsApp, or a call.",
-  },
-  {
-    q: "What if I need changes after launch?",
-    a: "A round of revisions is included with every build, and I'm reachable for small fixes once you're live. Ongoing maintenance or larger updates can be arranged whenever you need them.",
-  },
-];
+import { PROJECTS } from "@/lib/projects";
+import { SERVICES_HERO, SERVICES, PRICING_NOTE, STEPS, WORK, FAQS, START_TEXT } from "@/lib/services";
 
 function CTAButtons() {
   return (
@@ -192,17 +84,17 @@ export default function Services() {
           <div className="col-span-12 md:col-span-9 md:col-start-4">
             <EagerReveal delay={0.05}>
               <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-soft mb-5">
-                Freelance · Colombo, Sri Lanka
+                {SERVICES_HERO.kicker}
               </div>
             </EagerReveal>
             <SplitLines as="h1" delay={0.1} className="font-display text-5xl md:text-8xl leading-[0.92] tracking-tight text-ink">
-              Clean, fast websites — <span className="italic text-electric">built in days</span>.
+              {SERVICES_HERO.heading[0]}
+              <span className="italic text-electric">{SERVICES_HERO.heading[1]}</span>
+              {SERVICES_HERO.heading[2]}
             </SplitLines>
             <EagerReveal replay={false}>
               <p className="mt-8 max-w-xl text-lg md:text-xl leading-relaxed text-ink-soft">
-                I&rsquo;m Damian — a creative technologist and freelance web designer in Colombo. I design and
-                build custom websites for businesses and creatives: quick to load, sharp on every screen, and
-                ready for Google. Most projects ship in days, not months.
+                {SERVICES_HERO.lead}
               </p>
             </EagerReveal>
             <EagerReveal delay={0.3}>
@@ -230,7 +122,7 @@ export default function Services() {
         </div>
 
         <div>
-          {services.map((s, i) => (
+          {SERVICES.map((s, i) => (
             <Reveal key={s.n} delay={i * 0.05}>
               <div className="grid grid-cols-12 gap-6 items-start border-t border-rule py-10 md:py-12 first:border-t-0">
                 <div className="col-span-12 md:col-span-1">
@@ -265,8 +157,7 @@ export default function Services() {
 
         <Reveal>
           <p className="mt-10 max-w-2xl text-sm md:text-base text-ink-faint leading-relaxed">
-            All figures are starting points — the final quote depends on scope. Larger, fully custom builds
-            start from around LKR 150,000. Domain and hosting are billed separately, at cost.
+            {PRICING_NOTE}
           </p>
         </Reveal>
       </section>
@@ -288,7 +179,7 @@ export default function Services() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-9 md:col-start-4 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 md:gap-y-14">
-            {steps.map((st, i) => (
+            {STEPS.map((st, i) => (
               <Reveal key={st.n} delay={i * 0.07}>
                 <div className="flex gap-5">
                   <div className="font-display text-4xl md:text-5xl italic text-electric leading-none">{st.n}</div>
@@ -329,10 +220,11 @@ export default function Services() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-rule border-y border-rule">
-          {work.map((w, i) => {
+          {WORK.map((w, i) => {
             const external = w.href.startsWith("http");
+            const title = PROJECTS.find((p) => p.slug === w.slug).title;
             return (
-              <Reveal key={w.title} delay={i * 0.06} className="h-full">
+              <Reveal key={w.slug} delay={i * 0.06} className="h-full">
                 <a
                   href={w.href}
                   target={external ? "_blank" : undefined}
@@ -348,7 +240,7 @@ export default function Services() {
                   />
                   <div className="relative section-label mb-3">{w.tag}</div>
                   <h3 className="relative font-display text-2xl md:text-3xl text-ink group-hover:text-electric transition-colors duration-500">
-                    {w.title}
+                    {title}
                   </h3>
                   <p className="relative mt-3 text-sm md:text-base text-ink-soft leading-relaxed flex-1">{w.note}</p>
                   <span className="relative mt-5 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink group-hover:text-electric transition">
@@ -396,7 +288,7 @@ export default function Services() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-9 md:col-start-4">
-            {faqs.map((f, i) => (
+            {FAQS.map((f, i) => (
               <Reveal key={i} delay={i * 0.04}>
                 <details className="group border-t border-rule py-6 first:border-t-0">
                   <summary className="flex items-center justify-between gap-6 cursor-pointer list-none font-display text-xl md:text-2xl text-ink [&::-webkit-details-marker]:hidden">
@@ -428,8 +320,7 @@ export default function Services() {
             </SplitLines>
             <Reveal delay={0.2}>
               <p className="mt-8 max-w-xl text-lg md:text-xl text-ink-soft leading-relaxed">
-                Tell me what you have in mind and I&rsquo;ll come back with a scope, a fixed starting price, and
-                a timeline — usually within a day. No obligation.
+                {START_TEXT}
               </p>
             </Reveal>
             <Reveal delay={0.3}>
