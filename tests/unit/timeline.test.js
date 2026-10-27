@@ -1,4 +1,4 @@
-import { ENTRIES, litCount } from "@/lib/timeline";
+import { ENTRIES, litCount, circuitPoints, traceAt, counterYear, padLabel } from "@/lib/timeline";
 
 test("ten entries, oldest first, Head Prefect after A-Levels", () => {
   expect(ENTRIES.map((e) => `${e.year} · ${e.title}`)).toEqual([
@@ -46,4 +46,48 @@ test("litCount counts thresholds at or below progress", () => {
   expect(litCount(1, [0.1, 0.4, 0.6])).toBe(3);
   expect(litCount(0, [0.1, 0.4, 0.6])).toBe(0);
   expect(litCount(0.5, [])).toBe(0);
+});
+
+// The circuit trace (Damian): it meets every milestone's pad on the rail's
+// axis and jogs out to a side lane between pads with 45° bends, alternating
+// sides, so it reads as a circuit-board track.
+test("the trace meets every pad on the axis and runs top to bottom", () => {
+  const pts = circuitPoints([100, 300, 500], 600, 12);
+  expect(pts[0]).toEqual([0, 0]);
+  expect(pts.at(-1)).toEqual([0, 600]);
+  for (const y of [100, 300, 500]) expect(pts).toContainEqual([0, y]);
+  for (let i = 1; i < pts.length; i++) expect(pts[i][1]).toBeGreaterThanOrEqual(pts[i - 1][1]);
+});
+
+test("between pads the trace jogs to alternating lanes at 45°", () => {
+  const pts = circuitPoints([100, 300, 500], 600, 12);
+  expect(traceAt(pts, 200)).toBe(12);
+  expect(traceAt(pts, 400)).toBe(-12);
+  for (let i = 1; i < pts.length; i++) {
+    const dx = Math.abs(pts[i][0] - pts[i - 1][0]), dy = pts[i][1] - pts[i - 1][1];
+    if (dx) expect(dx).toBe(dy);
+  }
+});
+
+test("traceAt follows the trace and stays on the axis past its ends", () => {
+  const pts = circuitPoints([100, 300], 400, 12);
+  expect(traceAt(pts, 100)).toBe(0);
+  expect(traceAt(pts, 300)).toBe(0);
+  expect(traceAt(pts, -5)).toBe(0);
+  expect(traceAt(pts, 999)).toBe(0);
+  expect(traceAt(pts, 124)).toBe(6); // halfway along the first bend
+});
+
+test("pads too close for a jog are joined straight", () => {
+  const pts = circuitPoints([100, 120], 200, 12);
+  expect(traceAt(pts, 110)).toBe(0);
+});
+
+test("the counter shows each entry's first year", () => {
+  expect(ENTRIES.map(counterYear)).toEqual(["2018", "2020", "2022", "2024", "2024", "2025", "2025", "2026", "2026", "2026"]);
+});
+
+test("pads are labelled P01 to P10", () => {
+  expect(padLabel(0)).toBe("P01");
+  expect(padLabel(9)).toBe("P10");
 });

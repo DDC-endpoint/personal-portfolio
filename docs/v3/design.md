@@ -160,6 +160,8 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 ### 6. Timeline: "How I got here" (wow)
 
+> *Superseded on 2026-10-27: the running stitch became a circuit with a pinned year counter. See `decisions.md` → "Timeline circuit". Order, content and the light-up stand.*
+
 - **Order:** oldest first, so the needle travels forward through time. The entries, including the new "Sep 2026 · Began second year", are in `copy.md`.
 - **Running stitch:**
   - An electric-blue dashed line, like real stitches, led by a small needle head, draws down the timeline as you scroll.

@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-27, Phase 3 merged)
+## Where we are (2026-10-27, Phase 3 merged, Timeline circuit merged)
 
 | Track | State |
 |---|---|
@@ -11,6 +11,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 1**: motion primitives, hero portrait + loader wave, cursor lens, Marquee removal | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-1.md`](plan-phase-1.md), plus Damian's follow-ups (see "What Phase 1 built"). Tests are green, and Lighthouse is at parity with `main`. |
 | **Phase 2**: Projects (diagonal skeleton showcase) | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-2.md`](plan-phase-2.md), reviewed, and every review finding is fixed. Damian approved the screenshots. Tests are green, and Lighthouse is at parity with `main`. |
 | **Phase 3**: Timeline, Lens (gallery) and Contact | **Done and merged into `v3` locally (2026-10-27).** Damian approved [`plan-phase-3.md`](plan-phase-3.md) unchanged. It was built test-first, reviewed by a fresh reviewer, and every finding is fixed (see "What Phase 3 built"); Damian's gate fixes are in `decisions.md` → "Phase 3 gate fixes". Tests are green, and Lighthouse is at parity with `main`. |
+| **Timeline circuit** (replaces the running stitch) | **Done and merged into `v3` locally (2026-10-27)** from `v3-timeline-circuit`, on Damian's go-ahead after the prototype. See `decisions.md` → "Timeline circuit". |
 | Phase 4: copy refresh, Leadership rows, Skills terminal, `/services`, page transition | Not started. |
 
 ### The next step: plan Phase 4
@@ -18,8 +19,9 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 1. **Phase 3 is merged into `v3`** (2026-10-27, `60c1725`, a local `--no-ff` merge on Damian's approval). `v3-phase-3` is deleted.
    - At the gate Damian settled the dark-mode Contact card: it keeps the light-mode electric (#2563EB) in both themes, so its text passes AA (about 4.8:1). It's the one exception to the tokens-only rule.
    - Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, and a hydration error that a browser extension caused is gone.
-2. **Phase 4 next:** copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition. Write `plan-phase-4.md` for Damian's approval, then build it on `v3-phase-4`. After it, `v3` → `main`; see "Before `v3` merges to `main`".
-3. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+2. **The Timeline circuit is merged into `v3`** (2026-10-27): the running stitch became a circuit with a pinned year counter (`decisions.md` → "Timeline circuit").
+3. **Phase 4 next:** copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition. Write `plan-phase-4.md` for Damian's approval, then build it on `v3-phase-4`. One question to settle in the plan: `/services` "How it works" was to reuse the Timeline's stitch, which is gone. After it, `v3` → `main`; see "Before `v3` merges to `main`".
+4. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
 
 ## Before `v3` merges to `main`
 
@@ -124,10 +126,11 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 **§ 05 Timeline (oldest first):**
 - Ten entries from `copy.md`, plus the new "2024–2025 · Head Prefect" entry after A-Levels.
-- An electric running stitch (7 px on, 5 off), led by a small needle, sews down the list with scroll and unpicks on the way back.
-- Each milestone the needle passes gets a cross-stitch ×, its year decodes from scrambled digits (dashes and month names stay), and its text goes from faint to full ink. Milestones below the needle are faint, and they decode again on the next pass.
-- One sprung motion value drives it all through the `--d` custom property, so the per-frame work is CSS only. Thresholds re-measure whenever the list resizes.
-- No JS or reduced motion: fully stitched, everything lit, no needle.
+- **A circuit (replaced the running stitch on 2026-10-27; see `decisions.md` → "Timeline circuit").** An electric circuit-board track runs down the list with scroll and drains back on the way up, jogging out to a side lane at 45° between milestones, with a glowing head at its tip. Bright dashes flow along the lit part while the section is on screen.
+- Each pad the current reaches lights and glows, a short track draws out to its entry, its year decodes from scrambled digits (dashes and month names stay), and its text goes from faint to full ink. Pads below the head stay dark, and they decode again on the next pass. Desktop labels the pads `P01`–`P10`.
+- **Year counter** (`components/timeline/YearCounter.jsx`): the latest lit milestone's first year rolls like an odometer under the § 05 label, with its title on two reserved lines and a `06 / 10` count. On phones it's a strip stuck under the header.
+- One sprung motion value drives it all. The trace's reveal is CSS through `--d`; the head is the one element JS moves. Positions re-measure whenever the list resizes.
+- No JS: a straight finished line, everything lit, no head or counter. Reduced motion: the finished circuit, everything lit, no head and no moving current.
 
 **§ 07 Lens:**
 - The locked compact grid: six columns of 3:4 tiles, two 2×2 heroes and the note tile. Each tile has a hairline border, an ivory mat and the highlighter trace on hover or keyboard focus. Hover captions show on desktop; on phones the captions sit in the mat.
@@ -164,7 +167,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **The halftone is sampled and drawn on the same cells (`dotGrid`).** Cells are stretched to span the tile exactly; a fixed 7 px grid runs past the tile and the print drifts off the photo toward the edges.
 - **The hero portrait also calls `createImageBitmap` on resize.** Tests that count samples must filter by source.
 - **The custom cursor is the top layer (`z-index: 110`).** The native cursor is hidden, so any overlay above it hides the pointer. A new overlay goes below 110 (the Lens viewer is 100).
-- **Timeline marks share one axis.** The rule and the thread are centred on it with `-translate-x-1/2`, like the needle, dots and ×. A line pinned by its left edge sits half its width off-centre.
+- **Timeline marks share one axis.** The trace's SVG boxes are centred on it with `-translate-x-1/2`, like the pads. A line pinned by its left edge sits half its width off-centre.
+- **Class names are literal.** Tailwind only generates classes it can read in the source; a prefix kept in a variable and joined in a template string (`${PREFIX}:bg-paper`) silently produces nothing.
 
 ## Testing
 
