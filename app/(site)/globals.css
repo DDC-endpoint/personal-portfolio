@@ -166,6 +166,9 @@ html:not(.js) .intro-stamp { display: none !important; }
    lands on the page underneath. */
 .page-veil[data-veil="idle"] { visibility: hidden; }
 .page-veil:not([data-veil="idle"]) { pointer-events: auto; }
+/* After a page change, focus moves to <main> so Tab starts at the top of the
+   new page; it isn't a control, so it never shows a focus ring. */
+main[tabindex="-1"]:focus-visible { outline: none; }
 
 /* Top fade scrim — content fades out before colliding with the nav */
 .top-fade {
