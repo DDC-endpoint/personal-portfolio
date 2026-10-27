@@ -1,4 +1,4 @@
-import { TIMING, FALLBACK_MS, PAGES, intercept, pageOf, sweepAt, arrivalAt, cellAt } from "@/lib/pageTransition";
+import { TIMING, FALLBACK_MS, PAGES, VEIL_PIXELS, intercept, pageOf, sweepAt, arrivalAt, cellAt, veilScale } from "@/lib/pageTransition";
 
 const here = { origin: "https://damiandc.com", pathname: "/" };
 const left = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false };
@@ -109,5 +109,20 @@ describe("cellAt", () => {
     expect(cellAt("reveal", 0.1, 0.2, { front }).state).toBe("covered");
     expect(cellAt("reveal", 0.2 + front / 2, 0.2, { front }).state).toBe("front");
     expect(cellAt("reveal", 0.2 + front * 1.01, 0.2, { front }).state).toBe("page");
+  });
+});
+
+describe("veilScale", () => {
+  test("keeps the screen's density on ordinary screens, up to 2", () => {
+    expect(veilScale(390, 844, 3)).toBe(2);
+    expect(veilScale(1440, 900, 1)).toBe(1);
+  });
+  test("caps the backing store on big, dense screens", () => {
+    const s = veilScale(2560, 1440, 2);
+    expect(s).toBeLessThan(2);
+    expect(2560 * 1440 * s * s).toBeLessThanOrEqual(VEIL_PIXELS + 1);
+  });
+  test("never drops below 1", () => {
+    expect(veilScale(5120, 2880, 2)).toBe(1);
   });
 });

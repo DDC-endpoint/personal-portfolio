@@ -304,7 +304,8 @@ test.describe("first load", () => {
     await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
     await idle(page);
     const t = await page.evaluate(() => window.__heroAtReveal);
-    expect(t).toMatch(/^matrix\(1, 0, 0, 1, 0, [1-9]/); // still below its line
+    const dy = Number(t.match(/^matrix\(1, 0, 0, 1, 0, (-?[\d.]+)\)$/)?.[1]);
+    expect(dy).toBeGreaterThan(1); // still below its line
   });
 
   test("a link clicked during the intro opens once the stamp is done, under the same cover", async ({ page }) => {
@@ -317,6 +318,15 @@ test.describe("first load", () => {
     expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
     expect(await sameDocument(page)).toBe(true);
     expect(await page.evaluate(() => scrollY)).toBe(0);
+  });
+
+  test("a link clicked during the intro's reveal opens right after it", async ({ page }) => {
+    await page.goto("/services");
+    await expect(veil(page)).toHaveAttribute("data-veil", "revealing", { timeout: 6000 });
+    await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
+    await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
+    await idle(page);
+    expect(await sameDocument(page)).toBe(true);
   });
 
   test("the intro lets the pointer through, as the curtain did", async ({ page }) => {
@@ -425,5 +435,152 @@ test.describe("details", () => {
     expect(await page.evaluate(() => document.querySelector("main").hasAttribute("inert"))).toBe(false);
     await page.mouse.wheel(0, 600);
     await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  });
+});
+
+// ---- Review fixes ------------------------------------------------------------
+
+// Aborts (or delays) the veil's code chunk: the only one naming its "revealing" state.
+async function blockVeil(page, { delay } = {}) {
+  await page.route("**/_next/static/chunks/**", async (route) => {
+    const res = await route.fetch();
+    const body = await res.text();
+    if (!body.includes('"revealing"')) return route.fulfill({ response: res, body });
+    if (delay === undefined) return route.abort();
+    await new Promise((r) => setTimeout(r, delay));
+    return route.fulfill({ response: res, body });
+  });
+}
+
+test.describe("robustness", () => {
+  test("if the veil's code can't load, page links still work (the browser loads them)", async ({ page }) => {
+    await blockVeil(page);
+    await page.goto("/");
+    await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+    await mark(page);
+    await footerLink(page, "Services").click();
+    await page.waitForURL(/\/services$/, { timeout: 10000 });
+    await expect.poll(() => page.evaluate(() => window.__marker), { timeout: 10000 }).toBeUndefined();
+  });
+
+  // The next page hasn't committed yet, so /services is still the current
+  // history entry and Back goes to the one before it (Home), as Back during a
+  // normal page load would.
+  test("Back while the veil covers: reveals the page the visitor went back to, in the same document", async ({ page }) => {
+    await record(page);
+    await page.goto("/");
+    await settle(page);
+    await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+    await expect(page).toHaveURL(/\/services$/);
+    await idle(page);
+    await mark(page);
+    // Hold the next page back so the veil is still covering when Back comes.
+    await page.route(/\/privacy/, async (route) => {
+      if (!route.request().headers()["rsc"]) return route.continue();
+      await new Promise((r) => setTimeout(r, 1500));
+      return route.continue().catch(() => {});
+    });
+    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 4000 });
+    const t0 = Date.now();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+    await idle(page);
+    expect(Date.now() - t0).toBeLessThan(2500);
+    expect(await sameDocument(page)).toBe(true);
+    await page.waitForTimeout(4500); // past the 4 s fallback: nothing reloads
+    await expect(page).toHaveURL(/\/$/);
+    expect(await sameDocument(page)).toBe(true);
+  });
+
+  test("Back during the cover sweep: the transition is called off", async ({ page }) => {
+    await page.goto("/");
+    await settle(page);
+    await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+    await expect(page).toHaveURL(/\/services$/);
+    await idle(page);
+    await mark(page);
+    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await expect(veil(page)).toHaveAttribute("data-veil", "covering");
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+    await idle(page);
+    await page.waitForTimeout(800);
+    await expect(page).toHaveURL(/\/$/);
+    expect(await sameDocument(page)).toBe(true);
+  });
+
+  test("the running veil takes a real click, so nothing lands on the page underneath", async ({ page }) => {
+    await page.goto("/");
+    await settle(page);
+    await page.locator('#top a[href="/services"]:visible').click();
+    await expect(veil(page)).toHaveAttribute("data-veil", "covering");
+    const { width, height } = page.viewportSize();
+    const [x, y] = [width / 2, height / 2];
+    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.hasAttribute("data-veil"), [x, y]);
+    expect(hit).toBe(true);
+    await page.mouse.click(x, y);
+    await idle(page);
+    await expect(page).toHaveURL(/\/services$/);
+  });
+
+  test("the canvas gives its memory back when idle", async ({ page }) => {
+    await page.goto("/services");
+    await settle(page);
+    expect(await veil(page).evaluate((c) => c.width * c.height)).toBe(0);
+  });
+
+  test("a resize while covered redraws the grid at the new size", async ({ page }) => {
+    await page.route(/\/privacy/, async (route) => {
+      if (!route.request().headers()["rsc"]) return route.continue();
+      await new Promise((r) => setTimeout(r, 1200));
+      return route.continue().catch(() => {});
+    });
+    await page.goto("/services");
+    await settle(page);
+    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 4000 });
+    const size = page.viewportSize();
+    await page.setViewportSize({ width: size.height, height: size.width });
+    await expect.poll(() => veil(page).evaluate((c) => Math.round(c.width / (c.height / innerHeight)) - innerWidth)).toBe(0);
+    await idle(page);
+  });
+
+  test("reduced motion: a link to the page you're on jumps instead of gliding", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
+    const home = footerLink(page, "Home");
+    await home.scrollIntoViewIfNeeded();
+    const y = await page.evaluate(() => {
+      document.querySelector('footer a[href="/"]').click();
+      return new Promise((r) => requestAnimationFrame(() => r(scrollY)));
+    });
+    expect(y).toBe(0);
+  });
+
+  test("a very late hydration doesn't cover the readable page again", async ({ page }) => {
+    await record(page);
+    // Every script arrives after 3 s: hydration lands well past the 2.5 s cut-off.
+    await page.route("**/_next/static/chunks/**", async (route) => {
+      await new Promise((r) => setTimeout(r, 3000));
+      return route.continue();
+    });
+    await page.goto("/services");
+    await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 30000 });
+    await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+  });
+
+  test("a link clicked during the intro, before the veil could draw, covers under the stamp (no wipe-and-sweep)", async ({ page }) => {
+    await record(page);
+    await blockVeil(page, { delay: 1500 });
+    await page.goto("/services");
+    await expect(page.locator(".intro-stamp")).toHaveCount(1);
+    await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
+    await expect(page).toHaveURL(/\/privacy$/, { timeout: 10000 });
+    await idle(page);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await sameDocument(page)).toBe(true);
   });
 });
