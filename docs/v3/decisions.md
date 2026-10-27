@@ -264,6 +264,9 @@ Damian's changes at the Phase 4 visual gate:
 - **The Skills terminal spans the section's full width (Damian).** The label and heading row stays.
 - **Recent work is full-width editorial rows (Damian's pick of three mock-ups, `spike/recent-work-mock.html` → A).** Each row is a browser frame with the Projects skeleton → screenshot decode, beside a big italic number, the title, tag, year, blurb and link, swapping sides down the list; phones stack frame over text (`components/services/WorkRow.jsx`). He asked for decode on hover (desktop; phones keep the centred row) and no lift or moving shadow. Then, on seeing it: only the screenshot decodes (not the whole row), "Visit the site" gets the site's link animation (underline draws, arrow nudges, as "See the full portfolio"), and the rows are shorter (a 6-column frame instead of 7). So the row is an `article`, and only the screenshot and the link are links; the screenshot's is a duplicate, hidden from keyboards and screen readers, and focusing the text link decodes its row. The text side always shows, so Spades' "Client design · not launched" tag is always visible, which settles that gate question.
 - **The lab host answers its own `robots.txt` and 404s `/sitemap.xml`** (`proxy.js`), instead of a server change.
+- **Privacy page: Damian read the draft and approved it.**
+- **Performance pass after Phase 5 (Damian).** It runs once Phase 5 is merged, before `v3` → `main`.
+- **Merged into `v3` as `24b16d7` (Damian).**
 
 ## Phase 1 review (2026-10-27)
 
@@ -298,10 +301,10 @@ Damian's changes at the Phase 4 visual gate:
 
 ## Status and next step (continue here)
 
-As of the end of 2026-10-27, Phases 1, 2 and 3 and the Timeline circuit are built and merged into `v3` locally. Phase 4 is planned in [`plan-phase-4.md`](plan-phase-4.md) and waits for Damian's approval; the page transition is Phase 5. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
+As of the end of 2026-10-27, Phases 1 to 4, the Timeline circuit and the SEO/GEO upgrade are built and merged into `v3` locally. The page transition is Phase 5, not yet planned. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
 
 - **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26. His later revisions are in "Phase 1 review (2026-10-27)" above; where they conflict with older entries, they win.
-- **Next:** Damian approves `plan-phase-4.md` and answers its builder's calls (see "Phase 4 planning"). Then build it on `v3-phase-4` (native inline execution, one fresh reviewer at the end) and merge it into `v3` locally on his approval. Then plan and build Phase 5 (the page transition), then `v3` → `main`.
+- **Next:** plan Phase 5 (the page transition): questions first, then `plan-phase-5.md` for Damian's approval, built on `v3-phase-5` (native inline execution, one fresh reviewer at the end) and merged into `v3` locally on his approval. Then the performance pass, then `v3` → `main`.
 - **Superseded:** "Loader frequency" (first visit per session) is replaced by the curtain on every reload. The page transition still covers Home ↔ `/services` navigation, but not reloads.
 - **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.

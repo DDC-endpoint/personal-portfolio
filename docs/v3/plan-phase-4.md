@@ -1,6 +1,6 @@
 # V3 Phase 4 Implementation Plan: copy refresh, quiet sections and `/services`
 
-> **Status: built on `v3-phase-4` (2026-10-27), waiting at the visual gate.** Damian approved the plan and added an SEO and GEO upgrade, which became Task 11. Where the build departed from the plan: the terminal's typing speed and `lg` breakpoint, the drawn cursor, static share cards instead of `opengraph-image` files, no BreadcrumbList, and a site-wide no-JS fix. See `decisions.md` → "Phase 4 build and review". The page transition was split out of this phase at Damian's request; it becomes Phase 5 (see "Decisions made while planning").
+> **Status: done and merged into `v3` as `24b16d7` (2026-10-27).** Damian approved the plan and added an SEO and GEO upgrade, which became Task 11. Where the build departed from the plan: the terminal's typing speed and `lg` breakpoint, the drawn cursor, static share cards instead of `opengraph-image` files, no BreadcrumbList, and a site-wide no-JS fix. See `decisions.md` → "Phase 4 build and review". The page transition was split out of this phase at Damian's request; it becomes Phase 5 (see "Decisions made while planning").
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
