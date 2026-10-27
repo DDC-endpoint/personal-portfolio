@@ -262,6 +262,7 @@ Damian's changes at the Phase 4 visual gate:
 
 - **Prices follow the October 2026 research (Damian: "use the suggestions").** Every `/services` price moved, USD now follows one rule (about LKR ÷ 100), and larger builds start from about LKR 250,000. The new starting price (LKR 30,000 / $300) is also in the `/services` meta description, the share card (`public/og-services.jpg`, re-rendered) and its alt text. The research and its reasoning: [`pricing-2026-10.md`](pricing-2026-10.md).
 - **The Skills terminal spans the section's full width (Damian).** The label and heading row stays.
+- **Recent work is full-width editorial rows (Damian's pick of three mock-ups, `spike/recent-work-mock.html` → A).** Each row is a browser frame with the Projects skeleton → screenshot decode, beside a big italic number, the title, tag, year, blurb and link, swapping sides down the list; phones stack frame over text (`components/services/WorkRow.jsx`). He asked for decode on hover (desktop; phones keep the centred row) and no lift or moving shadow. The text side always shows, so Spades' "Client design · not launched" tag is always visible, which settles that gate question.
 - **The lab host answers its own `robots.txt` and 404s `/sitemap.xml`** (`proxy.js`), instead of a server change.
 
 ## Phase 1 review (2026-10-27)

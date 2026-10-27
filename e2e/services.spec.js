@@ -238,19 +238,17 @@ test.describe("How it works without JS", () => {
   });
 });
 
-// § 03 Recent work: skeleton browser cards, activated like Projects.
+// § 03 Recent work: full-width editorial rows (Damian), each a skeleton
+// browser frame that decodes on hover, beside its number, title, tag, blurb
+// and link, swapping sides down the list. The text side always shows.
 const workCards = (page) => page.locator("#recent [data-card]");
 
-test("recent work: four cards in order with the right links", async ({ page }) => {
+test("recent work: four rows in order with the right links", async ({ page }) => {
   await page.goto("/services");
   const cards = workCards(page);
   await expect(cards).toHaveCount(4);
-  await expect(cards.locator("[data-card-label]")).toHaveText([
-    "01 — This Portfolio — 2026",
-    "02 — Spades Solutions — 2026",
-    "03 — Aloys Travels — 2026",
-    "04 — Danella De Cruz — 2026",
-  ]);
+  await expect(cards.locator("[data-row-n]")).toHaveText(["01", "02", "03", "04"]);
+  await expect(cards.locator("[data-row-title]")).toHaveText(["This Portfolio", "Spades Solutions", "Aloys Travels", "Danella De Cruz"]);
   const hrefs = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
   expect(hrefs).toEqual(["/", "https://enderguardian25.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"]);
   await expect(cards.first()).not.toHaveAttribute("target", /.*/);
@@ -271,6 +269,39 @@ test("recent work: reduced motion shows the screenshots", async ({ page }) => {
 test.describe("recent work (desktop)", () => {
   test.skip(({ isMobile }) => isMobile);
 
+  test("rows span the full width and swap sides", async ({ page }) => {
+    await page.goto("/services");
+    const vw = page.viewportSize().width;
+    for (let i = 0; i < 4; i++) {
+      const row = workCards(page).nth(i);
+      const box = await row.boundingBox();
+      expect(Math.round(box.x)).toBe(40);
+      expect(Math.round(box.width)).toBe(vw - 80);
+      const frame = await row.locator("[data-shot-area]").boundingBox();
+      const text = await row.locator("[data-row-title]").boundingBox();
+      if (i % 2 === 0) expect(frame.x).toBeLessThan(text.x);
+      else expect(frame.x).toBeGreaterThan(text.x);
+    }
+  });
+
+  test("the text side shows without hover, and hover doesn't lift or shadow", async ({ page }) => {
+    await page.goto("/services");
+    const row = workCards(page).nth(2);
+    await row.scrollIntoViewIfNeeded();
+    await page.mouse.move(5, 5);
+    await expect(row.locator("[data-row-blurb]")).toBeVisible();
+    await expect.poll(() => row.locator("[data-row-blurb]").evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+    await expect(row.getByText("Travel site")).toBeVisible();
+    const frame = row.locator("[data-row-frame]");
+    const look = () => frame.evaluate((el) => [getComputedStyle(el).transform, getComputedStyle(el.firstElementChild).boxShadow].join(" | "));
+    const before = await look();
+    const box = await frame.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(row).toHaveAttribute("data-active", "true");
+    await page.waitForTimeout(700);
+    expect(await look()).toBe(before);
+  });
+
   test("hover decodes the card under a still pointer", async ({ page }) => {
     await page.goto("/services");
     const card = workCards(page).nth(2);
@@ -278,7 +309,6 @@ test.describe("recent work (desktop)", () => {
     const box = await card.boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
     await expect(card).toHaveAttribute("data-decode", "shot", { timeout: 2500 });
-    await expect.poll(() => card.locator("p").evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
     for (const i of [0, 1, 3]) await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "false");
   });
 
@@ -296,6 +326,17 @@ test.describe("recent work (desktop)", () => {
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/$/);
   });
+});
+
+test("on phones each row is its frame, then its text", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.goto("/services");
+  for (let i = 0; i < 4; i++) {
+    const row = workCards(page).nth(i);
+    const frame = await row.locator("[data-shot-area]").boundingBox();
+    const title = await row.locator("[data-row-title]").boundingBox();
+    expect(title.y).toBeGreaterThan(frame.y + frame.height);
+  }
 });
 
 test("on touch the centred card decodes", async ({ page, isMobile }) => {

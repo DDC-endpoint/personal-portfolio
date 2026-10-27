@@ -197,11 +197,8 @@ export default function Services() {
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 md:col-span-9 md:col-start-4">
-            <RecentWork />
-          </div>
-        </div>
+        {/* The rows span the section's full width (Damian). */}
+        <RecentWork />
       </section>
 
       {/* FAQ */}

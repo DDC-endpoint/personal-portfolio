@@ -206,7 +206,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - The mono buttons scramble, with their arrows outside.
   - The FAQ questions are `h3`s.
 - **How it works:** the four steps on the Timeline's circuit (`components/services/HowItWorks.jsx`). Its § label and the current step's title pin beside the steps (`StepCounter.jsx`), desktop only.
-- **Recent work:** four skeleton browser cards that activate like Projects (`RecentWork.jsx`). Spades is tagged "Client design · not launched".
+- **Recent work:** four full-width editorial rows (`RecentWork.jsx`, `WorkRow.jsx`): a skeleton browser frame that decodes on hover beside the project's text, swapping sides. Spades is tagged "Client design · not launched", always visible.
 - **Start a project:** the growing electric card, shared with Contact (`useGrowCard.js`, `StartCard.jsx`).
 
 **Shared pieces extracted:**
@@ -316,6 +316,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - `hero-live.html`: the portrait inside a replica of the live hero.
   - `gallery-mockup.html`: the locked gallery, the reference for Phase 3.
   - `footer-mock.html`: the three footer options (Damian chose B).
+  - `recent-work-mock.html`: three full-width layouts for Recent work (Damian chose A, editorial rows). Screenshots load from the dev server.
   - `og-cards.html`, `og-cards.cjs`, `og-portrait.png`: the share-card template, its renderer and the exported ASCII portrait.
   - `process-headshot.cjs`, `make-gallery-copies.cjs`, `serve.cjs`: helper scripts.
 

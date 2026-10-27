@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recent work mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* /services § 03 "A few things I've shipped": three full-width ways to
+     present the four projects instead of the two-column grid. Nothing pins
+     (Damian: only the Timeline and How it works pin). Tokens copied from
+     globals.css; screenshots load from the dev server (localhost:3000). */
+  :root { --ivory:#F6F6F1; --paper:#FBFBF7; --ink:#0B1F3A; --ink-soft:#16315A; --ink-faint:#5A6B82; --electric:#2563EB; --rule:#D9DEE6; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#e5e7eb; font-family:Manrope,sans-serif; -webkit-font-smoothing:antialiased; padding:72px 0 120px; }
+  .page { background:var(--ivory); color:var(--ink); margin:0 auto; width:min(1440px, 100%); container-type:inline-size; }
+  .phone .page { width:390px; }
+  a { color:inherit; text-decoration:none; }
+  .mono { font:400 11px 'JetBrains Mono',monospace; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); }
+  .faint { color:var(--ink-faint); }
+  .serif { font-family:'Instrument Serif',serif; }
+  .el { color:var(--electric); }
+
+  section { padding:144px 40px; border-top:1px solid var(--rule); }
+  .head { display:grid; grid-template-columns:3fr 9fr; gap:24px; margin-bottom:64px; }
+  .head h2 { font:400 60px/1.1 'Instrument Serif',serif; letter-spacing:-.01em; }
+  .head h2 i { color:var(--electric); }
+  .head .more { margin-top:20px; color:var(--electric); }
+
+  /* The browser frame, as on the site's cards */
+  .frame { border:1px solid var(--rule); border-radius:8px; overflow:hidden; background:var(--paper); box-shadow:0 30px 60px -30px rgba(11,31,58,.25); transition:transform .7s cubic-bezier(.22,1,.36,1), box-shadow .7s; }
+  .frame .bar { display:flex; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--rule); }
+  .frame .bar i { width:8px; height:8px; border-radius:50%; background:#cfd5de; }
+  .frame .bar span { margin:0 auto; font:400 10px 'JetBrains Mono',monospace; letter-spacing:.06em; background:#e8eefb; color:var(--ink-soft); padding:3px 12px; border-radius:999px; }
+  .frame img { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; object-position:top; }
+  .pill { display:inline-block; border:1px solid var(--rule); border-radius:999px; padding:4px 10px; font:400 10px 'JetBrains Mono',monospace; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); }
+
+  /* A: editorial rows, alternating sides */
+  .A-row { display:grid; grid-template-columns:7fr 5fr; gap:56px; align-items:center; padding:56px 0; border-top:1px solid var(--rule); }
+  .A-row:first-child { border-top:0; padding-top:0; }
+  .A-row:nth-child(even) { grid-template-columns:5fr 7fr; }
+  .A-row:nth-child(even) .frame { order:2; }
+  .A-row:hover .frame { transform:translateY(-6px); box-shadow:0 40px 70px -30px rgba(11,31,58,.35); }
+  .A-num { font:italic 400 72px/1 'Instrument Serif',serif; color:var(--electric); }
+  .A-title { font:400 48px/1.05 'Instrument Serif',serif; margin-top:12px; }
+  .A-blurb { margin-top:16px; font-size:18px; line-height:1.6; color:var(--ink-soft); max-width:30em; }
+  .A-meta { display:flex; gap:12px; align-items:center; margin-top:20px; }
+  .A-link { display:inline-flex; gap:8px; margin-top:28px; color:var(--electric); }
+
+  /* B: index list, a preview follows the pointer */
+  .B-list { border-top:1px solid var(--rule); }
+  .B-row { position:relative; display:grid; grid-template-columns:80px 1fr auto auto 40px; gap:24px; align-items:baseline; padding:28px 0; border-bottom:1px solid var(--rule); transition:padding .5s cubic-bezier(.22,1,.36,1), color .4s; }
+  .B-row .t { font:400 clamp(40px,6.5cqw,96px)/1 'Instrument Serif',serif; transition:transform .6s cubic-bezier(.22,1,.36,1); }
+  .B-row .arrow { color:var(--electric); font-size:22px; transition:transform .5s; }
+  .B-list:hover .B-row { color:var(--ink-faint); }
+  .B-list .B-row:hover { color:var(--ink); }
+  .B-row:hover .t { transform:translateX(16px); font-style:italic; color:var(--electric); }
+  .B-row:hover .arrow { transform:translate(4px,-4px); }
+  .B-blurb { grid-column:2 / -1; font-size:16px; color:var(--ink-soft); max-width:40em; }
+  .B-inline { display:none; }
+  #B-float { position:fixed; width:420px; pointer-events:none; opacity:0; transform:translate(-50%,-50%) scale(.9) rotate(-3deg); transition:opacity .35s, transform .5s cubic-bezier(.22,1,.36,1); z-index:5; }
+  #B-float.on { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(-2deg); }
+
+  /* C: one featured project, then three in a row */
+  .C-feat { display:grid; grid-template-columns:8fr 4fr; gap:48px; align-items:end; }
+  .C-feat .A-title { font-size:64px; }
+  .C-row { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:72px; padding-top:48px; border-top:1px solid var(--rule); }
+  .C-card .cap { display:flex; justify-content:space-between; align-items:baseline; margin-top:16px; }
+  .C-card .cap .serif { font-size:28px; }
+  .C-card p { margin-top:8px; font-size:15px; color:var(--ink-soft); line-height:1.55; }
+  .C-card:hover .frame { transform:translateY(-6px); }
+
+  /* Phone */
+  @container (max-width:700px) {
+    section { padding:96px 24px; }
+    .head { grid-template-columns:1fr; gap:24px; margin-bottom:40px; }
+    .head h2 { font-size:36px; }
+    .A-row, .A-row:nth-child(even), .C-feat, .C-row { grid-template-columns:1fr; gap:24px; }
+    .A-row:nth-child(even) .frame { order:0; }
+    .A-num { font-size:48px; }
+    .A-title, .C-feat .A-title { font-size:34px; }
+    .B-row { grid-template-columns:44px 1fr 24px; gap:12px; }
+    .B-row .pill, .B-row .yr { display:none; }
+    .B-row .t { font-size:36px; }
+    .B-inline { display:block; grid-column:1 / -1; margin-top:16px; }
+    .C-row { margin-top:48px; gap:48px; }
+  }
+
+  .ctl { position:fixed; top:16px; left:50%; transform:translateX(-50%); display:flex; gap:6px; z-index:10; background:#0B1F3A; padding:6px; border-radius:999px; }
+  .ctl button { font:500 10px 'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; border:0; border-radius:999px; padding:8px 14px; background:transparent; color:#F6F6F1; cursor:pointer; }
+  .ctl button[aria-pressed="true"] { background:#F6F6F1; color:#0B1F3A; }
+  .ctl .sep { width:1px; background:#2A3F63; margin:4px 2px; }
+  .note { max-width:760px; margin:0 auto 28px; font:400 12px/1.6 'JetBrains Mono',monospace; color:#334155; padding:0 16px; }
+  [data-opt] { display:none; }
+  .A [data-opt="A"], .B [data-opt="B"], .C [data-opt="C"] { display:block; }
+</style>
+</head>
+<body class="A">
+<div class="ctl">
+  <button data-set="A" aria-pressed="true">A · Editorial rows</button>
+  <button data-set="B">B · Index list</button>
+  <button data-set="C">C · Featured + row</button>
+  <span class="sep"></span>
+  <button data-view>Phone</button>
+</div>
+
+<p class="note" data-opt="A">A · Editorial rows. Each project gets the full width: a big browser frame on one side, its number, title, tag, blurb and link on the other, swapping sides down the list. The frame lifts on hover. Phones: frame, then text, one project after another.</p>
+<p class="note" data-opt="B">B · Index list. Big serif titles in a ruled list across the page. Hovering a row slides it in italic and a screenshot floats with your pointer; the other rows dim. Compact, and the most "designed". Phones: each title has its screenshot under it.</p>
+<p class="note" data-opt="C">C · Featured + row. Aloys Travels (the live client site) as a large feature, then the other three in a row of three underneath. Phones: one column.</p>
+
+<div class="page">
+  <section>
+    <div class="head">
+      <div class="mono">§ 03 — Recent work</div>
+      <div>
+        <h2>A few things I’ve <i>shipped</i>.</h2>
+        <div class="mono more">See the full portfolio →</div>
+      </div>
+    </div>
+
+    <div data-opt="A" id="A"></div>
+    <div data-opt="B"><div class="B-list" id="B"></div></div>
+    <div data-opt="C" id="C"></div>
+  </section>
+</div>
+<div id="B-float"></div>
+
+<script>
+  const SHOT = (s) => `http://localhost:3000/projects/${s}.webp`;
+  const WORK = [
+    { n: "01", slug: "portfolio", title: "This portfolio", domain: "damiandc.com", tag: "Portfolio", year: "2026", note: "Personal portfolio built with Next.js, Tailwind and Framer Motion. The full body of work lives here." },
+    { n: "02", slug: "spades-solutions", title: "Spades Solutions", domain: "enderguardian25.github.io/spades-solutions", tag: "Client design · not launched", year: "2026", note: "A sharp, professional web presence for a growing solutions company." },
+    { n: "03", slug: "aloys-travels", title: "Aloys Travels", domain: "aloys-travels.com", tag: "Travel site", year: "2026", note: "Website for a travel company, with clean booking flows and a journey-led design." },
+    { n: "04", slug: "danella-de-cruz", title: "Danella De Cruz", domain: "danelladc.com", tag: "Artist site", year: "2026", note: "Portfolio and booking site for a Colombo cover artist." },
+  ];
+  const frame = (w) => `<div class="frame"><div class="bar"><i></i><i></i><i></i><span>${w.domain}</span></div><img src="${SHOT(w.slug)}" alt=""></div>`;
+
+  document.getElementById("A").innerHTML = WORK.map((w) => `
+    <a class="A-row" href="#">
+      ${frame(w)}
+      <div>
+        <div class="A-num">${w.n}</div>
+        <div class="A-title">${w.title}</div>
+        <div class="A-meta"><span class="pill">${w.tag}</span><span class="mono faint">${w.year}</span></div>
+        <p class="A-blurb">${w.note}</p>
+        <span class="mono A-link">Visit the site <span>↗</span></span>
+      </div>
+    </a>`).join("");
+
+  document.getElementById("B").innerHTML = WORK.map((w) => `
+    <a class="B-row" href="#" data-slug="${w.slug}">
+      <span class="mono faint">${w.n}</span>
+      <span class="t">${w.title}</span>
+      <span class="pill">${w.tag}</span>
+      <span class="mono faint yr">${w.year}</span>
+      <span class="arrow">↗</span>
+      <div class="B-inline">${frame(w)}<p class="B-blurb" style="margin-top:14px">${w.note}</p></div>
+    </a>`).join("");
+
+  const feat = WORK[2], rest = WORK.filter((w) => w !== feat);
+  document.getElementById("C").innerHTML = `
+    <a class="C-feat" href="#">
+      ${frame(feat)}
+      <div>
+        <div class="A-num">${feat.n}</div>
+        <div class="A-title">${feat.title}</div>
+        <div class="A-meta"><span class="pill">${feat.tag}</span><span class="mono faint">${feat.year}</span></div>
+        <p class="A-blurb">${feat.note}</p>
+        <span class="mono A-link">Visit the site <span>↗</span></span>
+      </div>
+    </a>
+    <div class="C-row">${rest.map((w) => `
+      <a class="C-card" href="#">${frame(w)}
+        <div class="cap"><span class="serif">${w.title}</span><span class="mono faint">${w.n}</span></div>
+        <div style="margin-top:8px"><span class="pill">${w.tag}</span></div>
+        <p>${w.note}</p>
+      </a>`).join("")}
+    </div>`;
+
+  // B: the floating preview follows the pointer over a row (desktop only).
+  const float = document.getElementById("B-float");
+  document.querySelectorAll(".B-row").forEach((row) => {
+    row.addEventListener("pointerenter", () => {
+      if (document.body.classList.contains("phone")) return;
+      const w = WORK.find((x) => x.slug === row.dataset.slug);
+      float.innerHTML = frame(w);
+      float.classList.add("on");
+    });
+    row.addEventListener("pointerleave", () => float.classList.remove("on"));
+    row.addEventListener("pointermove", (e) => {
+      float.style.left = e.clientX + 260 + "px";
+      float.style.top = e.clientY + "px";
+    });
+  });
+
+  document.querySelectorAll("[data-set]").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.body.classList.remove("A", "B", "C");
+      document.body.classList.add(b.dataset.set);
+      document.querySelectorAll("[data-set]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    })
+  );
+  document.querySelector("[data-view]").addEventListener("click", (e) => {
+    const on = document.body.classList.toggle("phone");
+    e.target.setAttribute("aria-pressed", on);
+  });
+</script>
+</body>
+</html>

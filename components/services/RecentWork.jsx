@@ -1,14 +1,15 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import ProjectCard from "../projects/ProjectCard";
+import WorkRow from "./WorkRow";
 import { PROJECTS } from "@/lib/projects";
 import { WORK } from "@/lib/services";
 import { nearestToCentre } from "@/lib/strip";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
-// /services § 03 Recent work: the Projects browser cards (skeleton, decode,
-// screenshot), two columns from md and one below. One card is active at a
-// time, picked like Projects.jsx (see its header comment), minus the strip:
+// /services § 03 Recent work: full-width editorial rows (WorkRow), each a
+// Projects browser frame (skeleton, decode, screenshot) beside its text,
+// swapping sides down the list. One row is active at a time, picked like
+// Projects.jsx (see its header comment), minus the strip:
 //   fine pointer: the card under the pointer, re-checked on scroll so a
 //                 resting pointer works (Damian's stationary-hover rule)
 //   touch:        the card nearest the centre of the screen
@@ -131,9 +132,9 @@ export default function RecentWork() {
   };
 
   return (
-    <div ref={gridRef} onBlur={onBlur} className="grid grid-cols-1 gap-x-10 gap-y-14 md:grid-cols-2 md:gap-y-20">
+    <div ref={gridRef} onBlur={onBlur}>
       {CARDS.map((p, i) => (
-        <ProjectCard
+        <WorkRow
           key={p.slug}
           project={p}
           index={i}
