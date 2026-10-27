@@ -144,6 +144,49 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Screenshots approved (Damian, 2026-10-27).** All six are committed with no metadata. Phase 2 is merged into `v3` locally.
 - **Lens fade test made load-proof (builder, after the merge).** The Phase 1 test `with the lens off the portrait stops measuring itself` assumed the lens finishes fading within 2 s. Under a busy parallel run it sometimes didn't, and the extra weight Phase 2 adds to Home made that show up. It now polls until the measuring stops (8 s cap). The behaviour it checks is unchanged.
 
+## Phase 3 planning (2026-10-27)
+
+- **Copy now (Damian):** Timeline, Lens and Contact switch to the approved `copy.md` text as they are rebuilt. Phase 4 covers the remaining sections.
+- **Head Prefect entry (Damian):** the Timeline gets a new "2024–2025 · Head Prefect" entry at St. Joseph's College, Colombo 10, right after A-Levels.
+- **Contact card start (Damian):** a small electric square under the § 08 label that grows right and down into the full-width card.
+- **Lens develop (Damian):** timed, about 1.2 s once a tile enters view, replaying each time it comes back into view. *Superseded at the gate: the develop now follows scroll (see "Phase 3 gate fixes").*
+- **Builder's calls:**
+  - The Contact card grows by `clip-path`, so layout never reflows and the links are always in the DOM.
+  - The Lens viewer is a modal dialog with a focus trap. It reuses the site's scroll lock (`body` overflow, as in `Nav`).
+- **Plan approved (Damian, 2026-10-27).** He approved `plan-phase-3.md` as written and kept all three of its open calls: the Contact card grows by `clip-path`, the viewer reuses the `Nav` scroll lock, and the Head Prefect entry reads "Led the student body as Head Prefect in the year after my A-Levels." The build starts at Task 1.
+
+## Phase 3 build rulings (2026-10-27)
+
+- **Halftone tone (builder).** The plan's dot formula printed the night photos as solid blue slabs. Each photo is now auto-levelled (2nd–98th percentile), and the largest dot is 0.9 of a cell across, so dots stay round and separate. In dark mode the dots are sized by brightness, so the print reads as a positive on the navy field.
+- **Viewer backdrop at 95%, not 90% (builder).** At 90% the nav read through and collided with "Close".
+- **Viewer photo `sizes` (builder).** The 3:4 photo is height-bound on landscape screens, so `sizes` says about 62vh there rather than 92vw.
+- **Viewer taps close on `pointerup` (review fix).** After a quick touch flick Chrome swallowed the next tap's click, and the viewer wouldn't close.
+- **Touch trace keys off the tap (builder).** A tile shows the quick trace when the tap's `pointerType` is touch, rather than on a `(hover: none)` device.
+- **Timeline stitch is CSS (builder).** A dashed gradient revealed by `clip-path` from one `--d` property, instead of an SVG line, so no-JS and reduced motion get the full thread from CSS alone. Entries no longer use `Reveal`, which hid them in server HTML; the light-up is the entrance.
+- **Contact labels (builder).** The email button shows the address and WhatsApp says "WhatsApp"; arrows sit outside the scramble. The badge is built into the card, because `<Availability>`'s electric dot vanishes on it.
+- **Contact growth reaches its end (review fix).** On screens taller than about 1100 px the page ended before the card's top reached 25% of the screen, so the card never opened. The growth now ends at the bottom of the page when that comes first.
+- **Focus ring on the card (builder, keyboard pass).** The site's electric ring vanished on the electric card; there it takes the card's text colour, and the pill buttons stay round.
+- **Review minors, all fixed (Damian's standing preference):** the caption overlay uses tokens; a resize repaints the halftone at once and resamples once it settles; a hero tile taller than the screen still develops; the Timeline re-measures whenever its list resizes; card text is full ivory, not dimmed.
+- **Dark-mode card contrast:** open at build time (about 3.4:1 for the small labels). *Settled at the gate: the card keeps `#2563EB` in both themes (see "Phase 3 gate fixes").*
+
+## Phase 3 gate fixes (2026-10-27)
+
+- **The needle sat off the thread (Damian).** The rule and the thread were pinned by their left edge, so their centres sat 0.5 and 0.75 px right of the needle, dots and cross-stitches. Both are now centred on that axis. Test: "needle, thread and milestones share one axis".
+- **The cursor hid behind the open viewer (Damian).** The custom cursor was `z-index: 70` and the viewer `z-100`; with the native cursor hidden, the pointer vanished over the photo. The cursor is now `z-index: 110`, above every layer. Test: "the custom cursor stays above the open viewer".
+- **The Lens develop follows scroll (Damian).** The timed develop was a little buggy scrolling in and out; Damian asked for it linked straight to scroll, so photos uncure as you scroll back up. His answers:
+  - **Effect:** keep the halftone develop (dots swell and fade, the photo fades in), scrubbed by scroll instead of the 1.2 s timer.
+  - **Range:** starts as the tile's top enters the bottom of the screen; full colour when the tile's centre reaches the screen's centre. Every tile finishes, heroes included.
+  - **Exit:** pure position. Above the screen a photo stays in colour; it only goes back to dots as it drops back toward the bottom.
+  - **Feel:** exact, 1:1 with scroll (Lenis already smooths it), no spring.
+
+  `scrollDevelop` in `lib/halftone.js` maps the tile's position to 0–1; `useDevelop` reads it once a frame on scroll and repaints only when it changes. The `IntersectionObserver`, the timer and `inView` are gone. Tests: the `scrollDevelop` unit tests; "the develop follows scroll both ways", "a photo above the screen stays in colour", "fast scroll leaves every tile matching its position".
+- **The dot print sat slightly off the photo (Damian).** The photo was sampled into `ceil(W / 7)` cells stretched across the tile, but the dots were drawn on a fixed 7 px grid, so the print ran up to 7 px past the tile and drifted off the photo toward the right and bottom edges. `dotGrid` now gives cells that span the tile exactly, and the dots are drawn at the centres of the same cells the photo was sampled into. Test: "the dot grid spans the tile exactly".
+
+  That was only part of it, and Damian still saw the offset. The main cause was the sample crop. With `srcset`, `img.naturalWidth` is the photo's CSS size (244 px for a single tile), not the size of the file the screen's density picked (256 px at 100% scaling, 384 px at 125–150%, 640 px at 200%). The crop was worked out in CSS units but applied to the file's pixels, so at 100% the print sat 6 px off, and at 150% it sampled only the top-left of the photo. My earlier screenshots ran at 200%, where it happened to look right. The crop is now worked out on a full-size `ImageBitmap` of the decoded file. Test: "the dot print registers with the photo", at 100% and 150% scaling. It correlates the print's dot density with the photo's darkness and requires the best match within 2 px.
+- **Hydration error from a browser extension (Damian).** An extension in Damian's Chrome injected a `<script src="blob:…">` into `<head>` before React loaded. React skips unexpected nodes there unless it can mistake one for one of its own, so it compared the injected script with our JSON-LD script and reported a mismatch. The page now renders no scripts of its own in `<head>`. The theme script opens `<body>` (it still runs before anything paints), and the two JSON-LD blocks close it, escaped the way Next's JSON-LD guide does. Tests: "a script injected into <head> doesn't break hydration" (it injects after every script in `<head>`), and "structured data is still on the page".
+- **The Contact card keeps `#2563EB` in dark mode (Damian).** The dark theme's brightened electric (`#3B82F6`) gave the card's light text about 3.4:1, below AA for the small mono labels and the body copy; within the token set, navy text reached only 4.49:1. Damian chose the light-mode electric for the card in both themes, the one place a colour sits outside the tokens (`dark:bg-[#2563EB]` in `Contact.jsx`). Ivory on it is about 4.8:1. The rest of the dark theme keeps `#3B82F6`. Test: "dark mode › card text passes AA on the card".
+- **Lens resize test flake (builder).** Under full-suite load a resize step could outlast the 150 ms debounce and add one sample (11 against a cap of 10). The cap is now under 20, still well below the 50 an undebounced resize gives.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
@@ -177,10 +220,10 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 
 ## Status and next step (continue here)
 
-As of 2026-10-27, Phase 1 is built and merged into `v3` locally. [`README.md`](README.md) has the full status, what Phase 1 built, and how to test.
+As of the end of 2026-10-27, Phases 1 and 2 are built and merged into `v3` locally. Phase 3 is planned in [`plan-phase-3.md`](plan-phase-3.md), on branch `v3-phase-3`, and waits for Damian's review. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
 
 - **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26. His later revisions are in "Phase 1 review (2026-10-27)" above; where they conflict with older entries, they win.
-- **Next:** Phase 2 (Projects). Ask Damian the open questions, write `docs/v3/plan-phase-2.md` with `superpowers:writing-plans`, and build it on `v3-phase-2` off `v3`.
+- **Next:** Damian reviews the Phase 3 plan. Then build it on `v3-phase-3` (native inline execution, one fresh reviewer at the end) and merge it into `v3` locally on his approval. Phase 4 follows.
 - **Superseded:** "Loader frequency" (first visit per session) is replaced by the curtain on every reload. The page transition still covers Home ↔ `/services` navigation, but not reloads.
 - **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.

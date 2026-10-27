@@ -3,6 +3,8 @@
 @custom-variant dark (&:is(.dark *));
 /* Set pre-paint by the inline script in (site)/layout.jsx when JS runs. */
 @custom-variant js (&:is(.js *));
+/* md+ with a real hover: the Lens captions hide at rest only here. */
+@custom-variant can-hover (@media (hover: hover) and (min-width: 48rem));
 
 @theme {
   --color-ivory: rgb(var(--c-ivory));
@@ -118,6 +120,12 @@
   outline-offset: 3px;
   border-radius: 2px;
 }
+/* On the electric Contact card an electric ring would vanish: it takes the
+   card's text colour instead (ivory, which is the ink token in dark mode),
+   and the pill buttons keep their shape. */
+[data-contact-card] :focus-visible { outline-color: rgb(var(--c-ivory)); }
+.dark [data-contact-card] :focus-visible { outline-color: rgb(var(--c-ink)); }
+[data-contact-card] .rounded-full:focus-visible { border-radius: 9999px; }
 
 /* Grain overlay */
 .grain {
@@ -203,9 +211,11 @@ html:not(.js) .intro-stamp { display: none !important; }
   }
 }
 
+/* The cursor sits above every layer, the Lens viewer (z-100) included: the
+   native cursor is hidden, so anything over it hides the pointer. */
 .cursor-dot, .cursor-ring {
   position: fixed; top: 0; left: 0;
-  pointer-events: none; z-index: 70;
+  pointer-events: none; z-index: 110;
   border-radius: 9999px;
   transform: translate(-50%, -50%);
   mix-blend-mode: difference;

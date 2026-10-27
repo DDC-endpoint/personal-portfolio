@@ -97,21 +97,20 @@ const serviceJsonLd = {
   },
 };
 
+// JSON for a <script> tag: "<" escaped so the data can never close it.
+const ldJson = (data) => JSON.stringify(data).replace(/</g, "\\u003c");
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
-        />
-      </head>
+      {/* No scripts of ours in <head>. Browser extensions inject their own
+          scripts there before React loads; React skips them unless it can
+          mistake one for a script of ours, and then hydration fails. The theme
+          script opens <body> instead (it still runs before anything paints),
+          and the structured data closes it, as Next's JSON-LD guide does. */}
+      <head />
       <body className="font-sans bg-ivory text-ink antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {/* lazyOnload keeps the 163KB gtag bundle off the main thread until
             after `load` — page views still fire; only visitors who bounce
             within the first ~1–2s are missed. */}
@@ -125,6 +124,8 @@ export default function RootLayout({ children }) {
         <div className="grain" aria-hidden />
         <div className="top-fade" aria-hidden />
         <MotionProvider>{children}</MotionProvider>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(serviceJsonLd) }} />
       </body>
     </html>
   );
