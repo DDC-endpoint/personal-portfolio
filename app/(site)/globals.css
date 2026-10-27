@@ -124,9 +124,8 @@
   border-radius: 2px;
 }
 /* On the electric cards (Contact, /services "Start a project") an electric
-   ring would vanish: it takes the
-   card's text colour instead (ivory, which is the ink token in dark mode),
-   and the pill buttons keep their shape. */
+   ring would vanish: it takes the card's text colour instead (ivory, which is
+   the ink token in dark mode), and the pill buttons keep their shape. */
 [data-electric-card] :focus-visible { outline-color: rgb(var(--c-ivory)); }
 .dark [data-electric-card] :focus-visible { outline-color: rgb(var(--c-ink)); }
 [data-electric-card] .rounded-full:focus-visible { border-radius: 9999px; }

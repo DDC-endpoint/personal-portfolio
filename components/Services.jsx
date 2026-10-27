@@ -7,9 +7,10 @@ import SplitLines from "./SplitLines";
 import { DecodeLabel, ScrambleText } from "./Scramble";
 import HowItWorks from "./services/HowItWorks";
 import RecentWork from "./services/RecentWork";
+import StartCard from "./services/StartCard";
 import { EMAIL, WHATSAPP_LINK } from "@/lib/site";
 import { EASE } from "@/lib/motion";
-import { SERVICES_HERO, SERVICES, PRICING_NOTE, FAQS, START_TEXT } from "@/lib/services";
+import { SERVICES_HERO, SERVICES, PRICING_NOTE, FAQS } from "@/lib/services";
 
 function CTAButtons() {
   return (
@@ -232,32 +233,7 @@ export default function Services() {
         </div>
       </section>
 
-      {/* Start a project */}
-      <section id="start" className="relative px-6 md:px-10 py-28 md:py-40 border-t border-rule overflow-hidden">
-        <div className="absolute -bottom-40 -left-32 w-[55vw] h-[55vw] rounded-full bg-sky/50 dark:bg-sky/25 blur-3xl blob pointer-events-none" />
-        <div className="grid grid-cols-12 gap-6 relative">
-          <div className="col-span-12 md:col-span-3">
-            <Reveal>
-              <DecodeLabel className="section-label">§ 05 — Start a project</DecodeLabel>
-            </Reveal>
-          </div>
-          <div className="col-span-12 md:col-span-9 md:col-start-4">
-            <SplitLines as="h2" delay={0.1} className="font-display text-5xl md:text-8xl leading-[0.9] tracking-tight text-ink">
-              Let&rsquo;s build <span className="italic text-electric">your</span> site.
-            </SplitLines>
-            <Reveal delay={0.2}>
-              <p className="mt-8 max-w-xl text-lg md:text-xl text-ink-soft leading-relaxed">
-                {START_TEXT}
-              </p>
-            </Reveal>
-            <Reveal delay={0.3}>
-              <div className="mt-10">
-                <CTAButtons />
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
+      <StartCard />
     </>
   );
 }

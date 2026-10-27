@@ -241,3 +241,83 @@ test("on touch the centred card decodes", async ({ page, isMobile }) => {
   await expect(card).toHaveAttribute("data-active", "true", { timeout: 2000 });
   await expect(workCards(page).first()).toHaveAttribute("data-active", "false");
 });
+
+// § 05 Start a project: the growing electric card, like Contact.
+const startCard = (page) => page.locator("#start [data-electric-card]");
+const clipOf = (page) => startCard(page).evaluate((el) => getComputedStyle(el).clipPath);
+
+test.describe("start card (desktop)", () => {
+  test.skip(({ isMobile }) => isMobile);
+
+  test("grows with scroll", async ({ page }) => {
+    await page.goto("/services");
+    await page.waitForTimeout(800);
+    await startCard(page).evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 0.9 * innerHeight));
+    await expect.poll(async () => Number((await clipOf(page)).match(/inset\([\d.]+px ([\d.]+)px/)?.[1] ?? 0)).toBeGreaterThan(500);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(() => clipOf(page)).toBe("inset(0px round 8px)");
+  });
+
+  test("focus opens it fully", async ({ page }) => {
+    await page.goto("/services");
+    await page.waitForTimeout(800);
+    await startCard(page).evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 0.9 * innerHeight));
+    await expect.poll(async () => (await clipOf(page)) !== "inset(0px round 8px)").toBe(true);
+    const wa = startCard(page).locator("a[href^='https://wa.me']");
+    await wa.focus();
+    await expect.poll(() => clipOf(page)).toBe("inset(0px round 8px)");
+    const card = await startCard(page).boundingBox();
+    const b = await wa.boundingBox();
+    expect(b.x).toBeGreaterThanOrEqual(card.x);
+    expect(b.x + b.width).toBeLessThanOrEqual(card.x + card.width);
+  });
+
+  test("reduced motion: the full card", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/services");
+    await startCard(page).scrollIntoViewIfNeeded();
+    expect(await clipOf(page)).toBe("none");
+  });
+});
+
+test.describe("start card without JS", () => {
+  test.use({ javaScriptEnabled: false });
+  test("is the full card", async ({ page, isMobile }) => {
+    test.skip(isMobile);
+    await page.goto("/services");
+    expect(await clipOf(page)).toBe("none");
+  });
+});
+
+test("the start card keeps the copy", async ({ page }) => {
+  await page.goto("/services");
+  const sr = await startCard(page).locator("h2").evaluate((el) => (el.querySelector(":scope > .sr-only") ?? el).textContent.replace(/\s+/g, " ").trim());
+  expect(sr).toBe("Let’s build your site.");
+  await expect(startCard(page).locator("p")).toHaveText(
+    "Tell me what you have in mind and I’ll come back with a scope, a fixed starting price and a timeline, usually within a day. No obligation."
+  );
+});
+
+for (const theme of ["light", "dark"]) {
+  test(`start card text passes AA (${theme})`, async ({ page }) => {
+    await page.addInitScript((t) => localStorage.setItem("theme", t), theme);
+    await page.goto("/services");
+    const ratio = await startCard(page).evaluate((card) => {
+      const lum = (c) => {
+        const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(Number).map((v) => {
+          v /= 255;
+          return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const bg = lum(getComputedStyle(card).backgroundColor);
+      return ["h2", "p"].map((s) => {
+        const fg = lum(getComputedStyle(card.querySelector(s)).color);
+        const [hi, lo] = fg > bg ? [fg, bg] : [bg, fg];
+        return (hi + 0.05) / (lo + 0.05);
+      });
+    });
+    expect(await startCard(page).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(37, 99, 235)");
+    for (const r of ratio) expect(r).toBeGreaterThanOrEqual(4.5);
+  });
+}
