@@ -171,8 +171,13 @@ html:not(.js) .intro-stamp { display: none !important; }
   );
 }
 
-/* Vertical rule */
-.rule-v { background: linear-gradient(to bottom, transparent 0%, rgb(var(--c-rule)) 12%, rgb(var(--c-rule)) 88%, transparent 100%); }
+/* Timeline circuit: bright dashes flow along the lit trace, even at rest,
+   but only while the section is on screen (Timeline sets data-flowing).
+   Reduced motion: no moving current. */
+.circuit-flow { stroke-dasharray: 2 14; animation: circuit-flow 0.5s linear infinite paused; }
+[data-flowing="true"] .circuit-flow { animation-play-state: running; }
+@keyframes circuit-flow { to { stroke-dashoffset: -16; } }
+@media (prefers-reduced-motion: reduce) { .circuit-flow { display: none; } }
 
 /* Hero blob */
 @keyframes float-slow {

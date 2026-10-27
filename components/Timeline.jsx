@@ -1,23 +1,32 @@
 "use client";
 import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SplitLines from "./SplitLines";
+import YearCounter from "./timeline/YearCounter";
 import { SPRING } from "@/lib/motion";
-import { ENTRIES, litCount } from "@/lib/timeline";
+import { ENTRIES, litCount, circuitPoints, traceAt, padLabel } from "@/lib/timeline";
 import { scrambleDigits, TICK_MS } from "@/lib/decode";
 import { DecodeLabel } from "./Scramble";
 
-// § 05 Timeline — a running stitch (Damian). An electric dashed thread, led by
-// a needle, sews down the list as you scroll and unpicks as you scroll back.
-// Each milestone the needle passes gets a cross-stitch ×, its year decodes
-// from scrambled digits and its text goes from faint to full ink; milestones
-// below the needle stay faint. One sprung motion value drives it all through
-// the --d custom property, so the per-frame work is CSS only.
-// No JS or reduced motion: fully stitched, every milestone lit, no needle. The
-// faint state and the clip only apply under js:motion-safe:.
+// § 05 Timeline — a circuit (Damian). An electric trace runs down the list as
+// you scroll and drains back as you scroll up, jogging out to a side lane at
+// 45° between milestones, with a glowing head at its tip. Each pad the
+// current reaches lights and glows, a short track draws out to its entry, its
+// year decodes from scrambled digits and its text goes from faint to full
+// ink; pads below the head stay dark. Bright dashes keep flowing along the
+// lit trace while the section is on screen. A pinned year (YearCounter) rolls
+// to the latest lit milestone. One sprung motion value drives it all: the
+// trace's reveal is CSS through the --d custom property, and the head is the
+// one element JS moves. The trace's bends need the pads' measured positions,
+// so it draws after the first measure.
+// No JS: a straight electric line, every milestone lit, no head or counter.
+// Reduced motion: the finished circuit, every milestone lit, no head and no
+// moving current. The faint and dark states only apply under js:motion-safe:.
 
 const YEAR_MS = 500;
+const LANE = 12; // how far the trace jogs out between pads, px
+const BOX = 80; // the trace's SVG box, centred on the rail's axis, px
 
 // Decodes one year in place: digits scramble and resolve left to right.
 function decodeYear(el, year, raf) {
@@ -40,13 +49,19 @@ function decodeYear(el, year, raf) {
   raf.current = requestAnimationFrame(step);
 }
 
+// The pads, tracks and labels are lit by default (no JS, reduced motion);
+// their js:motion-safe:group-data-[lit=false]: classes keep them dark until
+// the current reaches them.
+
 export default function Timeline() {
+  const sectionRef = useRef(null);
   const wrapperRef = useRef(null);
+  const headRef = useRef(null);
   const yearRefs = useRef([]);
   const yearRafs = useRef(ENTRIES.map(() => ({ current: 0 })));
   const reduce = useReducedMotion();
 
-  // The thread sews down the list as it moves through the viewport: it
+  // The current runs down the list as it moves through the viewport: it
   // starts when the list top reaches 70% down the screen and completes when
   // the list end passes just below the midpoint.
   const { scrollYProgress } = useScroll({
@@ -55,11 +70,27 @@ export default function Timeline() {
   });
   const drawn = useSpring(scrollYProgress, SPRING.draw);
 
-  // Milestones light as the needle passes their dot. Thresholds are each
-  // dot's position as a fraction of the list height: one batched measure
-  // after fonts settle, recomputed (debounced) whenever the list resizes.
-  const [thresholds, setThresholds] = useState([]);
+  // The list's height and each pad's centre, in px from the list's top: one
+  // batched measure after fonts settle, recomputed (debounced) whenever the
+  // list resizes. Pads light as the head passes them.
+  const [layout, setLayout] = useState(null);
   const [lit, setLit] = useState(0);
+  const trace = useMemo(() => {
+    if (!layout) return null;
+    const pts = circuitPoints(layout.ys, layout.h, LANE);
+    return { ...layout, pts, d: "M" + pts.map((p) => p.join(" ")).join(" L"), thresholds: layout.ys.map((y) => y / layout.h) };
+  }, [layout]);
+  const traceRef = useRef(null);
+  traceRef.current = trace;
+
+  // The head rides the trace, out into its lane between pads.
+  const placeHead = (v) => {
+    const head = headRef.current, t = traceRef.current;
+    if (!head || !t) return;
+    const y = v * t.h;
+    head.style.transform = `translate(${traceAt(t.pts, y)}px, ${y}px) rotate(45deg)`;
+    head.style.opacity = v > 0.001 && v < 0.999 ? "1" : "0";
+  };
 
   useEffect(() => {
     const measure = () => {
@@ -67,13 +98,12 @@ export default function Timeline() {
       if (!wrap) return;
       const h = wrap.offsetHeight || 1;
       wrap.style.setProperty("--h", `${h}px`);
-      const items = wrap.querySelectorAll("[data-milestone]");
-      const next = Array.from(items).map((li) => {
+      const ys = Array.from(wrap.querySelectorAll("[data-milestone]")).map((li) => {
         const dot = li.querySelector("[data-dot]");
-        return (li.offsetTop + dot.offsetTop + dot.offsetHeight / 2) / h;
+        return li.offsetTop + dot.offsetTop + dot.offsetHeight / 2;
       });
-      setThresholds(next);
-      setLit(litCount(drawn.get(), next));
+      setLayout({ h, ys });
+      setLit(litCount(drawn.get(), ys.map((y) => y / h)));
     };
     let t;
     const onResize = () => {
@@ -98,10 +128,24 @@ export default function Timeline() {
     };
   }, [drawn]);
 
-  useMotionValueEvent(drawn, "change", (v) => setLit(litCount(v, thresholds)));
+  useEffect(() => placeHead(drawn.get()), [trace, drawn]);
+
+  useMotionValueEvent(drawn, "change", (v) => {
+    if (trace) setLit(litCount(v, trace.thresholds));
+    placeHead(v);
+  });
+
+  // The flowing current only runs while the section is on screen.
+  useEffect(() => {
+    const section = sectionRef.current, wrap = wrapperRef.current;
+    if (!section || !wrap) return;
+    const io = new IntersectionObserver(([e]) => (wrap.dataset.flowing = String(e.isIntersecting)));
+    io.observe(section);
+    return () => io.disconnect();
+  }, []);
 
   // A milestone that lights up decodes its year; one that goes dark is
-  // simply faint again, ready to decode the next time the needle passes.
+  // simply faint again, ready to decode the next time the current passes.
   const prevLit = useRef(0);
   useEffect(() => {
     if (reduce) return;
@@ -114,13 +158,20 @@ export default function Timeline() {
   }, [lit, reduce]);
 
   const litNow = reduce ? ENTRIES.length : lit;
+  const svgBox = trace && {
+    width: BOX,
+    height: trace.h,
+    viewBox: `${-BOX / 2} 0 ${BOX} ${trace.h}`,
+    "aria-hidden": true,
+  };
 
   return (
-    <section id="timeline" className="relative px-6 md:px-10 py-32 md:py-44 border-t border-rule bg-paper">
+    <section ref={sectionRef} id="timeline" className="relative px-6 md:px-10 py-32 md:py-44 border-t border-rule bg-paper">
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-3">
           <div className="md:sticky md:top-32">
             <DecodeLabel className="section-label">§ 05 — Timeline</DecodeLabel>
+            <YearCounter variant="side" index={lit - 1} reduce={reduce} />
           </div>
         </div>
 
@@ -129,29 +180,45 @@ export default function Timeline() {
             How I got <span className="italic text-electric">here</span>.
           </SplitLines>
 
+          <YearCounter variant="strip" index={lit - 1} reduce={reduce} />
+
           <motion.div
             ref={wrapperRef}
             data-timeline-list
+            data-flowing="false"
             style={{ "--d": drawn }}
             className="relative mt-16 md:mt-24"
           >
-            {/* faint base rule, the running stitch over it, and the needle at its tip,
-                all centred on one axis with the dots and cross-stitches */}
-            <div className="absolute left-4 md:left-0 top-0 bottom-0 w-px -translate-x-1/2 rule-v" aria-hidden />
+            {/* without JS the trace can't be measured: a straight, finished line */}
             <div
+              data-trace-fallback
               aria-hidden
-              className="absolute left-4 md:left-0 top-0 bottom-0 w-[1.5px] -translate-x-1/2 bg-[repeating-linear-gradient(to_bottom,rgb(var(--c-electric))_0_7px,transparent_7px_12px)] js:motion-safe:[clip-path:inset(0_0_calc((1_-_var(--d,1))*100%)_0)]"
+              className="absolute left-4 md:left-0 top-0 bottom-0 w-[2px] -translate-x-1/2 bg-electric js:hidden"
             />
-            <div
-              data-needle
-              aria-hidden
-              className="absolute left-4 md:left-0 top-0 hidden js:motion-safe:block [transform:translate(-50%,calc(var(--d,0)*var(--h,0px)_-_100%))]"
-            >
-              <svg width="6" height="16" viewBox="0 0 6 16" className="block overflow-visible">
-                <ellipse cx="3" cy="3" rx="1.6" ry="2.4" className="fill-none stroke-electric" strokeWidth="1" />
-                <path d="M3 5.6 L3 16" className="stroke-electric" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
+            {trace && (
+              <>
+                {/* the dark trace, the lit trace over it (revealed down to the
+                    head) carrying the flowing current, and the head; all
+                    centred on the pads' axis */}
+                <svg {...svgBox} data-trace className="absolute top-0 left-4 md:left-0 -translate-x-1/2 overflow-visible">
+                  <path d={trace.d} className="fill-none stroke-rule [stroke-width:2] [stroke-linejoin:round] [stroke-linecap:round]" />
+                </svg>
+                <svg
+                  {...svgBox}
+                  data-trace-lit
+                  className="absolute top-0 left-4 md:left-0 -translate-x-1/2 overflow-visible js:motion-safe:[clip-path:inset(0_0_calc((1_-_var(--d,1))*100%)_0)]"
+                >
+                  <path d={trace.d} className="fill-none stroke-electric [stroke-width:2] [stroke-linejoin:round] [stroke-linecap:round]" />
+                  <path data-flow d={trace.d} className="circuit-flow fill-none stroke-white [stroke-opacity:0.9] [stroke-width:1]" />
+                </svg>
+                <span
+                  ref={headRef}
+                  data-head
+                  aria-hidden
+                  className="absolute top-0 left-4 md:left-0 -ml-[3px] -mt-[3px] hidden h-1.5 w-1.5 bg-electric opacity-0 shadow-[0_0_8px_rgb(var(--c-electric))] js:motion-safe:block"
+                />
+              </>
+            )}
 
             <ol className="flex flex-col gap-12 md:gap-16">
               {ENTRIES.map((e, i) => {
@@ -164,19 +231,28 @@ export default function Timeline() {
                     className="group relative pl-12 md:pl-20"
                   >
                     <span
-                      data-dot
+                      data-pad-label
                       aria-hidden
-                      className="absolute left-[12px] md:left-[-4px] top-[13px] h-2 w-2 rounded-full border border-rule bg-paper"
+                      className={`absolute right-[calc(100%+14px)] top-[13px] hidden font-mono text-[8px] leading-none tracking-[0.1em] text-electric transition-colors duration-300 md:block js:motion-safe:group-data-[lit=false]:text-ink-faint`}
+                    >
+                      {padLabel(i)}
+                    </span>
+                    {/* the track out to the entry: dark underneath, drawn in electric when lit */}
+                    <span aria-hidden className="absolute left-[22px] md:left-[6px] top-[16.25px] h-[1.5px] w-[18px] md:w-[50px] bg-rule" />
+                    <span
+                      aria-hidden
+                      className={`absolute left-[22px] md:left-[6px] top-[16.25px] h-[1.5px] w-[18px] md:w-[50px] origin-left bg-electric transition-transform duration-300 ease-out js:motion-safe:group-data-[lit=false]:scale-x-0`}
                     />
                     <span
-                      data-stitch
                       aria-hidden
-                      className={`absolute left-[10px] md:left-[-6px] top-[11px] h-3 w-3 transition-transform duration-300 ease-out ${
-                        on ? "scale-100" : "js:motion-safe:scale-0"
-                      }`}
+                      className={`absolute left-[39px] md:left-[55px] top-[14px] h-1.5 w-1.5 rounded-full border border-electric bg-electric transition-colors duration-200 delay-300 js:motion-safe:group-data-[lit=false]:border-rule js:motion-safe:group-data-[lit=false]:bg-paper js:motion-safe:group-data-[lit=false]:delay-0`}
+                    />
+                    <span
+                      data-dot
+                      aria-hidden
+                      className={`absolute left-[10px] md:left-[-6px] top-[11px] grid h-3 w-3 place-items-center rounded-full border-2 border-electric bg-electric shadow-[0_0_8px_rgb(var(--c-electric)/0.7)] transition-[background-color,border-color,box-shadow] duration-300 js:motion-safe:group-data-[lit=false]:border-rule js:motion-safe:group-data-[lit=false]:bg-paper js:motion-safe:group-data-[lit=false]:shadow-none`}
                     >
-                      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-[11px] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-full bg-electric" />
-                      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-[11px] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-electric" />
+                      <span className={`h-[3px] w-[3px] rounded-full bg-paper js:motion-safe:group-data-[lit=false]:bg-rule`} />
                     </span>
                     <div className="transition-opacity duration-500 js:motion-safe:group-data-[lit=false]:opacity-45">
                       <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft mb-2">

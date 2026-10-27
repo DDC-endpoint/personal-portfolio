@@ -81,6 +81,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Thread (Damian):** running stitch — an electric-blue dashed line like real stitches, led by a small needle head; each milestone gets a tiny cross-stitch × as the needle passes.
 - **Scroll back (Damian):** the thread follows scroll both ways (unstitches); milestones above the needle stay lit, those below go faint again.
 - **Milestone light-up (Damian):** the year decodes from scrambled digits and the title + description go from faint to full ink.
+- *Superseded on 2026-10-27: the running stitch and needle became a circuit with a pinned year counter (see "Timeline circuit"). Order, content, scroll-back and the light-up stand.*
 
 ## Lens — photo gallery (wow #4)
 
@@ -186,6 +187,22 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Hydration error from a browser extension (Damian).** An extension in Damian's Chrome injected a `<script src="blob:…">` into `<head>` before React loaded. React skips unexpected nodes there unless it can mistake one for one of its own, so it compared the injected script with our JSON-LD script and reported a mismatch. The page now renders no scripts of its own in `<head>`. The theme script opens `<body>` (it still runs before anything paints), and the two JSON-LD blocks close it, escaped the way Next's JSON-LD guide does. Tests: "a script injected into <head> doesn't break hydration" (it injects after every script in `<head>`), and "structured data is still on the page".
 - **The Contact card keeps `#2563EB` in dark mode (Damian).** The dark theme's brightened electric (`#3B82F6`) gave the card's light text about 3.4:1, below AA for the small mono labels and the body copy; within the token set, navy text reached only 4.49:1. Damian chose the light-mode electric for the card in both themes, the one place a colour sits outside the tokens (`dark:bg-[#2563EB]` in `Contact.jsx`). Ivory on it is about 4.8:1. The rest of the dark theme keeps `#3B82F6`. Test: "dark mode › card text passes AA on the card".
 - **Lens resize test flake (builder).** Under full-suite load a resize step could outlast the 150 ms debounce and add one sample (11 against a cap of 10). The cap is now under 20, still well below the 50 an undebounced resize gives.
+
+## Timeline circuit (2026-10-27)
+
+Damian asked what could replace the running stitch. Five candidates were prototyped in `spike/timeline-rails.html` (decode rail, signal trace, circuit route, halftone thread, pinned year counter). He chose the **circuit with the year counter on the left**:
+
+- **The trace (Damian):** an electric circuit-board track runs down the list with scroll and drains back on the way up. Between milestones it jogs out to a side lane with 45° bends, alternating sides; pads too close for a jog are joined straight. A small glowing square head rides its tip. The shape is `circuitPoints` / `traceAt` in `lib/timeline.js`.
+- **Pads (Damian):** each milestone is a contact pad. When the current reaches it, the pad lights and glows, a short track draws out to the entry and ends in a small via, the year decodes and the text goes to full ink. Desktop shows tiny `P01`–`P10` labels left of the pads.
+- **Current at rest (Damian):** bright dashes keep flowing along the lit trace even when you stop scrolling, but only while the section is on screen (an `IntersectionObserver` sets `data-flowing`).
+- **Year counter (Damian):** the first year of the latest lit milestone, in large serif digits that roll like an odometer, sits under the § 05 label. Under it, the title decodes, then a `06 / 10` count.
+  - **Caption is the title only (Damian).** The prototype repeated the year in small text.
+  - **Two lines reserved (Damian).** A title that wrapped made the counter jump; the caption now always takes two lines of space.
+  - **No progress bar (Damian).** With the circuit beside it, that was two progress bars on screen.
+  - **Phones (Damian, on my suggestion):** a compact strip sticks under the header (80 px): year on the left, title and count beside it.
+- **Fallbacks:** no JS gets a straight, finished electric line with every pad lit and no head or counter (the bends need measured positions). Reduced motion gets the finished circuit, every milestone lit, no head and no moving current; the counter switches instantly.
+- **Builder's calls:** the trace's lit layer is revealed by CSS from `--d`, as the stitch was, and only the head is moved by JS. The pads, tracks and labels are HTML inside each entry, lit by default and kept dark only under `js:motion-safe:`. The counter is decorative (`aria-hidden`), since the list carries every year and title.
+- **Open for Phase 4:** `design.md` has `/services` "How it works" reusing the Timeline's running-stitch thread. With the stitch gone, that needs Damian's call: reuse the circuit there, or something simpler.
 
 ## Phase 1 review (2026-10-27)
 
