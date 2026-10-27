@@ -262,3 +262,85 @@ test("a hero tile taller than the screen still develops", async ({ page }, info)
   await scrollToFrame(page, "01");
   await expect(frame(page, "01")).toHaveAttribute("data-develop", "developed", { timeout: 5000 });
 });
+
+// The dot print must sit on the photo. Takes the tile's photo (developed, as
+// a screenshot) and its print (just entered, from the canvas), then finds the
+// shift that best lines the print's dot density up with the photo's darkness.
+// Within 2 px: 7 px dots resolve to about 1 px, and the screenshot clip rounds
+// the tile's fractional position. Run at 100% and 150% display scaling, where
+// the photo file served is a different size from the photo's CSS size (the
+// broken crop was 6 px off at 100% and off the photo entirely at 150%).
+for (const scale of [1, 1.5]) {
+  test.describe(`at ${scale * 100}% scaling`, () => {
+    test.use({ deviceScaleFactor: scale });
+    test("the dot print registers with the photo", async ({ page }, info) => {
+      desktopOnly(info);
+      await page.goto("/");
+      await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 4000 }); // the curtain covers the page
+      await frame(page, "05").scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => document.querySelector('[data-frame="05"] img').complete);
+      const photo = frame(page, "05").locator("[data-photo]");
+      await scrollToFrame(page, "05");
+      await expect(frame(page, "05")).toHaveAttribute("data-develop", "developed");
+      await page.waitForTimeout(300);
+      // a viewport clip: an element screenshot would scroll the page
+      const developed = (await page.screenshot({ clip: await photo.boundingBox(), scale: "css" })).toString("base64");
+      // the print is read from the live canvas: a screenshot would scroll the
+      // tile into view and so change the develop
+      await scrollToDevelop(page, "05", 0.15);
+      await expect(frame(page, "05")).toHaveAttribute("data-develop", "developing");
+      await page.waitForTimeout(300);
+
+      const best = await page.evaluate(
+        async (a) => {
+          const darkness = async (src, w, h) => {
+            const c = document.createElement("canvas");
+            c.width = w;
+            c.height = h;
+            const x = c.getContext("2d");
+            x.drawImage(src, 0, 0, w, h);
+            const d = x.getImageData(0, 0, c.width, c.height).data;
+            const out = new Float32Array(c.width * c.height);
+            for (let i = 0; i < out.length; i++) out[i] = 1 - (0.2126 * d[i * 4] + 0.7152 * d[i * 4 + 1] + 0.0722 * d[i * 4 + 2]) / 255;
+            return { w: c.width, h: c.height, v: out };
+          };
+          const shot = new Image();
+          shot.src = `data:image/png;base64,${a}`;
+          await shot.decode();
+          const P = await darkness(shot, shot.width, shot.height);
+          const D = await darkness(document.querySelector('[data-frame="05"] canvas'), shot.width, shot.height);
+          // Blocks of 14 px average the dots into a density.
+          const B = 14, M = 16; // block size, max shift tried
+          const block = (g, ox, oy) => {
+            const cols = Math.floor((g.w - 2 * M) / B), rows = Math.floor((g.h - 2 * M) / B), out = [];
+            for (let r = 0; r < rows; r++)
+              for (let c = 0; c < cols; c++) {
+                let s = 0;
+                for (let y = 0; y < B; y++) for (let x = 0; x < B; x++) s += g.v[(M + oy + r * B + y) * g.w + M + ox + c * B + x];
+                out.push(s / (B * B));
+              }
+            return out;
+          };
+          const corr = (p, q) => {
+            const n = p.length, mp = p.reduce((s, v) => s + v, 0) / n, mq = q.reduce((s, v) => s + v, 0) / n;
+            let sp = 0, sq = 0, spq = 0;
+            for (let i = 0; i < n; i++) (sp += (p[i] - mp) ** 2), (sq += (q[i] - mq) ** 2), (spq += (p[i] - mp) * (q[i] - mq));
+            return spq / Math.sqrt(sp * sq);
+          };
+          const ref = block(D, 0, 0);
+          let top = { r: -2, dx: 0, dy: 0 };
+          for (let dy = -M; dy <= M; dy += 1)
+            for (let dx = -M; dx <= M; dx += 1) {
+              const r = corr(ref, block(P, dx, dy));
+              if (r > top.r) top = { r, dx, dy };
+            }
+          return top;
+        },
+        developed
+      );
+      expect(best.r).toBeGreaterThan(0.5); // the print does follow the photo
+      expect(Math.abs(best.dx)).toBeLessThanOrEqual(2);
+      expect(Math.abs(best.dy)).toBeLessThanOrEqual(2);
+    });
+  });
+}

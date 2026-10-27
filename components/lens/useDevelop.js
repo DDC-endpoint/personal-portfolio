@@ -93,24 +93,30 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
     }
 
     // Reads one luminance value per dot cell from an object-cover crop of the
+    // photo. The crop is worked out on the decoded file's own pixels: with
+    // srcset, naturalWidth is the photo's CSS size, not the size of the file
+    // the screen's density picked, and a crop in those units lands off the
     // photo. The downscale happens in createImageBitmap, so the main thread
     // only ever reads a cols × rows bitmap.
     async function sample() {
       if (failed || !W || !H || !img.complete || !img.naturalWidth) return;
       const run = ++sampleRun;
-      const nw = img.naturalWidth, nh = img.naturalHeight;
-      const scale = Math.max(W / nw, H / nh);
-      const sw = W / scale, sh = H / scale;
       const { cols: c, rows: r } = dotGrid(W, H, CELL);
-      let bitmap;
+      let full, bitmap;
       try {
-        bitmap = await createImageBitmap(img, (nw - sw) / 2, (nh - sh) / 2, sw, sh, {
+        full = await createImageBitmap(img);
+        const nw = full.width, nh = full.height;
+        const scale = Math.max(W / nw, H / nh);
+        const sw = W / scale, sh = H / scale;
+        bitmap = await createImageBitmap(full, (nw - sw) / 2, (nh - sh) / 2, sw, sh, {
           resizeWidth: c,
           resizeHeight: r,
           resizeQuality: "medium",
         });
       } catch {
         return fail();
+      } finally {
+        full?.close();
       }
       if (disposed || run !== sampleRun) return bitmap.close();
       const off = document.createElement("canvas");

@@ -20,7 +20,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
    - **Dark-mode Contact card contrast.** In dark mode the card is the brightened electric (#3B82F6) under light text, about 3.4:1. That's fine for the headline but below AA (4.5:1) for the small mono labels and the body copy. Within the token set, navy text reaches only 4.49:1. A real fix needs his call: keep the light-mode electric (#2563EB) for the card in both themes (one exception to the tokens-only rule), or accept the current pairing.
    - **The halftone look.** The dots are auto-levelled per photo, and in dark mode they are sized by brightness so the print stays a positive (see `decisions.md` → "Phase 3 build rulings"). This is a taste check.
 
-   Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), and the dot print now registers exactly with the photo.
+   Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, and a hydration error that a browser extension caused is gone.
 3. **On his approval:** `git switch v3 && git merge --no-ff v3-phase-3`, delete the branch, and mark Phase 3 merged here.
 4. **Then Phase 4** (copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition), followed by `v3` → `main`. See "Before `v3` merges to `main`".
 5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
@@ -161,6 +161,9 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Viewer taps close on `pointerup`, not `click`.** After a quick touch flick, Chrome can swallow the next tap's click.
 - **Scroll-scrubbed effects near the page end must stay reachable:** cap the end at the maximum scroll (`growProgress`).
 - **A canvas resize clears it:** repaint from the last sample at once and debounce any resample (`useDevelop`).
+- **Sample the decoded file, not `naturalWidth`.** With `srcset`, `img.naturalWidth` is the photo's CSS size, not the size of the file the screen's density picked. Work out crops on an `ImageBitmap` of the image (`useDevelop`). Test registration at 100% and 150% scaling, not only 200%.
+- **No scripts of ours in `<head>`.** Extensions inject scripts there before React loads, and React then mistakes them for ours and fails hydration. The theme script opens `<body>`; the JSON-LD closes it (`app/(site)/layout.jsx`).
+- **Wait for the IntroStamp curtain before screenshots.** It covers the page on every load (`.intro-stamp` leaves the DOM when it lifts).
 - **The halftone is sampled and drawn on the same cells (`dotGrid`).** Cells are stretched to span the tile exactly; a fixed 7 px grid runs past the tile and the print drifts off the photo toward the edges.
 - **The hero portrait also calls `createImageBitmap` on resize.** Tests that count samples must filter by source.
 - **The custom cursor is the top layer (`z-index: 110`).** The native cursor is hidden, so any overlay above it hides the pointer. A new overlay goes below 110 (the Lens viewer is 100).
