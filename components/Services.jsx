@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Reveal from "./Reveal";
 import EagerReveal from "./EagerReveal";
 import SplitLines from "./SplitLines";
+import { DecodeLabel, ScrambleText } from "./Scramble";
 import { EMAIL, WHATSAPP_LINK } from "@/lib/site";
 import { EASE } from "@/lib/motion";
 import { PROJECTS } from "@/lib/projects";
@@ -19,7 +20,7 @@ function CTAButtons() {
         data-hover
         className="group inline-flex items-center gap-3 bg-electric px-7 py-4 font-mono text-[11px] uppercase tracking-[0.2em] text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 transition-colors duration-300"
       >
-        Message on WhatsApp
+        <ScrambleText text="Message on WhatsApp" />
         <span className="transition-transform duration-300 group-hover:translate-x-1">↗</span>
       </a>
       <a
@@ -27,7 +28,7 @@ function CTAButtons() {
         data-hover
         className="group inline-flex items-center gap-3 border border-ink px-7 py-4 font-mono text-[11px] uppercase tracking-[0.2em] text-ink hover:bg-ink hover:text-ivory transition-colors duration-300"
       >
-        Email me
+        <ScrambleText text="Email me" />
         <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
       </a>
     </div>
@@ -65,7 +66,7 @@ export default function Services() {
             transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
             className="group inline-flex items-center gap-2 bg-electric text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300"
           >
-            Portfolio
+            <ScrambleText text="Portfolio" />
             <span className="transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
           </motion.a>
         </div>
@@ -111,7 +112,7 @@ export default function Services() {
         <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
           <div className="col-span-12 md:col-span-3">
             <div className="md:sticky md:top-32">
-              <div className="section-label">§ 01 — What I do</div>
+              <DecodeLabel className="section-label">§ 01 — What I do</DecodeLabel>
             </div>
           </div>
           <div className="col-span-12 md:col-span-9 md:col-start-4">
@@ -167,7 +168,7 @@ export default function Services() {
         <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
           <div className="col-span-12 md:col-span-3">
             <div className="md:sticky md:top-32">
-              <div className="section-label">§ 02 — How it works</div>
+              <DecodeLabel className="section-label">§ 02 — How it works</DecodeLabel>
             </div>
           </div>
           <div className="col-span-12 md:col-span-9 md:col-start-4">
@@ -199,7 +200,7 @@ export default function Services() {
         <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
           <div className="col-span-12 md:col-span-3">
             <div className="md:sticky md:top-32">
-              <div className="section-label">§ 03 — Recent work</div>
+              <DecodeLabel className="section-label">§ 03 — Recent work</DecodeLabel>
             </div>
           </div>
           <div className="col-span-12 md:col-span-9 md:col-start-4">
@@ -276,7 +277,7 @@ export default function Services() {
         <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
           <div className="col-span-12 md:col-span-3">
             <div className="md:sticky md:top-32">
-              <div className="section-label">§ 04 — FAQ</div>
+              <DecodeLabel className="section-label">§ 04 — FAQ</DecodeLabel>
             </div>
           </div>
           <div className="col-span-12 md:col-span-9 md:col-start-4">
@@ -311,7 +312,7 @@ export default function Services() {
         <div className="grid grid-cols-12 gap-6 relative">
           <div className="col-span-12 md:col-span-3">
             <Reveal>
-              <div className="section-label">§ 05 — Start a project</div>
+              <DecodeLabel className="section-label">§ 05 — Start a project</DecodeLabel>
             </Reveal>
           </div>
           <div className="col-span-12 md:col-span-9 md:col-start-4">

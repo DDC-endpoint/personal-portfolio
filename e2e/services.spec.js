@@ -18,3 +18,83 @@ test("FAQ JSON-LD matches the page", async ({ page }) => {
     expect(faq.mainEntity[i].acceptedAnswer.text).toBe(squash(a));
   }
 });
+
+// Scrambling text lives in an aria-hidden span; a static sr-only copy carries the name.
+const scrambling = (el) => el.locator('[aria-hidden="true"]').first();
+
+test.describe("motion basics (desktop)", () => {
+  test.skip(({ isMobile }) => isMobile);
+
+  test("section labels decode", async ({ page }) => {
+    await page.goto("/services");
+    const labels = page.locator(".section-label", { hasText: "§" });
+    await expect(labels).toHaveCount(5);
+    for (let i = 0; i < 5; i++) {
+      const label = labels.nth(i);
+      const final = (await label.locator(".sr-only").textContent()) ?? "";
+      await expect(label.locator("[data-letters]")).toHaveCount(1);
+      await label.scrollIntoViewIfNeeded();
+      await expect(label.locator("[data-letters]")).toHaveText(final, { timeout: 3000 });
+    }
+  });
+
+  test("a section label scrambles before it settles", async ({ page }) => {
+    await page.goto("/services");
+    const label = page.locator("#faq .section-label");
+    await label.scrollIntoViewIfNeeded();
+    await expect.poll(() => label.getAttribute("aria-busy"), { timeout: 3000 }).toBe("true");
+    await expect(label.locator("[data-letters]")).toHaveText("§ 04 — FAQ", { timeout: 1500 });
+  });
+
+  test("mono buttons scramble without moving", async ({ page }) => {
+    await page.goto("/services");
+    await page.waitForTimeout(1200); // the corner button floats in
+    const buttons = [
+      page.locator("#top a[href^='https://wa.me']"),
+      page.locator("#top a[href^='mailto:']"),
+      page.locator("#top a[href='/']"),
+    ];
+    for (const b of buttons) {
+      await expect(b).toBeVisible();
+      const label = scrambling(b);
+      const final = await label.innerText();
+      const widths = [];
+      await b.hover();
+      let changed = false;
+      for (let i = 0; i < 10; i++) {
+        widths.push((await b.boundingBox()).width);
+        if ((await label.innerText()) !== final) changed = true;
+        await page.waitForTimeout(20);
+      }
+      expect(changed, final).toBe(true);
+      expect(Math.max(...widths) - Math.min(...widths), final).toBeLessThanOrEqual(0.5);
+      // the arrow sits outside the scrambling span
+      expect(await label.innerText()).not.toMatch(/[→↗]/);
+      await page.mouse.move(0, 0);
+    }
+  });
+
+  test("underlined links don't scramble", async ({ page }) => {
+    await page.goto("/services");
+    const links = [page.locator('header nav a[href="#faq"]'), page.locator("#recent a.link-line")];
+    for (const l of links) {
+      await l.scrollIntoViewIfNeeded();
+      await l.hover();
+      const seen = new Set();
+      for (let i = 0; i < 10; i++) {
+        seen.add(await l.innerText());
+        await page.waitForTimeout(30);
+      }
+      expect(seen.size).toBe(1);
+    }
+  });
+});
+
+test("the mobile menu's Portfolio button scrambles", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.goto("/services");
+  await page.getByRole("button", { name: /menu/i }).click();
+  const b = page.getByRole("dialog", { name: "Services menu" }).locator("a[href='/']");
+  await expect(b).toBeVisible();
+  await expect(b.locator(".sr-only")).toHaveText("Portfolio");
+});
