@@ -68,3 +68,32 @@ test.describe("arriving on Home", () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe("the veil at rest", () => {
+  test("is in the server HTML, idle, hidden from screen readers and clicks", async ({ page, request }) => {
+    const html = await (await request.get("/services")).text();
+    expect(html).toMatch(/<canvas[^>]*data-veil="idle"/);
+    await page.goto("/services");
+    await expect(veil(page)).toHaveAttribute("data-veil", "idle");
+    await expect(veil(page)).toHaveAttribute("aria-hidden", "true");
+    expect(await veil(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+  });
+
+  test("never leaves idle on a plain load or a reload", async ({ page }) => {
+    await record(page);
+    await page.goto("/");
+    await settle(page);
+    await page.reload();
+    await settle(page);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+  });
+
+  test("is hidden without JS", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto("/services");
+    await expect(veil(page)).toHaveCount(1);
+    await expect(veil(page)).toBeHidden();
+    await context.close();
+  });
+});

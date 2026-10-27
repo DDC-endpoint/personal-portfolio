@@ -161,6 +161,12 @@ html:not(.js) .intro-stamp { display: none !important; }
 }
 .intro-stamp { animation: intro-stamp-failsafe 0.4s ease 5s forwards; }
 
+/* Page transition veil (components/transition/): invisible while idle, so it
+   never paints over the page; while it runs it takes every click, so nothing
+   lands on the page underneath. */
+.page-veil[data-veil="idle"] { visibility: hidden; }
+.page-veil:not([data-veil="idle"]) { pointer-events: auto; }
+
 /* Top fade scrim — content fades out before colliding with the nav */
 .top-fade {
   position: fixed;
