@@ -5,6 +5,7 @@
 const PAGES = [
   { path: "", updated: "2026-10-27" },
   { path: "/services", updated: "2026-10-27" },
+  { path: "/privacy", updated: "2026-10-27" },
 ];
 
 export default function sitemap() {

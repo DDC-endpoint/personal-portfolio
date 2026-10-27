@@ -123,3 +123,33 @@ test.describe("snippet hygiene and alt text", () => {
     expect((await page.locator("h1").textContent()).replace(/\s+/g, " ")).toContain("De Cruz");
   });
 });
+
+test.describe("footer and privacy", () => {
+  for (const path of ["/", "/services", "/privacy"]) {
+    test(`${path}: footer B with the trading name and links`, async ({ page, isMobile }) => {
+      await page.goto(path);
+      const footer = page.locator("footer");
+      await expect(footer).toContainText("© 2026 Damian De Cruz");
+      await expect(footer).toContainText("Trading as DDC Web Services");
+      await expect(footer).toContainText("Made by hand, in Colombo.");
+      await expect(footer).toContainText("v:04 / Always evolving");
+      const links = footer.locator("nav a");
+      await expect(links).toHaveText(["Home", "Services", "Privacy"]);
+      expect(await links.evaluateAll((els) => els.map((a) => a.getAttribute("href")))).toEqual(["/", "/services", "/privacy"]);
+      // centred on phones; the three columns read left, centre, right on desktop
+      const aligns = await footer.locator("[data-footer-col]").evaluateAll((els) => els.map((el) => getComputedStyle(el).textAlign));
+      expect(aligns).toEqual(isMobile ? ["center", "center", "center"] : ["left", "center", "right"]);
+    });
+  }
+
+  test("the privacy page", async ({ page, request }) => {
+    const res = await page.goto("/privacy");
+    expect(res.status()).toBe(200);
+    await expect(page.locator("h1")).toHaveText("Privacy");
+    await expect(page).toHaveTitle("Privacy | Damian De Cruz");
+    expect(await page.locator('link[rel="canonical"]').getAttribute("href")).toBe("https://damiandc.com/privacy");
+    const text = await page.locator("main").textContent();
+    for (const s of ["Google Analytics", "hello@damiandc.com", "WhatsApp", "DDC Web Services"]) expect(text).toContain(s);
+    expect(await (await request.get("/sitemap.xml")).text()).toContain("<loc>https://damiandc.com/privacy</loc>");
+  });
+});
