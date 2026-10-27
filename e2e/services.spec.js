@@ -98,3 +98,77 @@ test("the mobile menu's Portfolio button scrambles", async ({ page, isMobile }) 
   await expect(b).toBeVisible();
   await expect(b.locator(".sr-only")).toHaveText("Portfolio");
 });
+
+// § 02 How it works: the four steps on a mini circuit.
+const steps = (page) => page.locator("#process [data-milestone]");
+const litSteps = (page) => page.locator('#process [data-milestone][data-lit="true"]');
+
+// Scrolls so the circuit's raw scroll progress is p ("start 0.7" → "end 0.55").
+async function stepsProgress(page, p) {
+  await page.evaluate((pp) => {
+    const r = document.querySelector("#process [data-circuit-list]").getBoundingClientRect();
+    const top = r.top + window.scrollY, vh = innerHeight;
+    const y0 = top - 0.7 * vh, y1 = top + r.height - 0.55 * vh;
+    window.scrollTo(0, y0 + pp * (y1 - y0));
+  }, p);
+}
+
+test.describe("How it works (desktop)", () => {
+  test.skip(({ isMobile }) => isMobile);
+
+  test("steps light as you scroll", async ({ page }) => {
+    await page.goto("/services");
+    await expect(steps(page)).toHaveCount(4);
+    await stepsProgress(page, 0);
+    await page.waitForTimeout(600);
+    expect(await litSteps(page).count()).toBeLessThanOrEqual(1);
+    await stepsProgress(page, 1);
+    await expect(litSteps(page)).toHaveCount(4, { timeout: 4000 });
+    const pad = steps(page).nth(3).locator("[data-dot]");
+    await expect.poll(() => pad.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(37, 99, 235)");
+    await stepsProgress(page, 0);
+    await expect.poll(() => litSteps(page).count(), { timeout: 4000 }).toBeLessThanOrEqual(1);
+  });
+
+  test("every step lights by the bottom of a tall page", async ({ page }) => {
+    await page.setViewportSize({ width: 2560, height: 1600 });
+    await page.goto("/services");
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(litSteps(page)).toHaveCount(4, { timeout: 4000 });
+  });
+});
+
+test("steps sit in one column", async ({ page }) => {
+  await page.goto("/services");
+  const lefts = await steps(page).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
+  expect(lefts).toHaveLength(4);
+  for (const x of lefts) expect(Math.abs(x - lefts[0])).toBeLessThanOrEqual(1);
+});
+
+test("pad labels P01–P04 show on desktop only", async ({ page, isMobile }) => {
+  await page.goto("/services");
+  const labels = page.locator("#process [data-pad-label]");
+  await expect(labels).toHaveText(["P01", "P02", "P03", "P04"]);
+  if (isMobile) for (const l of await labels.all()) await expect(l).toBeHidden();
+  else for (const l of await labels.all()) await expect(l).toBeVisible();
+});
+
+test("reduced motion is the finished circuit", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/services");
+  await page.locator("#process").scrollIntoViewIfNeeded();
+  await expect(litSteps(page)).toHaveCount(4);
+  await expect(page.locator("#process [data-head]")).toBeHidden();
+  await expect(page.locator("#process [data-flow]")).toBeHidden();
+});
+
+test.describe("How it works without JS", () => {
+  test.use({ javaScriptEnabled: false });
+  test("shows the finished line", async ({ page, isMobile }) => {
+    test.skip(isMobile);
+    await page.goto("/services");
+    await expect(page.locator("#process [data-trace-fallback]")).toBeVisible();
+    const pads = await page.locator("#process [data-dot]").evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));
+    expect(pads).toEqual(Array(4).fill("rgb(37, 99, 235)"));
+  });
+});

@@ -1,8 +1,8 @@
 "use client";
-import { useScroll, useSpring, useMotionValueEvent } from "framer-motion";
+import { useScroll, useSpring, useTransform, useMotionValueEvent } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SPRING } from "@/lib/motion";
-import { litCount, circuitPoints, traceAt } from "@/lib/timeline";
+import { litCount, circuitPoints, traceAt, reachableEnd } from "@/lib/timeline";
 
 // The circuit (Damian): an electric trace runs down a list of milestones as
 // you scroll and drains back as you scroll up, jogging out to a side lane at
@@ -20,12 +20,15 @@ export function useCircuit({ listRef, sectionRef, lane = 12 }) {
   const headRef = useRef(null);
 
   // The current starts when the list top reaches 70% down the screen and
-  // completes when the list end passes just below the midpoint.
+  // completes when the list end passes just below the midpoint, or at the
+  // bottom of the page if that comes first (reachableEnd).
   const { scrollYProgress } = useScroll({
     target: listRef,
     offset: ["start 0.7", "end 0.55"],
   });
-  const drawn = useSpring(scrollYProgress, SPRING.draw);
+  const endRef = useRef(1);
+  const progress = useTransform(scrollYProgress, (v) => Math.min(1, v / endRef.current));
+  const drawn = useSpring(progress, SPRING.draw);
 
   const [layout, setLayout] = useState(null);
   const [lit, setLit] = useState(0);
@@ -52,6 +55,12 @@ export function useCircuit({ listRef, sectionRef, lane = 12 }) {
       if (!list) return;
       const h = list.offsetHeight || 1;
       list.style.setProperty("--h", `${h}px`);
+      endRef.current = reachableEnd({
+        top: list.getBoundingClientRect().top + window.scrollY,
+        height: h,
+        vh: window.innerHeight,
+        maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+      });
       const ys = Array.from(list.querySelectorAll("[data-milestone]")).map((li) => {
         const dot = li.querySelector("[data-dot]");
         return li.offsetTop + dot.offsetTop + dot.offsetHeight / 2;
@@ -71,9 +80,11 @@ export function useCircuit({ listRef, sectionRef, lane = 12 }) {
       measure();
     })();
     // The list can reflow without a window resize (a scrollbar appearing,
-    // late layout above), so watch the list itself.
+    // late layout above), so watch the list itself, and the page, whose
+    // height decides whether the end offset is reachable.
     const ro = new ResizeObserver(onResize);
     ro.observe(listRef.current);
+    ro.observe(document.body);
     return () => {
       clearTimeout(t);
       ro.disconnect();

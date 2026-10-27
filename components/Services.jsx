@@ -5,10 +5,11 @@ import Reveal from "./Reveal";
 import EagerReveal from "./EagerReveal";
 import SplitLines from "./SplitLines";
 import { DecodeLabel, ScrambleText } from "./Scramble";
+import HowItWorks from "./services/HowItWorks";
 import { EMAIL, WHATSAPP_LINK } from "@/lib/site";
 import { EASE } from "@/lib/motion";
 import { PROJECTS } from "@/lib/projects";
-import { SERVICES_HERO, SERVICES, PRICING_NOTE, STEPS, WORK, FAQS, START_TEXT } from "@/lib/services";
+import { SERVICES_HERO, SERVICES, PRICING_NOTE, WORK, FAQS, START_TEXT } from "@/lib/services";
 
 function CTAButtons() {
   return (
@@ -163,37 +164,7 @@ export default function Services() {
         </Reveal>
       </section>
 
-      {/* How it works */}
-      <section id="process" className="relative px-6 md:px-10 py-24 md:py-36 border-t border-rule bg-paper">
-        <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
-          <div className="col-span-12 md:col-span-3">
-            <div className="md:sticky md:top-32">
-              <DecodeLabel className="section-label">§ 02 — How it works</DecodeLabel>
-            </div>
-          </div>
-          <div className="col-span-12 md:col-span-9 md:col-start-4">
-            <SplitLines as="h2" className="font-display text-4xl md:text-6xl leading-tight tracking-tight text-ink">
-              From idea to live in <span className="italic text-electric">four steps</span>.
-            </SplitLines>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 md:col-span-9 md:col-start-4 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 md:gap-y-14">
-            {STEPS.map((st, i) => (
-              <Reveal key={st.n} delay={i * 0.07}>
-                <div className="flex gap-5">
-                  <div className="font-display text-4xl md:text-5xl italic text-electric leading-none">{st.n}</div>
-                  <div>
-                    <h3 className="font-display text-2xl md:text-3xl text-ink">{st.title}</h3>
-                    <p className="mt-2 max-w-md text-base text-ink-soft leading-relaxed">{st.desc}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HowItWorks />
 
       {/* Recent work */}
       <section id="recent" className="relative px-6 md:px-10 py-24 md:py-36 border-t border-rule">
