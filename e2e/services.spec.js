@@ -219,7 +219,8 @@ test.describe("recent work (desktop)", () => {
 
   test("keyboard reaches every card in order, and Enter opens it", async ({ page }) => {
     await page.goto("/services");
-    await workCards(page).first().locator("[data-decode]").or(workCards(page).first()).first().waitFor();
+    // hydrated: the decode controller marks each card (house rule for key tests)
+    await page.locator('#recent [data-card="0"][data-decode]').waitFor({ state: "attached" });
     await page.locator("#recent a.link-line").focus();
     for (let i = 0; i < 4; i++) {
       await page.keyboard.press("Tab");
@@ -356,4 +357,15 @@ test.describe("DDC Web Services on /services", () => {
     // visible, not only present: no-JS visitors see the tags (nothing starts hidden without JS)
     await expect(page.locator("#recent [data-card]").nth(1).getByText("Client design · not launched")).toBeVisible();
   });
+});
+
+test("FAQ questions are named by their text alone", async ({ page, isMobile }) => {
+  test.skip(isMobile);
+  await page.goto("/services");
+  // The summary's own name (Chrome's disclosure triangle) must not end in "+".
+  const cdp = await page.context().newCDPSession(page);
+  const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+  const toggles = nodes.filter((n) => n.role?.value === "DisclosureTriangle").map((n) => n.name?.value);
+  expect(toggles).toHaveLength(7);
+  for (const name of toggles) expect(name).toMatch(/\?$/);
 });

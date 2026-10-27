@@ -66,15 +66,12 @@ test("home is his profile page", () => {
   expect(page).toMatchObject({ "@type": "ProfilePage", url: SITE, mainEntity: { "@id": ID.person }, isPartOf: { "@id": ID.website } });
 });
 
-test("/services: one Service from the business, with a breadcrumb", () => {
+// No BreadcrumbList: the page shows no breadcrumb, and markup only states
+// what visitors can see.
+test("/services: one Service from the business", () => {
   const nodes = servicesGraph()["@graph"];
-  expect(nodes.map((n) => n["@type"])).toEqual(["WebPage", "Service", "BreadcrumbList"]);
-  const service = nodes[1];
-  expect(service).toMatchObject({ provider: { "@id": ID.business }, url: `${SITE}/services` });
-  expect(nodes[2].itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
-    [1, "Home", SITE],
-    [2, "Services", `${SITE}/services`],
-  ]);
+  expect(nodes.map((n) => n["@type"])).toEqual(["WebPage", "Service"]);
+  expect(nodes[1]).toMatchObject({ provider: { "@id": ID.business }, url: `${SITE}/services` });
 });
 
 test("each offer matches the visible service and its prices in both currencies", () => {

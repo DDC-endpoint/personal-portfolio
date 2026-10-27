@@ -230,7 +230,7 @@ export default function Services() {
                 <details className="group border-t border-rule py-6 first:border-t-0">
                   <summary className="flex items-center justify-between gap-6 cursor-pointer list-none font-display text-xl md:text-2xl text-ink [&::-webkit-details-marker]:hidden">
                     <h3 className="font-normal">{f.q}</h3>
-                    <span className="font-mono text-electric text-2xl leading-none transition-transform duration-300 group-open:rotate-45">
+                    <span aria-hidden="true" className="font-mono text-electric text-2xl leading-none transition-transform duration-300 group-open:rotate-45">
                       +
                     </span>
                   </summary>

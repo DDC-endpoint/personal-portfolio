@@ -91,7 +91,13 @@ test.describe("desktop", () => {
     await hydrated(page);
     await toTerminal(page, 0.5);
     await page.waitForTimeout(300);
+    // Typed progress so far, in px; a toggle must neither reset nor freeze it.
+    const typed = () => page.evaluate(() => [...document.querySelectorAll('[data-terminal] [data-layout="columns"] [data-k]')].reduce((s, el) => s + el.clientWidth, 0));
+    const before = await typed();
+    expect(before).toBeGreaterThan(0);
     await page.evaluate(() => document.documentElement.classList.toggle("dark"));
+    await expect(page.locator("[data-terminal]")).not.toHaveAttribute("data-term", "idle");
+    expect(await typed()).toBeGreaterThanOrEqual(before);
     await expect.poll(() => allVisible(page), { timeout: 6000 }).toBe(true);
   });
 });
