@@ -14,6 +14,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import IntroStamp from "@/components/IntroStamp";
 import { ldJson } from "@/lib/jsonld";
 import { homeGraph } from "@/lib/structuredData";
+import { SHARE } from "@/lib/shareImages";
 
 export const metadata = {
   alternates: { canonical: "/" },
@@ -23,6 +24,7 @@ export const metadata = {
     type: "website",
     url: "/",
     siteName: "Damian De Cruz",
+    images: [SHARE.home],
   },
 };
 

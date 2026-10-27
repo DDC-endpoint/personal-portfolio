@@ -1,6 +1,7 @@
-// Renders the share cards in og-cards.html to the app's opengraph-image.jpg
-// files. Needs the spike server (node docs/v3/spike/serve.cjs) on :3200.
-// Run from the repo root: node docs/v3/spike/og-cards.cjs
+// Renders the share cards in og-cards.html to public/og.jpg and
+// public/og-services.jpg (lib/shareImages.js). Needs the spike server
+// (node docs/v3/spike/serve.cjs) on :3200. Run from the repo root:
+// node docs/v3/spike/og-cards.cjs
 const path = require("path");
 
 (async () => {
@@ -8,8 +9,8 @@ const path = require("path");
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
   const out = {
-    home: "app/(site)/opengraph-image.jpg",
-    services: "app/(site)/services/opengraph-image.jpg",
+    home: "public/og.jpg",
+    services: "public/og-services.jpg",
   };
   for (const [card, file] of Object.entries(out)) {
     await page.goto(`http://localhost:3200/og-cards.html?card=${card}`);

@@ -6,6 +6,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import { FAQS, faqJsonLd } from "@/lib/services";
 import { ldJson } from "@/lib/jsonld";
 import { servicesGraph } from "@/lib/structuredData";
+import { SHARE } from "@/lib/shareImages";
 
 // The business page: DDC Web Services, the name Damian trades under
 // (docs/v3/seo-geo.md). The price leads the description.
@@ -19,11 +20,13 @@ export const metadata = {
     type: "website",
     url: "/services",
     siteName: "DDC Web Services",
+    images: [SHARE.services],
   },
   twitter: {
     card: "summary_large_image",
     title: "Web Design Services in Colombo | DDC Web Services",
     description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
+    images: [SHARE.services.url],
   },
 };
 

@@ -154,22 +154,25 @@ test.describe("footer and privacy", () => {
   });
 });
 
+// Static files in public/ only: a dynamic /opengraph-image route gave 502s
+// behind nginx + PM2 (HANDOFF.md → "DO NOT RE-BREAK" 2).
 test.describe("share images", () => {
   test.skip(({ isMobile }) => isMobile, "markup is the same on both projects");
-  for (const [path, file, alt] of [
-    ["/", /^\/opengraph-image(-\w+)?\.jpg$/, "Damian De Cruz, creative technologist and freelance web designer in Colombo, Sri Lanka"],
-    ["/services", /^\/services\/opengraph-image(-\w+)?\.jpg$/, "DDC Web Services by Damian De Cruz: clean, fast websites built in days, from LKR 18,000"],
-  ]) {
-    test(`${path} has its own 1200×630 card`, async ({ page, request }) => {
+  const HOME = ["/og.jpg", "Damian De Cruz, creative technologist and freelance web designer in Colombo, Sri Lanka"];
+  const SERVICES = ["/og-services.jpg", "DDC Web Services by Damian De Cruz: clean, fast websites built in days, from LKR 18,000"];
+  for (const [path, [file, alt]] of [["/", HOME], ["/services", SERVICES], ["/privacy", HOME]]) {
+    test(`${path} shares ${file}`, async ({ page, request }) => {
       await page.goto(path);
       const og = page.locator('meta[property="og:image"]');
       await expect(og).toHaveCount(1);
-      const url = new URL(await og.getAttribute("content"));
-      expect(url.pathname).toMatch(file); // Next adds a content hash
+      expect(new URL(await og.getAttribute("content")).pathname).toBe(file);
       expect(await page.locator('meta[property="og:image:width"]').getAttribute("content")).toBe("1200");
       expect(await page.locator('meta[property="og:image:height"]').getAttribute("content")).toBe("630");
       expect(await page.locator('meta[property="og:image:alt"]').getAttribute("content")).toBe(alt);
-      const res = await request.get(url.pathname + url.search);
+      expect(new URL(await page.locator('meta[name="twitter:image"]').getAttribute("content")).pathname).toBe(file);
+      // the page's own title, not Home's
+      expect(await page.locator('meta[name="twitter:title"]').getAttribute("content")).toBe(await page.title());
+      const res = await request.get(file);
       expect(res.status()).toBe(200);
       expect(res.headers()["content-type"]).toBe("image/jpeg");
     });

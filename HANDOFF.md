@@ -536,10 +536,10 @@ A 1:1 (2160×2160 at 2×) services poster lives at `posts/DDC-Services-Poster.pn
 
 ## Critical Design Rules — DO NOT RE-BREAK
 1. **Italic name clipping** — `overflow-hidden` on LINE-LEVEL divs (`pb-[0.04em]`), never on word spans
-2. **OG image** — static `public/og.jpg` only. No dynamic `/opengraph-image` route — causes 502 on nginx+PM2
+2. **OG images** — static files in `public/` only: `public/og.jpg` (Home, `/privacy`) and `public/og-services.jpg`, wired through `lib/shareImages.js` (V3). No `opengraph-image` route or file in `app/` — a dynamic one caused 502 on nginx+PM2
 3. **"Available · 2026"** — `<Availability />` component, never `<a>`, on both desktop and mobile
 4. **Mobile hamburger X** — y offset exactly `6` (not 7); lines use `gap-[5px]`
-5. **Footer** — `text-right` at all sizes, not just mobile
+5. **Footer** — option B (V3, Damian): three columns (© + trading name · tagline + Home/Services/Privacy links · version) read left, centre, right on desktop and are all centred on phones. Supersedes the old `text-right` at all sizes
 6. **No stats strip** in Leadership (removed by user)
 7. **No scroll parallax** on project titles (removed by user)
 8. **Theme transition flicker** — global `color` transition removed from `*`; only `background-color` + `border-color` on `*`, and `color` on `body` only

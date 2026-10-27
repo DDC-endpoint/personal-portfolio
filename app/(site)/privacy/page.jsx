@@ -2,21 +2,33 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ClientEnhancements from "@/components/ClientEnhancements";
 import { EMAIL } from "@/lib/site";
+import { SHARE } from "@/lib/shareImages";
 
 // The privacy notice (docs/v3/seo-geo.md): the site runs Google Analytics and
 // takes enquiries by email and WhatsApp, so it says plainly what that means.
 // Update UPDATED whenever the text changes.
 const UPDATED = "27 October 2026";
 
+const TITLE = "Privacy | Damian De Cruz";
+const DESCRIPTION = "What damiandc.com collects (Google Analytics, and what you send by email or WhatsApp), why, and how to ask for it to be removed.";
+
 export const metadata = {
-  title: "Privacy | Damian De Cruz",
-  description: "What damiandc.com collects (Google Analytics, and what you send by email or WhatsApp), why, and how to ask for it to be removed.",
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: "/privacy" },
   openGraph: {
-    title: "Privacy | Damian De Cruz",
+    title: TITLE,
+    description: DESCRIPTION,
     type: "website",
     url: "/privacy",
     siteName: "Damian De Cruz",
+    images: [SHARE.home],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [SHARE.home.url],
   },
 };
 
