@@ -256,6 +256,17 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
 - **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
+## Phase 5 planning (2026-10-27)
+
+Damian's answers while planning the page transition ([`plan-phase-5.md`](plan-phase-5.md)):
+
+- **Top-down sweep (Damian, from the prototype).** `spike/page-transition.html` compared three origins: from the click, from the centre, and a top-down sweep. He chose the sweep: a band of blue characters runs down the screen to cover the page, then runs down again to reveal the new one.
+- **About 1.3 s (Damian: "slow ×2").** Cover 0.52 s, hold 0.12 s, reveal 0.64 s, twice the prototype's first timing. This replaces design.md's "about 0.6 s".
+- **Every page (Damian).** Links between Home, `/services` and `/privacy`, and the 404 page's link home.
+- **Back and Forward decode in only (Damian).** The new page starts covered and the sweep reveals it at the scroll position the visitor left.
+- **The hero is already in place on arrival (Damian).** No curtain, no portrait wave, no float-in: the sweep is the only entrance. Reloads keep the curtain.
+- **Builder's calls** are listed in the plan for him to confirm, notably "See the full portfolio" → `/#work`, the 4 s fallback to a normal page load, focus moving to `<main>`, and GA4's enhanced measurement counting client-side page views.
+
 ## Gate changes (2026-10-27)
 
 Damian's changes at the Phase 4 visual gate:
@@ -304,7 +315,7 @@ Damian's changes at the Phase 4 visual gate:
 As of the end of 2026-10-27, Phases 1 to 4, the Timeline circuit and the SEO/GEO upgrade are built and merged into `v3` locally. The page transition is Phase 5, not yet planned. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
 
 - **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26. His later revisions are in "Phase 1 review (2026-10-27)" above; where they conflict with older entries, they win.
-- **Next:** plan Phase 5 (the page transition): questions first, then `plan-phase-5.md` for Damian's approval, built on `v3-phase-5` (native inline execution, one fresh reviewer at the end) and merged into `v3` locally on his approval. Then the performance pass, then `v3` → `main`.
+- **Next:** Damian approves [`plan-phase-5.md`](plan-phase-5.md) (the page transition) and its builder's calls, built on `v3-phase-5` (native inline execution, one fresh reviewer at the end) and merged into `v3` locally on his approval. Then the performance pass, then `v3` → `main`.
 - **Superseded:** "Loader frequency" (first visit per session) is replaced by the curtain on every reload. The page transition still covers Home ↔ `/services` navigation, but not reloads.
 - **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.
