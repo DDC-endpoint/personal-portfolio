@@ -13,6 +13,8 @@ import { DecodeLabel, ScrambleText } from "./Scramble";
 // reflows. Keyboard focus inside the card holds it fully open.
 // "Ivory" text on the card is text-ivory in light mode and text-ink in dark
 // mode, because the ivory token turns navy there.
+// The card keeps the light-mode electric (#2563EB) in dark mode too (Damian):
+// the brightened dark-mode token gives its small labels only ~3.4:1.
 
 const CLOCK_MS = 15_000;
 const FULL = "inset(0px 0px 0px 0px round 8px)";
@@ -102,7 +104,7 @@ export default function Contact() {
     <section id="contact" className="relative px-6 md:px-10 pt-32 md:pt-48 pb-20 md:pb-32 border-t border-rule">
       <DecodeLabel className="section-label">§ 08 — Contact</DecodeLabel>
 
-      <div ref={cardRef} data-contact-card className={`mt-8 md:mt-10 rounded-lg bg-electric ${onCard}`}>
+      <div ref={cardRef} data-contact-card className={`mt-8 md:mt-10 rounded-lg bg-electric dark:bg-[#2563EB] ${onCard}`}>
         <div ref={contentRef} data-contact-content className="flex flex-col gap-12 p-7 md:p-14">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <span className={`inline-flex items-center gap-2 ${mono}`}>

@@ -17,10 +17,10 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 1. **Branch:** `v3-phase-3` holds the whole Phase 3 build; nothing is merged into `v3` yet.
 2. **Gate:** Damian looks at the dev page (`http://localhost:3000/#timeline`, `#lens`, `#contact`) and the screenshots. Two questions are open for him:
-   - **Dark-mode Contact card contrast.** In dark mode the card is the brightened electric (#3B82F6) under light text, about 3.4:1. That's fine for the headline but below AA (4.5:1) for the small mono labels and the body copy. Within the token set, navy text reaches only 4.49:1. A real fix needs his call: keep the light-mode electric (#2563EB) for the card in both themes (one exception to the tokens-only rule), or accept the current pairing.
+   - **Dark-mode Contact card contrast.** Settled: the card keeps the light-mode electric (#2563EB) in both themes, so its text passes AA (about 4.8:1). It's the one exception to the tokens-only rule.
    - **The halftone look.** The dots are auto-levelled per photo, and in dark mode they are sized by brightness so the print stays a positive (see `decisions.md` → "Phase 3 build rulings"). This is a taste check.
 
-   Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, and a hydration error that a browser extension caused is gone.
+   Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, a hydration error that a browser extension caused is gone, and the dark-mode Contact card passes AA.
 3. **On his approval:** `git switch v3 && git merge --no-ff v3-phase-3`, delete the branch, and mark Phase 3 merged here.
 4. **Then Phase 4** (copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition), followed by `v3` → `main`. See "Before `v3` merges to `main`".
 5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
@@ -157,6 +157,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **CSS:** a `can-hover` variant (md+ with a real hover) and the focus ring on the Contact card, in `globals.css`.
 
 **Rules that came out of Phase 3** (don't undo them):
+- **The Contact card is `#2563EB` in both themes** (`dark:bg-[#2563EB]`, Damian). The dark token `#3B82F6` gives its text only about 3.4:1. Don't swap it back to the token.
 - **The global `:focus-visible` rule is unlayered**, so it beats Tailwind utilities: `outline-none` does nothing. On the electric card the ring takes the card's text colour (`globals.css`).
 - **Viewer taps close on `pointerup`, not `click`.** After a quick touch flick, Chrome can swallow the next tap's click.
 - **Scroll-scrubbed effects near the page end must stay reachable:** cap the end at the maximum scroll (`growProgress`).

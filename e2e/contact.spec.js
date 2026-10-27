@@ -158,3 +158,30 @@ test("card text is full ivory, not dimmed", async ({ page }, info) => {
     expect(colour).toBe("rgb(246, 246, 241)");
   }
 });
+
+// Damian: the card keeps the light-mode electric (#2563EB) in dark mode too,
+// so its small labels and body copy pass AA (the brightened #3B82F6 gave ~3.4:1).
+test.describe("dark mode", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.setItem("theme", "dark")));
+
+  test("card text passes AA on the card", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    const { bg, colours } = await card(page).evaluate((c) => ({
+      bg: getComputedStyle(c).backgroundColor,
+      colours: [...c.querySelectorAll("p, [data-clock], [data-availability], h2")].map((el) => getComputedStyle(el).color),
+    }));
+    expect(bg).toBe("rgb(37, 99, 235)");
+    const lum = (s) => {
+      const [r, g, b] = s.match(/\d+/g).map(Number).map((v) => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    for (const colour of colours) {
+      const [hi, lo] = [lum(colour), lum(bg)].sort((a, b) => b - a);
+      expect((hi + 0.05) / (lo + 0.05)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
