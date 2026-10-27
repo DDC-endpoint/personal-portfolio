@@ -129,3 +129,98 @@ test("the hero lede is a little wider, and never runs into the portrait", async 
     expect(lede.right).toBeLessThan(portrait.left - 24);
   }
 });
+
+const mobileOnly = (info) => test.skip(info.project.name !== "mobile", "phone");
+
+test("phones: the viewer's arrows sit at the bottom of the screen, clear of the photo", async ({ page }, info) => {
+  mobileOnly(info);
+  await page.goto("/");
+  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  const tile = page.locator('[data-frame="03"]');
+  await expect(tile).toHaveAttribute("data-develop", /.+/);
+  await tile.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await tile.click();
+  const dialog = page.getByRole("dialog", { name: "Photo viewer" });
+  await expect(dialog).toBeVisible();
+  await page.waitForTimeout(500);
+  const photo = await dialog.locator("[data-viewer-photo]").boundingBox();
+  const caption = await dialog.locator("[data-viewer-caption]").boundingBox();
+  const vh = page.viewportSize().height;
+  for (const name of ["Previous photo", "Next photo"]) {
+    const b = await dialog.getByRole("button", { name }).boundingBox();
+    expect(b.y).toBeGreaterThanOrEqual(Math.max(photo.y + photo.height, caption.y + caption.height));
+    expect(vh - (b.y + b.height)).toBeLessThan(48);
+  }
+  const prev = await dialog.getByRole("button", { name: "Previous photo" }).boundingBox();
+  const next = await dialog.getByRole("button", { name: "Next photo" }).boundingBox();
+  expect(prev.x).toBeLessThan(next.x);
+  // They still step.
+  await dialog.getByRole("button", { name: "Next photo" }).click();
+  await expect(dialog.locator("[data-viewer-caption]")).toContainText("FRAME 04");
+});
+
+test("desktop: the viewer's arrows stay beside the photo", async ({ page }, info) => {
+  desktopOnly(info);
+  await page.goto("/");
+  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  const tile = page.locator('[data-frame="03"]');
+  await expect(tile).toHaveAttribute("data-develop", /.+/);
+  await tile.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await tile.click();
+  const dialog = page.getByRole("dialog", { name: "Photo viewer" });
+  await page.waitForTimeout(500);
+  const photo = await dialog.locator("[data-viewer-photo]").boundingBox();
+  const prev = await dialog.getByRole("button", { name: "Previous photo" }).boundingBox();
+  expect(prev.x + prev.width).toBeLessThan(photo.x);
+  expect(Math.abs(prev.y + prev.height / 2 - (photo.y + photo.height / 2))).toBeLessThan(60);
+});
+
+test("phones: while the year strip is pinned, nothing shows through behind the header", async ({ page }, info) => {
+  mobileOnly(info);
+  await page.goto("/");
+  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  const strip = page.locator("[data-counter=strip]");
+  // Before it pins: no cover above it.
+  await strip.scrollIntoViewIfNeeded();
+  await expect(strip).not.toHaveAttribute("data-stuck");
+  // Pinned mid-Timeline: the strip's background reaches the top of the screen.
+  await page.locator("#timeline").evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY + el.offsetHeight / 2));
+  await expect(strip).toHaveAttribute("data-stuck", "");
+  const cover = await strip.evaluate((el) => {
+    const s = getComputedStyle(el, "::before");
+    const r = el.getBoundingClientRect();
+    return { display: s.display, bg: s.backgroundColor, height: parseFloat(s.height), stripTop: r.top };
+  });
+  expect(cover.display).toBe("block");
+  expect(cover.bg).not.toMatch(/rgba\(.*, 0\)|transparent/);
+  expect(cover.height).toBeGreaterThanOrEqual(cover.stripTop);
+  // Scrolled past the Timeline: unpinned again.
+  await page.locator("#resume").scrollIntoViewIfNeeded();
+  await expect(strip).not.toHaveAttribute("data-stuck");
+});
+
+test("the viewer's caption is two lines: the frame and month, then the title", async ({ page }, info) => {
+  await page.goto("/");
+  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  const tile = page.locator('[data-frame="03"]');
+  await expect(tile).toHaveAttribute("data-develop", /.+/);
+  await tile.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await tile.click();
+  const caption = page.getByRole("dialog", { name: "Photo viewer" }).locator("[data-viewer-caption]");
+  await expect(caption).toBeVisible();
+  const meta = caption.locator("[data-caption-meta]");
+  const title = caption.locator("[data-caption-title]");
+  await expect(meta).toHaveText(/^Frame 03 · May 2025$/i);
+  await expect(title).toHaveText("Architecture at nightfall", { ignoreCase: true });
+  const m = await meta.boundingBox();
+  const t = await title.boundingBox();
+  expect(t.y).toBeGreaterThanOrEqual(m.y + m.height - 1); // the title is the second line
+  // Each is one line on this screen.
+  for (const el of [meta, title]) {
+    const lines = await el.evaluate((e) => Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight)));
+    expect(lines).toBe(1);
+  }
+});

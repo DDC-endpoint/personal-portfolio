@@ -311,6 +311,9 @@ Damian's first look at the gate: "in the initial load and reload there is a flas
   - The FAQ questions (`<summary>`) no longer show the pointer finger (`summary` joins the custom cursor's list in `globals.css`), and they get the custom cursor's hover growth (`data-hover`).
   - A softer dark-mode halo was tried (fading over 1.9× its radius) and reverted at Damian's request: the dark halo is the same as the light one.
   - The hero lede is a little wider (Damian): `max-w-lg` (512 px) instead of `max-w-md` (448 px). On large screens it's five lines; from `md` to about 1280 px the grid column was already the limit, so nothing changes there, and it never reaches the portrait.
+  - On phones the viewer's arrows sit at the bottom corners of the screen (Damian: "bottom of the screen"), clear of the photo; from `md` they stay beside it.
+  - On phones, while the Timeline's year strip is pinned, its background reaches up behind the transparent header (`::before`, shown on `data-stuck`), so no text shows through there (Damian).
+  - The viewer's caption is two lines on every screen (Damian): "FRAME 03 · MAY 2025", small and faint, then the photo's name.
 
 ## Gate changes (2026-10-27)
 

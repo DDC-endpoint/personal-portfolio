@@ -158,12 +158,15 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
         />
       </div>
 
+      {/* Two lines, like the grid's tiles (Damian): the frame and month small
+          and faint, then the photo's name. */}
       <p
         data-viewer-caption
         aria-live="polite"
-        className="relative mt-4 px-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink"
+        className="relative mt-4 px-6 text-center font-mono uppercase tracking-[0.18em]"
       >
-        {`FRAME ${f.n} — ${f.caption} · ${f.month}`}
+        <span data-caption-meta className="block text-[10px] text-ink-faint">{`FRAME ${f.n} · ${f.month}`}</span>
+        <span data-caption-title className="mt-1.5 block text-[11px] text-ink">{f.caption}</span>
       </p>
 
       {/* Beside the photo from md; on phones, where the photo is nearly full
