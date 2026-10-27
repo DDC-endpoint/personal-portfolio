@@ -29,6 +29,10 @@ import { getLenis } from "@/lib/lenis";
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
 const PORTRAIT_WAIT_MS = 400; // the reveal waits this long for Home's portrait
 
+// Reduced motion and forced colours: page changes stay client-side but
+// instant, with no veil.
+const still = () => window.matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active)").matches;
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const frames = (n) =>
   new Promise((r) => {
@@ -138,6 +142,15 @@ export default function PageTransitions() {
     const waitForPath = (path) =>
       new Promise((resolve) => (pathRef.current === path ? resolve() : waiters.current.push({ path, resolve })));
 
+    // Swap the page in client-side. Nobody is ever stuck waiting: if the page
+    // doesn't come, the browser loads it the normal way.
+    async function swap(path, hash) {
+      const fallback = setTimeout(() => window.location.assign(path + hash), FALLBACK_MS);
+      router.push(path + hash, { scroll: false });
+      await waitForPath(path);
+      clearTimeout(fallback);
+    }
+
     const here = () => window.location.pathname + window.location.hash;
     let current = here(); // the URL whose scroll position is on screen
 
@@ -146,14 +159,17 @@ export default function PageTransitions() {
       markSoftNavigation();
       positions.current.set(current, window.scrollY);
       current = path + hash;
+      if (still()) {
+        await swap(path, hash);
+        await frames(1);
+        land(targetTop(hash) ?? 0);
+        busy.current = false;
+        return;
+      }
       const veil = await loadVeil();
       await veil.cover();
       const coveredAt = performance.now();
-      // Nobody is ever stuck under the veil: if the page doesn't come, load it.
-      const fallback = setTimeout(() => window.location.assign(path + hash), FALLBACK_MS);
-      router.push(path + hash, { scroll: false });
-      await waitForPath(path);
-      clearTimeout(fallback);
+      await swap(path, hash);
       await frames(2); // let the new page paint under the veil
       if (path === "/") await portraitDrawn();
       const left = TIMING.hold * 1000 - (performance.now() - coveredAt);
@@ -173,6 +189,13 @@ export default function PageTransitions() {
       if (!path || path === pathRef.current || busy.current) return;
       busy.current = true;
       markSoftNavigation();
+      if (still()) {
+        await waitForPath(path);
+        await frames(1);
+        land(positions.current.get(current) ?? 0);
+        busy.current = false;
+        return;
+      }
       const veil = await loadVeil();
       veil.coverNow();
       await waitForPath(path);
@@ -211,7 +234,7 @@ export default function PageTransitions() {
     window.addEventListener("popstate", onPop);
     const cancelIdle = whenIdle(async () => {
       for (const p of PAGES) if (p !== window.location.pathname) router.prefetch(p);
-      await loadVeil();
+      if (!still()) await loadVeil();
       if (!cancelled) document.documentElement.dataset.transitions = "ready";
     });
     return () => {

@@ -336,3 +336,57 @@ test.describe("back and forward", () => {
     expect(errors).toEqual([]);
   });
 });
+
+// ---- Task 6: link target, reduced motion, forced colours, phone menu -------
+
+test.describe("details", () => {
+  test("“See the full portfolio” lands on Home's #work", async ({ page }) => {
+    await record(page);
+    await page.goto("/services");
+    await settle(page);
+    const link = page.getByRole("link", { name: /See the full portfolio/ });
+    await expect(link).toHaveAttribute("href", "/#work");
+    await link.scrollIntoViewIfNeeded();
+    await mark(page);
+    await link.click();
+    await expect(page).toHaveURL(/\/#work$/);
+    await idle(page);
+    expect(await sameDocument(page)).toBe(true);
+    const top = await page.locator("#work").evaluate((el) => el.getBoundingClientRect().top);
+    expect(Math.abs(top - 80)).toBeLessThan(4);
+  });
+
+  for (const [name, media] of [["reduced motion", { reducedMotion: "reduce" }], ["forced colours", { forcedColors: "active" }]]) {
+    test(`${name}: client-side and instant, no veil`, async ({ page }) => {
+      await page.emulateMedia(media);
+      await record(page);
+      await page.goto("/");
+      await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 6000 });
+      await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
+      await page.evaluate(() => window.scrollTo(0, 400));
+      await mark(page);
+      await page.evaluate(() => { window.__veil = ["idle"]; });
+      await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+      await expect(page).toHaveURL(/\/services$/);
+      await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+      expect(await sameDocument(page)).toBe(true);
+      expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+      expect(await page.evaluate(() => document.activeElement === document.querySelector("main"))).toBe(true);
+    });
+  }
+
+  test("phone menu: gone on arrival, the page scrolls and isn't inert", async ({ page }, info) => {
+    test.skip(info.project.name !== "mobile", "the menu is phone-only");
+    await page.goto("/privacy");
+    await settle(page);
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.getByRole("dialog", { name: "Site menu" }).getByRole("link", { name: /Services/ }).click();
+    await expect(page).toHaveURL(/\/services$/);
+    await idle(page);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+    expect(await page.evaluate(() => document.querySelector("main").hasAttribute("inert"))).toBe(false);
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  });
+});

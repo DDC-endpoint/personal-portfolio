@@ -186,7 +186,7 @@ export default function Services() {
             </SplitLines>
             <Reveal delay={0.1}>
               <a
-                href="/"
+                href="/#work"
                 data-hover
                 className="group mt-5 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-electric link-line"
               >
