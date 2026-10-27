@@ -221,6 +221,50 @@ Phase 4 is planned in [`plan-phase-4.md`](plan-phase-4.md). Damian's answers whi
   - The recent-work cards activate like Projects.
   - `/services` metadata and Offer JSON-LD stay as they are, while the FAQ JSON-LD is built from the visible FAQ.
 
+**Approved (Damian, 2026-10-27).** He approved the plan and its builder's calls as written. In the same message he added an SEO and GEO upgrade, so the call that `/services` metadata and Offer JSON-LD stay as they are no longer holds. Those changes come from the SEO/GEO audit, are listed in the plan as Task 11, and need his approval before they're built, because they change copy and claims.
+
+## Phase 4 build and review (2026-10-27)
+
+Builder's rulings while building, and the fixes from the fresh review (no Critical findings; every Important and Minor finding fixed):
+
+- **The terminal types faster than the plan said:** 30 ms a command character, 6 ms an output character and 90 ms gaps, instead of 45/12/120. At the plan's speed the phone listing took over 6 s. Both layouts now finish in under 4.5 s (a unit test holds it).
+- **The terminal's cursor is a drawn block, not "▍".** The mono face's latin subset has no block glyphs, so the character rendered as nothing.
+- **The terminal shows four columns from `lg`, not `md` (review).** Between 768 and about 950 px the columns overlapped and the last one was clipped. Tablets get the folder-by-folder listing.
+- **Nothing starts hidden without JS (review, partly pre-existing).** framer-motion server-renders every entrance's start state inline (`opacity:0`, or the hero name below its line mask), and the project cards hid their screenshot, tags and blurb with plain classes. Without JS, most of Home and `/services` was invisible, which is also true of the live site today. A `html:not(.js)` rule in `globals.css` shows inline start states, and a new `nojs:` variant covers the class-based ones. A test checks every text on `/`, `/services` and `/privacy` with JS off.
+- **Share cards are static files (review).** HANDOFF's "DO NOT RE-BREAK" rule 2 forbids `opengraph-image` routes, because a dynamic one gave 502s behind nginx and PM2. The cards are `public/og.jpg` and `public/og-services.jpg`, wired through `lib/shareImages.js`, and HANDOFF rule 2 names both files. Footer B replaces HANDOFF rule 5 (`text-right` at all sizes).
+- **No BreadcrumbList (review):** `/services` shows no breadcrumb, and the markup only states what the page shows. `alternateName: "DDC"` stays, since "DDC" is in the nav on every page.
+- **The `/services` H1 kicker wraps at its dot on phones:** each half stays whole ("Freelance web designer ·" / "Colombo, Sri Lanka").
+- **The FAQ's "+" is `aria-hidden`,** so each question's disclosure is named by the question alone.
+- **The circuit completes by the bottom of the page** (`reachableEnd`) when its end offset is out of reach (Review Focus 5). It's shared by the Timeline and "How it works".
+- **Only the Timeline and "How it works" pin (Damian, at the gate).** The other § labels (About on Home; § 01, § 03 and § 04 on `/services`) had `sticky` wrappers that only pinned where the label column spanned the section; they no longer pin at all. "How it works" is laid out like the Timeline: its label column spans the section, and under the § label the current step's title pins in large serif type, decoding as the current moves (Brief → Design → Build → Launch), with a "02 / 04" count (`components/services/StepCounter.jsx`, his pick of three mock-ups). It's desktop only: Damian dropped the phone strip, which stays the Timeline's.
+
+## SEO and GEO (2026-10-27)
+
+Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit ran first; its summary and the work list are in [`seo-geo.md`](seo-geo.md). His answers:
+
+- **Business name: "Damian De Cruz, trading as DDC Web Services" (Damian).** Home stays person-led and `/services` is the business page, which he asked to be curated to match:
+  - The hero's identity block reads "DDC Web Services / by Damian De Cruz".
+  - The title is "Web Design Services in Colombo | DDC Web Services".
+  - The lead gains ", working as DDC Web Services".
+- **Build scope (Damian):** technical and schema fixes; titles, descriptions and the `/services` H1; a privacy page with footer links; new share images. Prices and policies don't change.
+- **Footer: option B from `spike/footer-mock.html`, centred on phones (Damian).** The three columns stay; the trading name sits under the © line, and Home · Services · Privacy sit under the tagline.
+- **Spades Solutions is "Client design · not launched" (Damian).** He'll finish the site later.
+- **No Google Business Profile (Damian):** he works online only, which Google's rules exclude.
+- **Builder's calls:**
+  - The `/services` H1 takes the kicker inside it, reading "Freelance web designer · Colombo, Sri Lanka", so the heading names the service and the place with no visual change. The kicker gains "web designer" for this.
+  - No LocalBusiness or ProfessionalService markup, because Google requires a street address and the home address stays private. An Organization "DDC Web Services" carries the business instead.
+  - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
+- **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
+
+## Gate changes (2026-10-27)
+
+Damian's changes at the Phase 4 visual gate:
+
+- **Prices follow the October 2026 research (Damian: "use the suggestions").** Every `/services` price moved, USD now follows one rule (about LKR ÷ 100), and larger builds start from about LKR 250,000. The new starting price (LKR 30,000 / $300) is also in the `/services` meta description, the share card (`public/og-services.jpg`, re-rendered) and its alt text. The research and its reasoning: [`pricing-2026-10.md`](pricing-2026-10.md).
+- **The Skills terminal spans the section's full width (Damian).** The label and heading row stays.
+- **Recent work is full-width editorial rows (Damian's pick of three mock-ups, `spike/recent-work-mock.html` → A).** Each row is a browser frame with the Projects skeleton → screenshot decode, beside a big italic number, the title, tag, year, blurb and link, swapping sides down the list; phones stack frame over text (`components/services/WorkRow.jsx`). He asked for decode on hover (desktop; phones keep the centred row) and no lift or moving shadow. Then, on seeing it: only the screenshot decodes (not the whole row), "Visit the site" gets the site's link animation (underline draws, arrow nudges, as "See the full portfolio"), and the rows are shorter (a 6-column frame instead of 7). So the row is an `article`, and only the screenshot and the link are links; the screenshot's is a duplicate, hidden from keyboards and screen readers, and focusing the text link decodes its row. The text side always shows, so Spades' "Client design · not launched" tag is always visible, which settles that gate question.
+- **The lab host answers its own `robots.txt` and 404s `/sitemap.xml`** (`proxy.js`), instead of a server change.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.

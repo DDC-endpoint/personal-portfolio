@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import Availability from "./Availability";
+import { ScrambleText } from "./Scramble";
 import { SHORT_YEAR } from "@/lib/site";
 
 // In-page section anchors for the /services route. These resolve on this page
@@ -25,7 +26,7 @@ function PortfolioButton({ onClick, className = "" }) {
       onClick={onClick}
       className={`group inline-flex items-center gap-2 bg-electric text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 mix-blend-normal isolate px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300 ${className}`}
     >
-      Portfolio
+      <ScrambleText text="Portfolio" />
       <span className="transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
     </a>
   );

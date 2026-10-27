@@ -51,7 +51,7 @@ export default function LensTile({ frame, index, onOpen }) {
         <Image
           ref={imgRef}
           src={frame.src}
-          alt=""
+          alt={`${caption}, ${month}`}
           fill
           sizes={hero ? "(min-width: 768px) 34vw, 100vw" : "(min-width: 768px) 17vw, 50vw"}
           className="object-cover"

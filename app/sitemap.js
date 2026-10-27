@@ -1,16 +1,16 @@
+// lastModified is the date a page's content last changed, set by hand when
+// it does: a build-time `new Date()` tells search engines every page changed
+// on every deploy. changeFrequency and priority are left out; Google ignores
+// both.
+const PAGES = [
+  { path: "", updated: "2026-10-27" },
+  { path: "/services", updated: "2026-10-27" },
+  { path: "/privacy", updated: "2026-10-27" },
+];
+
 export default function sitemap() {
-  return [
-    {
-      url: "https://damiandc.com",
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 1,
-    },
-    {
-      url: "https://damiandc.com/services",
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.9,
-    },
-  ];
+  return PAGES.map(({ path, updated }) => ({
+    url: `https://damiandc.com${path}`,
+    lastModified: updated,
+  }));
 }

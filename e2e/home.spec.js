@@ -61,6 +61,6 @@ test("structured data is still on the page", async ({ page }) => {
   await page.goto("/");
   const types = await page
     .locator('script[type="application/ld+json"]')
-    .evaluateAll((els) => els.map((el) => JSON.parse(el.textContent)["@type"]));
-  expect(types).toEqual(["Person", "Service"]);
+    .evaluateAll((els) => els.flatMap((el) => JSON.parse(el.textContent)["@graph"].map((n) => n["@type"])));
+  expect(types.sort()).toEqual(["Organization", "Person", "ProfilePage", "WebSite"]);
 });

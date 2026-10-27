@@ -11,10 +11,16 @@ import { NextResponse } from "next/server";
 //                                redirect since nothing has been shared)
 // The matcher excludes /api, /_next, and anything with a file extension, so
 // public/ assets like /lab/photo-1.webp, robots.txt, and icons are served
-// untouched on both hosts. Requires nginx to pass `proxy_set_header Host $host`.
+// untouched on both hosts, apart from two files the matcher adds back:
+//   lab host   /robots.txt  -> its own: allow all, no Sitemap line, and no
+//                              Disallow (that would advertise the lab; its
+//                              pages are noindex by meta instead)
+//   lab host   /sitemap.xml -> 404 (the main sitemap lists main-host pages)
+// Requires nginx to pass `proxy_set_header Host $host`.
 // "lab.localhost:3000" mirrors the lab host in dev.
 
 const LAB_HOST = "lab.damiandc.com";
+const LAB_ROBOTS = "User-Agent: *\nAllow: /\n";
 
 function isLabHost(host) {
   return host === LAB_HOST || host.startsWith("lab.localhost");
@@ -24,6 +30,12 @@ export function proxy(request) {
   const host = (request.headers.get("host") || "").toLowerCase();
   const { pathname } = request.nextUrl;
   const onLabPath = pathname === "/lab" || pathname.startsWith("/lab/");
+
+  if (pathname === "/robots.txt" || pathname === "/sitemap.xml") {
+    if (!isLabHost(host)) return;
+    if (pathname === "/sitemap.xml") return new NextResponse(null, { status: 404 });
+    return new NextResponse(LAB_ROBOTS, { headers: { "content-type": "text/plain; charset=utf-8" } });
+  }
 
   if (!isLabHost(host)) {
     // The lab lives only on the subdomain — hide the /lab tree on the main
@@ -47,5 +59,5 @@ export function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|_next|.*\\..*).*)", "/robots.txt", "/sitemap.xml"],
 };

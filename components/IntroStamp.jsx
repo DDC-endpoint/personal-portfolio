@@ -74,6 +74,8 @@ export default function IntroStamp() {
       {active && (
         <motion.div
           aria-hidden="true"
+          // scrambled letters: never a search snippet
+          data-nosnippet=""
           exit={{ clipPath: "inset(0 0 100% 0)" }}
           transition={{ duration: 0.35, ease: EASE }}
           className="intro-stamp fixed inset-0 z-65 bg-ivory pointer-events-none grid place-items-center"

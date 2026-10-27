@@ -17,7 +17,9 @@ import { LINK_MS } from "@/lib/decode";
 
 const LOADING = "loading… 2026 →";
 
-export default function ProjectCard({ project: p, index, active, onFocusCard, style, className = "" }) {
+// `linkNote` overrides the aria-label's suffix, e.g. "(portfolio home)" for a
+// card that links to / from another page.
+export default function ProjectCard({ project: p, index, active, onFocusCard, linkNote, style, className = "" }) {
   const rootRef = useRef(null);
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
@@ -35,17 +37,20 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
   const body = (
     <>
       <BrowserFrame domain={p.domain}>
-        <Skeleton />
+        {/* the skeletons hold decorative text (the ASCII mini portrait) */}
+        <div data-nosnippet="" className="contents">
+          <Skeleton />
+        </div>
         {live && (
           <img
             ref={imgRef}
             src={p.shot}
-            alt=""
+            alt={`${p.title} website, home page`}
             width={1440}
             height={900}
             loading="lazy"
             decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-top opacity-0 data-[on=true]:opacity-100 motion-reduce:opacity-100"
+            className="absolute inset-0 h-full w-full object-cover object-top opacity-0 data-[on=true]:opacity-100 motion-reduce:opacity-100 nojs:opacity-100"
           />
         )}
         <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full font-mono motion-reduce:hidden" />
@@ -56,7 +61,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
         </span>
         <span
           data-reveal
-          className="flex flex-wrap gap-1.5 opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100"
+          className="flex flex-wrap gap-1.5 opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100 nojs:opacity-100"
         >
           {live ? (
             p.tags.map((t) => (
@@ -65,7 +70,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
               </span>
             ))
           ) : (
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-electric">
+            <span data-nosnippet="" className="font-mono text-[10px] uppercase tracking-[0.2em] text-electric">
               <span ref={loadingRef} aria-hidden="true">
                 {LOADING}
               </span>
@@ -74,7 +79,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
           )}
         </span>
       </div>
-      <p id={blurbId} className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100">
+      <p id={blurbId} className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100 nojs:opacity-100">
         {p.blurb}
       </p>
     </>
@@ -95,7 +100,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
       href={p.href}
       target={p.self ? undefined : "_blank"}
       rel={p.self ? undefined : "noopener noreferrer"}
-      aria-label={`${p.title}, ${p.year} ${p.self ? "(back to top)" : "(opens in a new tab)"}`}
+      aria-label={`${p.title}, ${p.year} ${linkNote ?? (p.self ? "(back to top)" : "(opens in a new tab)")}`}
       aria-describedby={blurbId}
       onFocus={() => onFocusCard?.(index)}
       className={`${shared.className} rounded-md outline-offset-8 focus-visible:outline-2 focus-visible:outline-electric`}

@@ -1,4 +1,4 @@
-import { ENTRIES, litCount, circuitPoints, traceAt, counterYear, padLabel } from "@/lib/timeline";
+import { ENTRIES, litCount, circuitPoints, traceAt, counterYear, padLabel, reachableEnd } from "@/lib/timeline";
 
 test("ten entries, oldest first, Head Prefect after A-Levels", () => {
   expect(ENTRIES.map((e) => `${e.year} · ${e.title}`)).toEqual([
@@ -90,4 +90,20 @@ test("the counter shows each entry's first year", () => {
 test("pads are labelled P01 to P10", () => {
   expect(padLabel(0)).toBe("P01");
   expect(padLabel(9)).toBe("P10");
+});
+
+// The circuit's raw scroll progress runs from the list top at 70% down the
+// screen to the list end at 55%. Near the page end the second point may be
+// out of reach; reachableEnd is the progress at the page's maximum scroll.
+test("reachableEnd is 1 when the end offset can be scrolled to", () => {
+  expect(reachableEnd({ top: 2000, height: 800, vh: 1000, maxScroll: 5000 })).toBe(1);
+});
+
+test("reachableEnd is the progress at the bottom of the page otherwise", () => {
+  // y0 = 2000 - 700 = 1300, y1 = 2800 - 550 = 2250; max scroll 2000
+  expect(reachableEnd({ top: 2000, height: 800, vh: 1000, maxScroll: 2000 })).toBeCloseTo(700 / 950);
+});
+
+test("reachableEnd never goes to 0", () => {
+  expect(reachableEnd({ top: 2000, height: 800, vh: 1000, maxScroll: 0 })).toBeGreaterThan(0);
 });

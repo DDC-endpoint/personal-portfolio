@@ -2,6 +2,9 @@ import { Instrument_Serif, Manrope, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import MotionProvider from "@/components/MotionProvider";
+import { ldJson } from "@/lib/jsonld";
+import { siteGraph } from "@/lib/structuredData";
+import { SHARE } from "@/lib/shareImages";
 
 const GA_ID = "G-PC1HZKKSEC";
 
@@ -23,24 +26,24 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+// Site-wide defaults, which are Home's. Each page sets its own canonical and
+// og:url, so a page that forgets one (the 404, say) never points at Home.
 export const metadata = {
-  title: "Damian De Cruz — Creative Technologist & Freelance Web Designer",
-  description:
-    "Damian De Cruz — freelance web designer and developer based in Colombo, Sri Lanka. Clean, fast, custom websites for businesses and creatives, delivered in days, often 2–3. Available for hire.",
+  title: "Damian De Cruz — Freelance Web Designer & Developer",
+  description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
   metadataBase: new URL("https://damiandc.com"),
-  alternates: { canonical: "/" },
   openGraph: {
-    title: "Damian De Cruz — Creative Technologist & Freelance Web Designer",
-    description: "Freelance web designer & developer in Colombo, Sri Lanka. Clean, fast, custom websites — delivered in days, often 2–3.",
+    title: "Damian De Cruz — Freelance Web Designer & Developer",
+    description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
     type: "website",
     siteName: "Damian De Cruz",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Damian De Cruz — Creative Technologist & Freelance Web Designer" }],
+    images: [SHARE.home],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Damian De Cruz — Creative Technologist & Freelance Web Designer",
-    description: "Freelance web designer & developer in Colombo, Sri Lanka. Clean, fast, custom websites — delivered in days, often 2–3.",
-    images: ["/og.jpg"],
+    title: "Damian De Cruz — Freelance Web Designer & Developer",
+    description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
+    images: [SHARE.home.url],
   },
 };
 
@@ -48,57 +51,6 @@ export const metadata = {
 // Also stamps `js` on <html> — CSS uses it to hide JS-dependent chrome (the
 // IntroStamp curtain) from no-JS visitors before anything ever renders.
 const themeScript = `(function(){document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`;
-
-// JSON-LD Person structured data — helps Google associate this site with
-// the entity "Damian De Cruz" and link verified social profiles.
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Person",
-  name: "Damian De Cruz",
-  url: "https://damiandc.com",
-  jobTitle: "Creative Technologist",
-  affiliation: {
-    "@type": "EducationalOrganization",
-    name: "Informatics Institute of Technology",
-    alternateName: "IIT Sri Lanka",
-    url: "https://www.iit.ac.lk",
-  },
-  alumniOf: {
-    "@type": "EducationalOrganization",
-    name: "University of Westminster",
-    url: "https://www.westminster.ac.uk",
-  },
-  sameAs: [
-    "https://www.linkedin.com/in/damian-de-cruz/",
-    "https://github.com/EnderGuardian25",
-    "https://www.instagram.com/damian._.dc",
-  ],
-};
-
-// JSON-LD Service structured data — tells Google this site offers a bookable
-// web design/development service in Colombo, which helps surface it for
-// local "web designer / developer" service searches.
-const serviceJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Service",
-  serviceType: "Web Design and Development",
-  name: "Freelance Web Design & Development",
-  description:
-    "Custom websites — design, build, and launch. Clean, fast, responsive sites for businesses and creatives, delivered in days, often 2–3.",
-  url: "https://damiandc.com",
-  areaServed: {
-    "@type": "Place",
-    name: "Colombo, Sri Lanka",
-  },
-  provider: {
-    "@type": "Person",
-    name: "Damian De Cruz",
-    url: "https://damiandc.com",
-  },
-};
-
-// JSON for a <script> tag: "<" escaped so the data can never close it.
-const ldJson = (data) => JSON.stringify(data).replace(/</g, "\\u003c");
 
 export default function RootLayout({ children }) {
   return (
@@ -124,8 +76,9 @@ export default function RootLayout({ children }) {
         <div className="grain" aria-hidden />
         <div className="top-fade" aria-hidden />
         <MotionProvider>{children}</MotionProvider>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(serviceJsonLd) }} />
+        {/* The site's structured data: the WebSite, Damian and his business
+            (lib/structuredData.js). Pages add their own nodes by @id. */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(siteGraph()) }} />
       </body>
     </html>
   );

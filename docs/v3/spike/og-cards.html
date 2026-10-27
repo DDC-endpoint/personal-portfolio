@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Share cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* The 1200×630 share cards (opengraph-image.jpg) for Home and /services.
+     Rendered to public/og*.jpg by docs/v3/spike/og-cards.cjs; ?card=home|services.
+     og-portrait.png is the hero's ASCII portrait, exported from its canvas. */
+  :root { --ivory:#F6F6F1; --ink:#0B1F3A; --ink-soft:#16315A; --ink-faint:#5A6B82; --electric:#2563EB; --sky:#DBEAFE; --rule:#D9DEE6; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:1200px; height:630px; overflow:hidden; background:var(--ivory); color:var(--ink); font-family:Manrope,sans-serif; -webkit-font-smoothing:antialiased; }
+  .card { position:relative; width:1200px; height:630px; padding:56px 64px; display:none; }
+  .blob { position:absolute; border-radius:50%; background:var(--sky); filter:blur(80px); opacity:.75; }
+  .mono { font:500 15px 'JetBrains Mono',monospace; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); }
+  .faint { color:var(--ink-faint); }
+  .display { font-family:'Instrument Serif',serif; font-weight:400; }
+  .it { font-style:italic; color:var(--electric); }
+  .foot { position:absolute; left:64px; right:64px; bottom:52px; display:flex; justify-content:space-between; align-items:center; }
+
+  /* Home: the hero's name and portrait */
+  .home .name { margin-top:46px; font-size:168px; line-height:.82; letter-spacing:-.05em; text-transform:uppercase; }
+  .home .portrait { position:absolute; right:40px; bottom:0; height:600px;
+    -webkit-mask-image:linear-gradient(to bottom, #000 62%, transparent 98%); mask-image:linear-gradient(to bottom, #000 62%, transparent 98%); }
+
+  /* /services: the business, the offer and the starting price */
+  .services h1 { margin-top:40px; font-size:104px; line-height:.92; letter-spacing:-.02em; max-width:660px; }
+  .services .panel { position:absolute; right:64px; top:56px; bottom:52px; width:380px; border-radius:10px; background:var(--electric); color:var(--ivory); padding:36px 34px; display:flex; flex-direction:column; justify-content:space-between; }
+  .services .panel .mono { color:var(--ivory); }
+  .services .panel ul { list-style:none; display:flex; flex-direction:column; gap:12px; }
+  .services .panel li { font-size:22px; line-height:1.2; }
+  .services .price { font-family:'Instrument Serif',serif; font-size:48px; line-height:1; white-space:nowrap; }
+  .services .price small { display:block; margin-top:10px; font:500 13px 'JetBrains Mono',monospace; letter-spacing:.18em; text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <section class="card home" id="home">
+    <div class="blob" style="width:620px;height:620px;right:-120px;top:-180px"></div>
+    <!-- twice: the canvas glyphs are translucent, and one layer reads faint at card size -->
+    <img class="portrait" src="og-portrait.png" alt="">
+    <img class="portrait" src="og-portrait.png" alt="">
+    <div style="position:relative">
+      <div class="mono">Creative technologist · Freelance web designer</div>
+      <div class="display name">Damian<br><span class="it">De</span> Cruz.</div>
+    </div>
+    <div class="foot">
+      <span class="mono">Colombo · Sri Lanka</span>
+    </div>
+    <div class="mono faint" style="position:absolute;left:64px;bottom:84px">damiandc.com</div>
+  </section>
+
+  <section class="card services" id="services">
+    <div class="blob" style="width:520px;height:520px;left:-160px;bottom:-260px"></div>
+    <div style="position:relative">
+      <div class="mono">DDC Web Services · by Damian De Cruz</div>
+      <h1 class="display">Clean, fast websites, <span class="it">built in days.</span></h1>
+    </div>
+    <div class="foot" style="right:auto">
+      <span class="mono faint">Colombo, Sri Lanka · damiandc.com/services</span>
+    </div>
+    <div class="panel">
+      <ul>
+        <li>Websites &amp; landing pages</li>
+        <li>Business &amp; portfolio sites</li>
+        <li>Booking &amp; scheduling</li>
+        <li>Redesigns &amp; speed fixes</li>
+        <li>SEO &amp; AI visibility</li>
+      </ul>
+      <div class="price">From LKR 30,000<small>Intl from $300</small></div>
+    </div>
+  </section>
+
+  <script>
+    const card = new URLSearchParams(location.search).get("card") || "home";
+    document.getElementById(card).style.display = "block";
+  </script>
+</body>
+</html>
