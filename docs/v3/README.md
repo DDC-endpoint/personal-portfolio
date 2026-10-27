@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-27, Phase 3 merged, Timeline circuit merged)
+## Where we are (end of 2026-10-27: Phases 1–3 and the Timeline circuit merged, Phase 4 planned)
 
 | Track | State |
 |---|---|
@@ -15,14 +15,24 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | Phase 4: copy refresh, Leadership rows, Skills terminal, `/services` | **Planned (2026-10-27), waiting for Damian's approval.** See [`plan-phase-4.md`](plan-phase-4.md). |
 | Phase 5: page transition (Home ↔ `/services`) | Not started. Split out of Phase 4 at Damian's request. |
 
-### The next step: plan Phase 4
+### The next step (resume here): Damian approves the Phase 4 plan, then build it
 
-1. **Phase 3 is merged into `v3`** (2026-10-27, `60c1725`, a local `--no-ff` merge on Damian's approval). `v3-phase-3` is deleted.
-   - At the gate Damian settled the dark-mode Contact card: it keeps the light-mode electric (#2563EB) in both themes, so its text passes AA (about 4.8:1). It's the one exception to the tokens-only rule.
-   - Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, and a hydration error that a browser extension caused is gone.
-2. **The Timeline circuit is merged into `v3`** (2026-10-27): the running stitch became a circuit with a pinned year counter (`decisions.md` → "Timeline circuit").
-3. **Phase 4 is planned, waiting for Damian's approval:** [`plan-phase-4.md`](plan-phase-4.md) covers the Home copy refresh, Leadership rows, the Skills terminal and `/services`. On approval, build it on `v3-phase-4` (native inline execution, one fresh reviewer at the end). The page transition moved to **Phase 5**, after it (`decisions.md` → "Phase 4 planning"). After it, `v3` → `main`; see "Before `v3` merges to `main`".
-4. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+**State at hand-off (end of 2026-10-27):** on `v3`, working tree clean, last commit `docs(v3): …` (the hand-off docs). Phases 1–3 and the Timeline circuit are merged into `v3`. [`plan-phase-4.md`](plan-phase-4.md) is written and committed but **not approved yet**. Nothing of Phase 4 is built.
+
+1. **Get Damian's approval of [`plan-phase-4.md`](plan-phase-4.md).** It lists six "Builder's calls for Damian to confirm"; he hasn't answered them yet. The one most likely to change is the terminal's accent colour (`#60A5FA`, a second named exception to the token palette, because neither electric token passes AA on navy). If he changes a call, update the plan and `decisions.md` → "Phase 4 planning" before building.
+2. **On approval, build Phase 4:**
+   - Run `git switch v3 && git switch -c v3-phase-4`.
+   - Execute the plan task by task, inline (the `executing-plans` skill), test-first. Watch each test fail before writing code.
+   - Finish with one fresh reviewer on the most capable model over `git diff v3...v3-phase-4`, given the plan's Review Focus. Fix every finding, minors included.
+   - Verify with screenshots at 100% and 150% scaling, plus dark and reduced motion, and run Lighthouse for `/` and `/services`.
+3. **Gate:** show Damian the screenshots and open the dev page for him. On his approval, run `git switch v3 && git merge --no-ff v3-phase-4`, delete the branch and update these docs. No push.
+4. **Then Phase 5, the page transition (Home ↔ `/services`).** It was split out of Phase 4 at Damian's request (`decisions.md` → "Phase 4 planning"). The spec is `design.md` → "Global motion system" → "Page transition": a glyph dissolve of about 0.6 s, client-side navigation with a persistent overlay, and in-page links like `/#work` included. Reloads get the curtain, and arriving on Home this way never replays the portrait wave. Plan it the same way: questions first, then a `plan-phase-5.md` for his approval.
+5. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
+6. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+
+**History, for context:**
+- Phase 3 merged as `60c1725`. At its gate Damian settled the dark-mode Contact card (`#2563EB` in both themes) and raised five fixes (`decisions.md` → "Phase 3 gate fixes").
+- The Timeline's running stitch was replaced by a circuit with a pinned year counter after a five-way prototype (`spike/timeline-rails.html`), merged as `9eeed8c` (`decisions.md` → "Timeline circuit").
 
 ## Before `v3` merges to `main`
 
@@ -32,9 +42,9 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 ## How V3 ships
 
 1. `v3` is the integration branch, cut from `main` at `8cad99b`, just after PR #3.
-2. Each phase gets its own branch off `v3` and merges **into `v3`**, never into `main`. Phase 1 was merged locally at Damian's request; ask him whether later phases should be local merges or PRs.
+2. Each phase gets its own branch off `v3` and merges **into `v3`**, never into `main`. Every merge so far has been a local `--no-ff` merge at Damian's request, with no PR.
 3. After every merge, test `v3`: `npm test`, `npm run e2e`, screenshots (golden path, mobile, dark, reduced motion), and a Lighthouse run on production builds.
-4. When all four phases are in, `v3` merges to `main`, which triggers the site redeploy.
+4. When all five phases are in (Phase 5, the page transition, was split out of Phase 4), `v3` merges to `main`, which triggers the site redeploy.
 
 ## What Phase 1 built (on `v3`)
 
@@ -205,9 +215,11 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 ## Repo state at hand-off
 
 - **Branches:**
-  - `v3` (current) is local only, with no upstream. `v3-phase-1`, `v3-phase-2` and `v3-phase-3` are merged and deleted.
-  - The working tree is clean.
-- **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing".
+  - `v3` (current) is local only, with no upstream. `v3-phase-1`, `v3-phase-2`, `v3-phase-3` and `v3-timeline-circuit` are merged and deleted.
+  - The working tree is clean. `v3-phase-4` doesn't exist yet; cut it from `v3` once the plan is approved.
+  - Other local branches, `main` and `upgrade/deps`, are untouched by V3.
+- **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another.
+- **Prototype server:** `node docs/v3/spike/serve.cjs` on :3200 (see "Running the prototypes"). It may still be running from the last session.
 - **`AGENTS.md`** is generated by `next dev` on every run. It is gitignored (Damian's call); don't commit it.
 - **Gallery photos:** all 10 are committed in `public/photography/`, EXIF-free. The originals stay in `assets/photography-originals/` (gitignored; they still carry EXIF and GPS). `npm run optimize-photos` rewrites every output, so restore unchanged ones with `git checkout -- public/photography`.
 - **Hero headshot:** the original ("Professional Young Man's Studio Headshot.png") is in Damian's Downloads folder and must never be committed. The processed `public/hero/portrait.webp` is committed; Damian approved publishing it, and it has no EXIF.
@@ -235,8 +247,10 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - Ask many, as multiple choice, up to four at a time, with a recommended option first. He often answers "Other" with a short note, so read those carefully.
   - When he asks for something ambiguous, ask before building.
 - **Show, don't describe.**
-  - Visual questions get a live prototype in the browser.
+  - Visual questions get a live prototype in the browser. For an open-ended "what could we do?", build several options in one switchable spike page (like `spike/timeline-rails.html`) and let him pick and combine.
   - Before showing anything, verify it yourself with headless screenshots.
+  - **Check alignment at 100% and 150% display scaling,** not only 2×. His screen isn't 200%, and the Phase 3 dot-print offset only showed below it.
+- **Approval can include the merge.** For the Timeline circuit he approved the prototype with "merge to v3", so it was built test-first, verified, merged and reported, with no separate gate. Without such an instruction, phases still stop at a visual gate.
 - **References are narrow.** A shared reference targets one element only; don't restyle anything else from it.
 - **Keep the site's existing style:** light-blue palette, Instrument Serif, JetBrains Mono, Manrope. He rejects anything that "feels AI coded".
 - **Execution:**
@@ -246,6 +260,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - He wants review minors fixed too, not deferred (Phase 2). Fix them test-first along with the Critical and Important findings.
   - Mono buttons scramble their letters only. An arrow sits outside `ScrambleText`, so a button never changes width (Phase 2).
   - At a visual gate, open the dev page in his browser for him (`Start-Process "http://localhost:3000/#…"`).
+- **Chat style:** he sometimes turns on caveman mode (terse replies) for a session. It applies to chat only; docs, commits and code comments stay in normal prose.
 - **Record everything:**
   - Decisions go into `docs/v3/` straight away.
   - Commit locally with clear messages.
@@ -254,12 +269,11 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 ## Tooling notes for this machine
 
-- **Heredocs and stdin:** in the Bash tool, a long heredoc with quotes often fails to parse. Write Python or JS edit scripts to the scratchpad with the Write tool, then run them with `< /dev/null`. A command that reads stdin, like a bare `cat >`, hangs until it times out.
-- **Line endings:** many files are CRLF. Edit scripts must detect them (`"\r\n" in s`) and keep them, or exact-match replacements fail.
-
 - **Shell:** the Bash tool is Git Bash on Windows.
-  - Long heredocs containing quotes or backslashes sometimes fail to parse. Write a Python or JS script to the session scratchpad and run it instead.
-  - Many files have CRLF line endings. Preserve them when editing programmatically.
+- **Heredocs and stdin:** a long heredoc with quotes or backslashes often fails to parse. Write Python or JS edit scripts to the scratchpad with the Write tool, then run them with `< /dev/null`. A command that reads stdin, like a bare `cat >`, hangs until it times out.
+- **Line endings:** many files are CRLF. Edit scripts must detect them (`"\r\n" in s`) and keep them, or exact-match replacements fail.
+- **Scratch scripts that drive Playwright** live outside the repo, so import it by path: `import { chromium } from "file:///D:/personal-portfolio/node_modules/@playwright/test/index.mjs"`.
+- **No ESLint config** in this repo: `npx eslint` errors out, so don't treat linting as a check.
 - **Dev server:** never run `npm run build` while `next dev` is running. Stop it first; the Lighthouse procedure above does this.
 
 ## Running the prototypes
@@ -272,7 +286,7 @@ node docs/v3/spike/make-gallery-copies.cjs                                      
 node docs/v3/spike/serve.cjs                                                            # http://localhost:3200
 ```
 
-Then open `/portrait-spike.html`, `/hero-live.html` or `/gallery-mockup.html`. All generated images are gitignored.
+Then open `/portrait-spike.html`, `/hero-live.html`, `/gallery-mockup.html` or `/timeline-rails.html` (the Timeline options; `?v=3&y=1` is the chosen circuit plus year counter). All generated images are gitignored.
 
 ## Ground rules (from CLAUDE.md, still in force)
 

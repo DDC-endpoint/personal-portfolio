@@ -254,10 +254,10 @@ Phase 4 is planned in [`plan-phase-4.md`](plan-phase-4.md). Damian's answers whi
 
 ## Status and next step (continue here)
 
-As of the end of 2026-10-27, Phases 1, 2 and 3 are built and merged into `v3` locally. Phase 4 is next. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
+As of the end of 2026-10-27, Phases 1, 2 and 3 and the Timeline circuit are built and merged into `v3` locally. Phase 4 is planned in [`plan-phase-4.md`](plan-phase-4.md) and waits for Damian's approval; the page transition is Phase 5. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
 
 - **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26. His later revisions are in "Phase 1 review (2026-10-27)" above; where they conflict with older entries, they win.
-- **Next:** plan Phase 4 for Damian's approval. Then build it on `v3-phase-4` (native inline execution, one fresh reviewer at the end) and merge it into `v3` locally on his approval. After that, `v3` → `main`.
+- **Next:** Damian approves `plan-phase-4.md` and answers its builder's calls (see "Phase 4 planning"). Then build it on `v3-phase-4` (native inline execution, one fresh reviewer at the end) and merge it into `v3` locally on his approval. Then plan and build Phase 5 (the page transition), then `v3` → `main`.
 - **Superseded:** "Loader frequency" (first visit per session) is replaced by the curtain on every reload. The page transition still covers Home ↔ `/services` navigation, but not reloads.
 - **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.

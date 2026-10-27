@@ -247,7 +247,8 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
    - **Phase 1:** motion system primitives (decode, label decode, link scramble), the hero portrait plus its loader wave (with the IntroStamp curtain kept), the cursor-lens, and Marquee removal.
    - **Phase 2:** Projects.
    - **Phase 3:** Timeline, Lens and Contact. For the Lens, run the 6 new originals in `assets/photography-originals/` through `npm run optimize-photos`, check for no EXIF/GPS, and add them with the captions and placement from the Lens table.
-   - **Phase 4:** copy refresh across Home, the remaining quiet-section upgrades (Leadership rows, Skills terminal), `/services`, and the page transition.
+   - **Phase 4:** copy refresh across Home, the remaining quiet-section upgrades (Leadership rows, Skills terminal) and `/services`.
+   - **Phase 5:** the page transition. It was split out of Phase 4 on 2026-10-27 at Damian's request, because it moves both pages to client-side navigation.
 3. Test `v3` after every merge: golden path, mobile, reduced motion and a Lighthouse mobile run.
 4. When all phases are in, merge `v3` to `main`, which triggers the redeploy.
 
