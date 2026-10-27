@@ -17,7 +17,9 @@ import { LINK_MS } from "@/lib/decode";
 
 const LOADING = "loading… 2026 →";
 
-export default function ProjectCard({ project: p, index, active, onFocusCard, style, className = "" }) {
+// `linkNote` overrides the aria-label's suffix, e.g. "(portfolio home)" for a
+// card that links to / from another page.
+export default function ProjectCard({ project: p, index, active, onFocusCard, linkNote, style, className = "" }) {
   const rootRef = useRef(null);
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
@@ -95,7 +97,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
       href={p.href}
       target={p.self ? undefined : "_blank"}
       rel={p.self ? undefined : "noopener noreferrer"}
-      aria-label={`${p.title}, ${p.year} ${p.self ? "(back to top)" : "(opens in a new tab)"}`}
+      aria-label={`${p.title}, ${p.year} ${linkNote ?? (p.self ? "(back to top)" : "(opens in a new tab)")}`}
       aria-describedby={blurbId}
       onFocus={() => onFocusCard?.(index)}
       className={`${shared.className} rounded-md outline-offset-8 focus-visible:outline-2 focus-visible:outline-electric`}

@@ -6,10 +6,10 @@ import EagerReveal from "./EagerReveal";
 import SplitLines from "./SplitLines";
 import { DecodeLabel, ScrambleText } from "./Scramble";
 import HowItWorks from "./services/HowItWorks";
+import RecentWork from "./services/RecentWork";
 import { EMAIL, WHATSAPP_LINK } from "@/lib/site";
 import { EASE } from "@/lib/motion";
-import { PROJECTS } from "@/lib/projects";
-import { SERVICES_HERO, SERVICES, PRICING_NOTE, WORK, FAQS, START_TEXT } from "@/lib/services";
+import { SERVICES_HERO, SERVICES, PRICING_NOTE, FAQS, START_TEXT } from "@/lib/services";
 
 function CTAButtons() {
   return (
@@ -191,55 +191,10 @@ export default function Services() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-rule border-y border-rule">
-          {WORK.map((w, i) => {
-            const external = w.href.startsWith("http");
-            const title = PROJECTS.find((p) => p.slug === w.slug).title;
-            return (
-              <Reveal key={w.slug} delay={i * 0.06} className="h-full">
-                <a
-                  href={w.href}
-                  target={external ? "_blank" : undefined}
-                  rel={external ? "noopener noreferrer" : undefined}
-                  data-hover
-                  className="group relative overflow-hidden flex flex-col h-full bg-ivory px-7 py-9"
-                >
-                  {/* Hover fill: mist sweeps up from the bottom edge (same
-                      treatment as the homepage project cards). */}
-                  <span
-                    aria-hidden
-                    className="absolute inset-0 bg-mist origin-bottom scale-y-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-y-100"
-                  />
-                  <div className="relative section-label mb-3">{w.tag}</div>
-                  <h3 className="relative font-display text-2xl md:text-3xl text-ink group-hover:text-electric transition-colors duration-500">
-                    {title}
-                  </h3>
-                  <p className="relative mt-3 text-sm md:text-base text-ink-soft leading-relaxed flex-1">{w.note}</p>
-                  <span className="relative mt-5 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink group-hover:text-electric transition">
-                    {external ? "Visit" : "View"}
-                    <svg
-                      aria-hidden="true"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 14 14"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="inline-block transition-transform duration-500 group-hover:translate-x-0.5"
-                    >
-                      <path
-                        d={external ? "M3 11 L11 3 M4.5 3 H11 V9.5" : "M2 7 H12 M8 3 L12 7 L8 11"}
-                        pathLength="1"
-                        className="[stroke-dasharray:1] [stroke-dashoffset:1] group-hover:[stroke-dashoffset:0] [@media(hover:none)]:[stroke-dashoffset:0] transition-[stroke-dashoffset] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                      />
-                    </svg>
-                  </span>
-                </a>
-              </Reveal>
-            );
-          })}
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 md:col-span-9 md:col-start-4">
+            <RecentWork />
+          </div>
         </div>
       </section>
 

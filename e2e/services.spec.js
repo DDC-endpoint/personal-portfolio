@@ -172,3 +172,72 @@ test.describe("How it works without JS", () => {
     expect(pads).toEqual(Array(4).fill("rgb(37, 99, 235)"));
   });
 });
+
+// § 03 Recent work: skeleton browser cards, activated like Projects.
+const workCards = (page) => page.locator("#recent [data-card]");
+
+test("recent work: four cards in order with the right links", async ({ page }) => {
+  await page.goto("/services");
+  const cards = workCards(page);
+  await expect(cards).toHaveCount(4);
+  await expect(cards.locator("[data-card-label]")).toHaveText([
+    "01 — This Portfolio — 2026",
+    "02 — Spades Solutions — 2026",
+    "03 — Aloys Travels — 2026",
+    "04 — Danella De Cruz — 2026",
+  ]);
+  const hrefs = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
+  expect(hrefs).toEqual(["/", "https://enderguardian25.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"]);
+  await expect(cards.first()).not.toHaveAttribute("target", /.*/);
+  for (const i of [1, 2, 3]) {
+    await expect(cards.nth(i)).toHaveAttribute("target", "_blank");
+    await expect(cards.nth(i)).toHaveAttribute("rel", /noopener/);
+  }
+  await expect(cards.first()).toHaveAttribute("aria-label", "This Portfolio, 2026 (portfolio home)");
+});
+
+test("recent work: reduced motion shows the screenshots", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/services");
+  const ops = await workCards(page).locator("img").evaluateAll((els) => els.map((el) => getComputedStyle(el).opacity));
+  expect(ops).toEqual(["1", "1", "1", "1"]);
+});
+
+test.describe("recent work (desktop)", () => {
+  test.skip(({ isMobile }) => isMobile);
+
+  test("hover decodes the card under a still pointer", async ({ page }) => {
+    await page.goto("/services");
+    const card = workCards(page).nth(2);
+    await card.scrollIntoViewIfNeeded();
+    const box = await card.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
+    await expect(card).toHaveAttribute("data-decode", "shot", { timeout: 2500 });
+    await expect.poll(() => card.locator("p").evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+    for (const i of [0, 1, 3]) await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "false");
+  });
+
+  test("keyboard reaches every card in order, and Enter opens it", async ({ page }) => {
+    await page.goto("/services");
+    await workCards(page).first().locator("[data-decode]").or(workCards(page).first()).first().waitFor();
+    await page.locator("#recent a.link-line").focus();
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("Tab");
+      await expect(workCards(page).nth(i)).toBeFocused();
+      await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "true");
+    }
+    await workCards(page).first().focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/$/);
+  });
+});
+
+test("on touch the centred card decodes", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.goto("/services");
+  const card = workCards(page).nth(1);
+  await card.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await page.mouse.wheel(0, 1); // a scroll event to re-pick
+  await expect(card).toHaveAttribute("data-active", "true", { timeout: 2000 });
+  await expect(workCards(page).first()).toHaveAttribute("data-active", "false");
+});
