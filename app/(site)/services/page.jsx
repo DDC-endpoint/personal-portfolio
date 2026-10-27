@@ -7,25 +7,24 @@ import { FAQS, faqJsonLd } from "@/lib/services";
 import { ldJson } from "@/lib/jsonld";
 import { servicesGraph } from "@/lib/structuredData";
 
+// The business page: DDC Web Services, the name Damian trades under
+// (docs/v3/seo-geo.md). The price leads the description.
 export const metadata = {
-  title: "Web Design Services in Colombo | Damian De Cruz",
-  description:
-    "Freelance web design & development in Colombo, Sri Lanka. Custom business sites, portfolios, booking systems, and redesigns — clean, fast, and often delivered in days. Starting from LKR 18,000.",
+  title: "Web Design Services in Colombo | DDC Web Services",
+  description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
   alternates: { canonical: "/services" },
   openGraph: {
-    title: "Web Design Services in Colombo | Damian De Cruz",
-    description:
-      "Freelance web design & development in Colombo, Sri Lanka. Custom sites, booking systems & redesigns — clean, fast, delivered in days. From LKR 18,000.",
+    title: "Web Design Services in Colombo | DDC Web Services",
+    description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
     type: "website",
     url: "/services",
-    siteName: "Damian De Cruz",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Web Design Services — Damian De Cruz" }],
+    siteName: "DDC Web Services",
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Web Design Services in Colombo | DDC Web Services" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Web Design Services in Colombo | Damian De Cruz",
-    description:
-      "Freelance web design & development in Colombo, Sri Lanka. Custom sites, booking systems & redesigns — clean, fast, delivered in days.",
+    title: "Web Design Services in Colombo | DDC Web Services",
+    description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
     images: ["/og.jpg"],
   },
 };

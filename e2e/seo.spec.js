@@ -47,3 +47,51 @@ test.describe("server HTML", () => {
     }
   });
 });
+
+test.describe("metadata", () => {
+  test.skip(({ isMobile }) => isMobile, "markup is the same on both projects");
+
+  const meta = (page, sel, attr = "content") => page.locator(sel).first().getAttribute(attr);
+
+  test("Home: title, description, canonical and og:url", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveTitle("Damian De Cruz — Freelance Web Designer & Developer");
+    expect(await meta(page, 'meta[name="description"]')).toBe(
+      "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices."
+    );
+    expect(await meta(page, 'link[rel="canonical"]', "href")).toBe("https://damiandc.com");
+    expect(await meta(page, 'meta[property="og:url"]')).toBe("https://damiandc.com");
+    expect(await meta(page, 'meta[property="og:title"]')).toBe("Damian De Cruz — Freelance Web Designer & Developer");
+  });
+
+  test("/services: the business title, a price-first description, canonical", async ({ page }) => {
+    await page.goto("/services");
+    await expect(page).toHaveTitle("Web Design Services in Colombo | DDC Web Services");
+    const d = await meta(page, 'meta[name="description"]');
+    expect(d.startsWith("Websites in Sri Lanka from LKR 18,000")).toBe(true);
+    expect(await meta(page, 'link[rel="canonical"]', "href")).toBe("https://damiandc.com/services");
+    expect(await meta(page, 'meta[property="og:url"]')).toBe("https://damiandc.com/services");
+    expect(await meta(page, 'meta[property="og:site_name"]')).toBe("DDC Web Services");
+  });
+
+  test("a 404 has no canonical", async ({ page }) => {
+    const res = await page.goto("/no-such-page");
+    expect(res.status()).toBe(404);
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  });
+
+  test("the sitemap lists real content dates", async ({ request }) => {
+    const xml = await (await request.get("/sitemap.xml")).text();
+    expect(xml).not.toContain("changefreq");
+    expect(xml).not.toContain("priority");
+    const dates = [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
+    expect(dates.length).toBeGreaterThanOrEqual(2);
+    // content dates, not the build's timestamp
+    for (const d of dates) expect(d).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  test("no X-Powered-By header", async ({ request }) => {
+    const res = await request.get("/");
+    expect(res.headers()["x-powered-by"]).toBeUndefined();
+  });
+});

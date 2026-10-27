@@ -25,23 +25,23 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+// Site-wide defaults, which are Home's. Each page sets its own canonical and
+// og:url, so a page that forgets one (the 404, say) never points at Home.
 export const metadata = {
-  title: "Damian De Cruz — Creative Technologist & Freelance Web Designer",
-  description:
-    "Damian De Cruz — freelance web designer and developer based in Colombo, Sri Lanka. Clean, fast, custom websites for businesses and creatives, delivered in days, often 2–3. Available for hire.",
+  title: "Damian De Cruz — Freelance Web Designer & Developer",
+  description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
   metadataBase: new URL("https://damiandc.com"),
-  alternates: { canonical: "/" },
   openGraph: {
-    title: "Damian De Cruz — Creative Technologist & Freelance Web Designer",
-    description: "Freelance web designer & developer in Colombo, Sri Lanka. Clean, fast, custom websites — delivered in days, often 2–3.",
+    title: "Damian De Cruz — Freelance Web Designer & Developer",
+    description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
     type: "website",
     siteName: "Damian De Cruz",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Damian De Cruz — Creative Technologist & Freelance Web Designer" }],
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Damian De Cruz — Freelance Web Designer & Developer" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Damian De Cruz — Creative Technologist & Freelance Web Designer",
-    description: "Freelance web designer & developer in Colombo, Sri Lanka. Clean, fast, custom websites — delivered in days, often 2–3.",
+    title: "Damian De Cruz — Freelance Web Designer & Developer",
+    description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
     images: ["/og.jpg"],
   },
 };
