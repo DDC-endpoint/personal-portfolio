@@ -223,6 +223,24 @@ Phase 4 is planned in [`plan-phase-4.md`](plan-phase-4.md). Damian's answers whi
 
 **Approved (Damian, 2026-10-27).** He approved the plan and its builder's calls as written. In the same message he added an SEO and GEO upgrade, so the call that `/services` metadata and Offer JSON-LD stay as they are no longer holds. Those changes come from the SEO/GEO audit, are listed in the plan as Task 11, and need his approval before they're built, because they change copy and claims.
 
+## SEO and GEO (2026-10-27)
+
+Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit ran first; its summary and the work list are in [`seo-geo.md`](seo-geo.md). His answers:
+
+- **Business name: "Damian De Cruz, trading as DDC Web Services" (Damian).** Home stays person-led and `/services` is the business page, which he asked to be curated to match:
+  - The hero's identity block reads "DDC Web Services / by Damian De Cruz".
+  - The title is "Web Design Services in Colombo | DDC Web Services".
+  - The lead gains ", working as DDC Web Services".
+- **Build scope (Damian):** technical and schema fixes; titles, descriptions and the `/services` H1; a privacy page with footer links; new share images. Prices and policies don't change.
+- **Footer: option B from `spike/footer-mock.html`, centred on phones (Damian).** The three columns stay; the trading name sits under the © line, and Home · Services · Privacy sit under the tagline.
+- **Spades Solutions is "Client design · not launched" (Damian).** He'll finish the site later.
+- **No Google Business Profile (Damian):** he works online only, which Google's rules exclude.
+- **Builder's calls:**
+  - The `/services` H1 takes the kicker inside it, reading "Freelance web designer · Colombo, Sri Lanka", so the heading names the service and the place with no visual change. The kicker gains "web designer" for this.
+  - No LocalBusiness or ProfessionalService markup, because Google requires a street address and the home address stays private. An Organization "DDC Web Services" carries the business instead.
+  - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
+- **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.

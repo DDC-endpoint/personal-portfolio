@@ -376,6 +376,52 @@
 - [ ] **Step 5:** Run `e2e/services.spec.js` and `e2e/contact.spec.js`. Expected: PASS. Screenshot desktop at three growth points, mobile, dark and reduced motion, then Read them.
 - [ ] **Step 6:** Commit: `feat(v3): /services start card grows like Contact`.
 
+### Task 11: SEO and GEO upgrade
+
+Added at approval (Damian, 2026-10-27). The audit summary, decisions and the off-repo list are in [`seo-geo.md`](seo-geo.md). It runs after Task 9, so it builds on the final `/services`. Every step goes test-first.
+
+**Files:**
+- Create: `lib/structuredData.js`, `tests/unit/structuredData.test.js`, `app/(site)/privacy/page.jsx`, `app/(site)/opengraph-image.*`, `app/(site)/services/opengraph-image.*`, `e2e/seo.spec.js`
+- Modify: `app/(site)/layout.jsx`, `app/(site)/page.jsx`, `app/(site)/services/page.jsx`, `app/sitemap.js`, `next.config.mjs`, `components/Footer.jsx`, `components/Services.jsx`, `components/Hero.jsx`, `components/IntroStamp.jsx`, `components/projects/ProjectCard.jsx`, `components/lens/LensTile.jsx`, `components/timeline/YearCounter.jsx`, `app/(lab)/lab/page.jsx`, `lib/projects.js`, `lib/services.js`, `e2e/home.spec.js` (its JSON-LD type list changes)
+
+**Steps:**
+1. **Structured data** (`lib/structuredData.js`, unit-tested):
+   - Pure builders for one `@graph`. Every node has a stable `@id` under `https://damiandc.com/#…`.
+   - WebSite.
+   - Person: `image` is the portrait, Colombo is the locality, plus `knowsAbout`. `affiliation` is IIT and Westminster; `alumniOf` is St. Joseph's College. `sameAs` comes from `SOCIALS` minus Discord.
+   - Organization "DDC Web Services": `founder` is the Person, `url` is `/services`, plus `email`.
+   - ProfilePage on Home.
+   - On `/services`: one Service whose OfferCatalog is built from `SERVICES`, with LKR and USD `PriceSpecification`s (`minPrice`) and the retainer per month (`unitCode: "MON"`), plus a BreadcrumbList.
+   - The layout's site-wide Service goes.
+   - **Tests:** every `@id` reference resolves within the graph; each offer's prices equal the visible ones; nothing says `alumniOf` Westminster.
+2. **Metadata:**
+   - The Home title, the descriptions and the `/services` title and description per `seo-geo.md`.
+   - The canonical moves from the layout into each page.
+   - `og:url` on Home.
+   - `app/sitemap.js` uses fixed content dates and drops `changefreq` and `priority`.
+   - `poweredByHeader: false`.
+   - **Tests (e2e):** each page's canonical and title; the 404 page has no canonical; the sitemap has no build-time dates.
+3. **`/services` copy for the trading name:**
+   - The hero identity block.
+   - The lead clause.
+   - The kicker inside the H1.
+   - "Prices updated October 2026" under the pricing note.
+   - The FAQ questions become `h3` inside `summary`.
+   - Spades' tag reads "Client design · not launched" on both pages.
+   - **Tests:** the H1's accessible name contains "web designer" and "Colombo"; the FAQ JSON-LD test still passes.
+4. **Snippet hygiene and alt text:**
+   - `data-nosnippet` on the IntroStamp root, the mini ASCII portrait, the YearCounter and the upcoming cards' "loading…" lines.
+   - Descriptive `alt` on project screenshots and gallery photos.
+   - The H1 reads "De".
+   - **Tests:** no `<img alt="">` on Home; the curtain carries `data-nosnippet`.
+5. **Privacy page and footer B:**
+   - `/privacy` covers GA4, email and WhatsApp contact, and how to ask for data to be removed. It's linked from the footer and added to the sitemap.
+   - Footer B is centred on phones.
+   - **Tests:** the footer links resolve; the footer layout on both projects.
+6. **Share images:** `opengraph-image` for Home and `/services` (read `node_modules/next/dist/docs/` for the file convention first), 1200×630, from the site's fonts and tokens. Screenshot them and Read them.
+7. **Lab:** the title no longer says "Lab" twice.
+8. Commit after each step; scan every staged diff for personal data.
+
 ### Task 10: Phase verification, docs and merge
 
 - [ ] **Step 1:** `npm test && npm run e2e`. Expected: all pass.
