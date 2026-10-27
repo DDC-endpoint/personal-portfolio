@@ -267,6 +267,18 @@ Damian's answers while planning the page transition ([`plan-phase-5.md`](plan-ph
 - **The hero is already in place on arrival (Damian).** No curtain, no portrait wave, no float-in: the sweep is the only entrance. Reloads keep the curtain.
 - **Damian approved the plan and every builder's call (2026-10-27):** "See the full portfolio" → `/#work`; same-page links smooth-scroll; a slow flicker while covered; a 4 s fallback to a normal page load; focus moves to `<main>` on arrival; the reveal waits up to 0.4 s for Home's portrait; reduced motion and forced colours navigate instantly with no veil; idle prefetch of the other pages; GA4's enhanced measurement counts client-side page views (he checks the setting); `cacheComponents` stays off.
 
+### First load: the decode reveal replaces the curtain (Damian, during the build, 2026-10-27)
+
+Damian, mid-build: "Let the initial load itself have the decode fade instead of the curtain. I think that will be more aesthetic." His answers:
+
+- **Every page.** A first load or reload of Home, `/services`, `/privacy` or the 404 page starts covered and the sweep reveals it, so a first load looks like the end of a page change. (The curtain was Home only.)
+- **Home keeps its entrance.** After the reveal, the portrait's wave builds and the hero text rises, as they did after the curtain. Arriving by a page change still skips both.
+- **The stamp stays.** "DAMIAN DE CRUZ" and the coordinates still resolve from noise in the middle, now over the covered glyph field, before the sweep.
+- **Every load and reload,** like the curtain.
+- Reduced motion, forced colours and no JS: no cover at all, as before.
+
+This supersedes "Curtain back, on every reload" (Phase 1 review) for how the cover looks and where it plays; the timing rule (every load) stands.
+
 ## Gate changes (2026-10-27)
 
 Damian's changes at the Phase 4 visual gate:
