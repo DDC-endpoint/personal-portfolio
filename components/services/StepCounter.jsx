@@ -6,28 +6,14 @@ import { scrambleText, TICK_MS } from "@/lib/decode";
 // How it works' pinned step (Damian): the latest lit step's title in large
 // serif type, decoding from the last one (Brief → Design → …), and a
 // "02 / 04" count. The sibling of the Timeline's YearCounter, without the
-// odometer. Decorative: the list itself carries every title.
-//   side:  under the § label, in the sticky label column (md and up)
-//   strip: a compact strip stuck under the nav (phones)
+// odometer. It sits under the § label in the sticky label column, md and up
+// only: phones get no strip here (Damian; that stays the Timeline's).
+// Decorative: the list itself carries every title.
 // Hidden without JS. Reduced motion: the title switches instantly.
 
 const TITLE_MS = 450;
 
-const LOOK = {
-  side: {
-    root: "hidden js:md:block mt-10",
-    title: "text-5xl xl:text-7xl",
-    count: "mt-3",
-  },
-  strip: {
-    root: "hidden js:max-md:flex sticky top-20 z-10 -mx-6 mb-10 items-baseline justify-between gap-5 border-b border-rule bg-paper px-6 py-3",
-    title: "text-4xl",
-    count: "",
-  },
-};
-
-export default function StepCounter({ index, reduce, variant }) {
-  const look = LOOK[variant];
+export default function StepCounter({ index, reduce }) {
   const title = STEPS[Math.max(0, index)].title;
   const titleRef = useRef(null);
 
@@ -62,15 +48,15 @@ export default function StepCounter({ index, reduce, variant }) {
   }, [title, index, reduce]);
 
   return (
-    <div data-step-counter={variant} aria-hidden data-nosnippet="" className={look.root}>
+    <div data-step-counter aria-hidden data-nosnippet="" className="hidden js:md:block mt-10">
       <div
         ref={titleRef}
         data-step-title
-        className={`font-display leading-none tracking-tight text-ink transition-opacity duration-500 ${look.title} ${
+        className={`font-display text-5xl xl:text-7xl leading-none tracking-tight text-ink transition-opacity duration-500 ${
           index < 0 ? "opacity-25" : ""
         }`}
       />
-      <div data-step-count className={`font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint ${look.count}`}>
+      <div data-step-count className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
         {`${String(index + 1).padStart(2, "0")} / ${String(STEPS.length).padStart(2, "0")}`}
       </div>
     </div>

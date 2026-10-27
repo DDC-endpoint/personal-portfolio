@@ -14,8 +14,8 @@ import { STEPS } from "@/lib/services";
 // Timeline's circuit (Damian). Pads light as the current reaches them and
 // each step goes from faint to full ink; the big italic step number stays.
 // Laid out like the Timeline: the label column spans the section, so the
-// § label and the current step's title (StepCounter) pin beside the steps;
-// phones get the strip under the nav. Only these two sections pin.
+// § label and the current step's title (StepCounter) pin beside the steps,
+// md and up. Phones pin nothing here. Only these two sections pin.
 // No JS and reduced motion: the finished circuit.
 export default function HowItWorks() {
   const sectionRef = useRef(null);
@@ -30,7 +30,7 @@ export default function HowItWorks() {
         <div className="col-span-12 md:col-span-3">
           <div className="md:sticky md:top-32">
             <DecodeLabel className="section-label">§ 02 — How it works</DecodeLabel>
-            <StepCounter variant="side" index={litNow - 1} reduce={reduce} />
+            <StepCounter index={litNow - 1} reduce={reduce} />
           </div>
         </div>
 
@@ -38,8 +38,6 @@ export default function HowItWorks() {
           <SplitLines as="h2" className="mb-12 md:mb-16 font-display text-4xl md:text-6xl leading-tight tracking-tight text-ink">
             From idea to live in <span className="italic text-electric">four steps</span>.
           </SplitLines>
-
-          <StepCounter variant="strip" index={litNow - 1} reduce={reduce} />
 
           <motion.div
             ref={listRef}

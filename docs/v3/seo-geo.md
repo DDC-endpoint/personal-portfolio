@@ -71,7 +71,7 @@ See [`plan-phase-4.md`](plan-phase-4.md) → Task 11 for the steps and tests. In
 - ~~Redirect every `www.damiandc.com` request with a 301 to `https://damiandc.com$request_uri`.~~ **Done 2026-10-27:** `http://www` and `https://www` both answer one 301 to the apex, keeping the path and query.
 - ~~Add `server_tokens off;`.~~ **Done 2026-10-27:** the `Server` header reads `nginx`, with no version.
 - Optionally, send a short `Cache-Control` on HTML, and a longer one on `public/` images.
-- Give the lab host its own `robots.txt`, and a 404 for `/sitemap.xml`. It still serves the main site's robots and sitemap (checked 2026-10-27). Optional.
+- ~~Give the lab host its own `robots.txt`, and a 404 for `/sitemap.xml`.~~ **Done in the repo instead (`proxy.js`):** the lab host answers its own `robots.txt` (allow all, no Sitemap line, no Disallow) and a 404 for `/sitemap.xml`. Live once `v3` deploys.
 
 **Search tools:**
 - Verify the site in Google Search Console and Bing Webmaster Tools.

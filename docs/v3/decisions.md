@@ -236,7 +236,7 @@ Builder's rulings while building, and the fixes from the fresh review (no Critic
 - **The `/services` H1 kicker wraps at its dot on phones:** each half stays whole ("Freelance web designer ·" / "Colombo, Sri Lanka").
 - **The FAQ's "+" is `aria-hidden`,** so each question's disclosure is named by the question alone.
 - **The circuit completes by the bottom of the page** (`reachableEnd`) when its end offset is out of reach (Review Focus 5). It's shared by the Timeline and "How it works".
-- **Only the Timeline and "How it works" pin (Damian, at the gate).** The other § labels (About on Home; § 01, § 03 and § 04 on `/services`) had `sticky` wrappers that only pinned where the label column spanned the section; they no longer pin at all. "How it works" is laid out like the Timeline: its label column spans the section, and under the § label the current step's title pins in large serif type, decoding as the current moves (Brief → Design → Build → Launch), with a "02 / 04" count (`components/services/StepCounter.jsx`, his pick of three mock-ups). Phones get it as a strip under the nav, like the Timeline's year counter.
+- **Only the Timeline and "How it works" pin (Damian, at the gate).** The other § labels (About on Home; § 01, § 03 and § 04 on `/services`) had `sticky` wrappers that only pinned where the label column spanned the section; they no longer pin at all. "How it works" is laid out like the Timeline: its label column spans the section, and under the § label the current step's title pins in large serif type, decoding as the current moves (Brief → Design → Build → Launch), with a "02 / 04" count (`components/services/StepCounter.jsx`, his pick of three mock-ups). It's desktop only: Damian dropped the phone strip, which stays the Timeline's.
 
 ## SEO and GEO (2026-10-27)
 
@@ -254,7 +254,7 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - The `/services` H1 takes the kicker inside it, reading "Freelance web designer · Colombo, Sri Lanka", so the heading names the service and the place with no visual change. The kicker gains "web designer" for this.
   - No LocalBusiness or ProfessionalService markup, because Google requires a street address and the home address stays private. An Organization "DDC Web Services" carries the business instead.
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
-- **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`).
+- **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
 ## Phase 1 review (2026-10-27)
 

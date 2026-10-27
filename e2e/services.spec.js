@@ -160,18 +160,19 @@ test("reduced motion is the finished circuit", async ({ page }) => {
   await expect(litSteps(page)).toHaveCount(4);
   await expect(page.locator("#process [data-head]")).toBeHidden();
   await expect(page.locator("#process [data-flow]")).toBeHidden();
-  await expect(stepCounter(page, test.info()).locator("[data-step-title]")).toHaveText("Launch");
+  if (test.info().project.name === "desktop") await expect(stepCounter(page).locator("[data-step-title]")).toHaveText("Launch");
 });
 
 // Only the Timeline and How it works pin (Damian). Here the § label and the
-// current step's title pin beside the steps on desktop; phones get a strip
-// under the nav, like the Timeline's.
-const stepCounter = (page, info) => page.locator(info.project.name === "desktop" ? "[data-step-counter=side]" : "[data-step-counter=strip]");
+// current step's title pin beside the steps on desktop. Phones get no strip
+// (Damian: that stays the Timeline's).
+const stepCounter = (page) => page.locator("[data-step-counter]");
 const TITLES = ["Brief", "Design", "Build", "Launch"];
 
-test("the pinned step title follows the lit step", async ({ page }, info) => {
+test("the pinned step title follows the lit step", async ({ page, isMobile }) => {
+  test.skip(isMobile);
   await page.goto("/services");
-  const c = stepCounter(page, info);
+  const c = stepCounter(page);
   for (const p of [0.45, 1]) {
     await stepsProgress(page, p);
     await page.waitForTimeout(900);
@@ -187,7 +188,7 @@ test("How it works pins its label and step title beside the steps, then leaves",
   test.skip(isMobile);
   await page.goto("/services");
   const label = page.locator("#process .section-label");
-  const side = page.locator("[data-step-counter=side]");
+  const side = stepCounter(page);
   const scrollTo = (where) =>
     page.evaluate((where) => {
       const r = document.getElementById("process").getBoundingClientRect();
@@ -204,19 +205,13 @@ test("How it works pins its label and step title beside the steps, then leaves",
   await expect.poll(async () => (await label.boundingBox()).y).toBeLessThan(100);
 });
 
-test("on phones the step strip sticks under the nav", async ({ page, isMobile }) => {
+test("on phones How it works pins nothing", async ({ page, isMobile }) => {
   test.skip(!isMobile);
-  await page.goto("/services", { waitUntil: "networkidle" });
-  await page.evaluate(() => document.fonts.ready);
+  await page.goto("/services");
   await stepsProgress(page, 0.5);
-  // The nav floats in over about 1.2 s, so poll until it has landed.
-  const gap = async () => {
-    const strip = await page.locator("[data-step-counter=strip]").boundingBox();
-    const nav = await page.locator("header").first().boundingBox();
-    return Math.abs(strip.y - (nav.y + nav.height));
-  };
-  await expect.poll(gap, { timeout: 3000 }).toBeLessThanOrEqual(2);
-  await expect(page.locator("[data-step-counter=side]")).toBeHidden();
+  await expect(stepCounter(page)).toBeHidden();
+  const sticky = await page.locator("#process *").evaluateAll((els) => els.filter((el) => getComputedStyle(el).position === "sticky").length);
+  expect(sticky).toBe(0);
 });
 
 test("no other section label pins", async ({ page, isMobile }) => {
@@ -235,8 +230,8 @@ test.describe("How it works without JS", () => {
   test("shows the finished line", async ({ page, isMobile }) => {
     test.skip(isMobile);
     await page.goto("/services");
-    await expect(page.locator("[data-step-counter]")).toHaveCount(2);
-    for (const c of await page.locator("[data-step-counter]").all()) await expect(c).toBeHidden();
+    await expect(stepCounter(page)).toHaveCount(1);
+    await expect(stepCounter(page)).toBeHidden();
     await expect(page.locator("#process [data-trace-fallback]")).toBeVisible();
     const pads = await page.locator("#process [data-dot]").evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));
     expect(pads).toEqual(Array(4).fill("rgb(37, 99, 235)"));

@@ -205,7 +205,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - The section labels decode.
   - The mono buttons scramble, with their arrows outside.
   - The FAQ questions are `h3`s.
-- **How it works:** the four steps on the Timeline's circuit (`components/services/HowItWorks.jsx`). Its § label and the current step's title pin beside the steps (`StepCounter.jsx`), or in a strip under the nav on phones.
+- **How it works:** the four steps on the Timeline's circuit (`components/services/HowItWorks.jsx`). Its § label and the current step's title pin beside the steps (`StepCounter.jsx`), desktop only.
 - **Recent work:** four skeleton browser cards that activate like Projects (`RecentWork.jsx`). Spades is tagged "Client design · not launched".
 - **Start a project:** the growing electric card, shared with Contact (`useGrowCard.js`, `StartCard.jsx`).
 

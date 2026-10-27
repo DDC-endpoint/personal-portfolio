@@ -185,6 +185,32 @@ test("the lab's title says Lab once", async ({ page, isMobile }) => {
   await expect(page).toHaveTitle("Lab — Damian De Cruz");
 });
 
+// The lab host gets its own robots.txt (allow all, no Disallow, which would
+// advertise it; the lab is noindex by meta) and no sitemap. The main host
+// keeps the main site's (seo-geo.md → server items, done in proxy.js).
+test.describe("robots and sitemap per host", () => {
+  test.skip(({ isMobile }) => isMobile, "same responses on both projects");
+
+  // Through the browser: Node can't resolve lab.localhost, Chromium can.
+  test("lab host: its own robots.txt, no sitemap", async ({ page }) => {
+    const robots = await page.goto("http://lab.localhost:3000/robots.txt");
+    expect(robots.status()).toBe(200);
+    expect(robots.headers()["content-type"]).toContain("text/plain");
+    const body = await robots.text();
+    expect(body).toMatch(/User-Agent: \*/i);
+    expect(body).not.toMatch(/sitemap|disallow/i);
+    expect((await page.goto("http://lab.localhost:3000/sitemap.xml")).status()).toBe(404);
+  });
+
+  test("main host: the main site's robots.txt and sitemap", async ({ request }) => {
+    const robots = await request.get("/robots.txt");
+    expect(await robots.text()).toContain("Sitemap: https://damiandc.com/sitemap.xml");
+    const sitemap = await request.get("/sitemap.xml");
+    expect(sitemap.status()).toBe(200);
+    expect(await sitemap.text()).toContain("https://damiandc.com/services");
+  });
+});
+
 // Without JS nothing may start hidden (plan → Global Constraints): no-JS
 // visitors, and crawlers that don't run scripts, see the whole page.
 test.describe("no JS: every text is visible", () => {
