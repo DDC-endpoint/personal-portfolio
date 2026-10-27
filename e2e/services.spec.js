@@ -90,6 +90,30 @@ test.describe("motion basics (desktop)", () => {
   });
 });
 
+// From § 02 on, the § label pins in its column for the whole section, as on
+// Home's Timeline, and leaves with the section (Damian).
+test.describe("section labels pin (desktop)", () => {
+  test.skip(({ isMobile }) => isMobile);
+
+  for (const id of ["process", "recent", "faq"]) {
+    test(`#${id}`, async ({ page }) => {
+      await page.goto("/services");
+      const label = page.locator(`#${id} .section-label`).first();
+      const scrollTo = (where) =>
+        page.evaluate(([id, where]) => {
+          const r = document.getElementById(id).getBoundingClientRect();
+          const top = r.top + window.scrollY;
+          // "mid": the section top 300px above the screen; "end": its bottom 100px from the top.
+          window.scrollTo(0, where === "mid" ? top + 300 : top + r.height - 100);
+        }, [id, where]);
+      await scrollTo("mid");
+      await expect.poll(async () => Math.round((await label.boundingBox()).y)).toBe(128);
+      await scrollTo("end");
+      await expect.poll(async () => (await label.boundingBox()).y).toBeLessThan(100);
+    });
+  }
+});
+
 test("the mobile menu's Portfolio button scrambles", async ({ page, isMobile }) => {
   test.skip(!isMobile);
   await page.goto("/services");
