@@ -166,7 +166,9 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
         {`FRAME ${f.n} — ${f.caption} · ${f.month}`}
       </p>
 
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 md:px-6">
+      {/* Beside the photo from md; on phones, where the photo is nearly full
+          width, at the bottom corners of the screen (Damian). */}
+      <div className="pointer-events-none absolute inset-0 flex items-end justify-between px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:items-center md:px-6 md:pb-0">
         <button type="button" aria-label="Previous photo" onClick={() => onStep(-1)} className={`${btn} text-2xl`}>
           ←
         </button>
