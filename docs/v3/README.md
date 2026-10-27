@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-27, Phase 3 built)
+## Where we are (2026-10-27, Phase 3 merged)
 
 | Track | State |
 |---|---|
@@ -10,20 +10,16 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | Design, copy, decisions | **Approved by Damian (2026-10-26)**, with all 10 builder's calls confirmed. Later revisions are logged in [`decisions.md`](decisions.md) → "Phase 1 review (2026-10-27)". |
 | **Phase 1**: motion primitives, hero portrait + loader wave, cursor lens, Marquee removal | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-1.md`](plan-phase-1.md), plus Damian's follow-ups (see "What Phase 1 built"). Tests are green, and Lighthouse is at parity with `main`. |
 | **Phase 2**: Projects (diagonal skeleton showcase) | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-2.md`](plan-phase-2.md), reviewed, and every review finding is fixed. Damian approved the screenshots. Tests are green, and Lighthouse is at parity with `main`. |
-| **Phase 3**: Timeline, Lens (gallery) and Contact | **Built on `v3-phase-3`, waiting for Damian's visual approval (2026-10-27).** Damian approved [`plan-phase-3.md`](plan-phase-3.md) unchanged. It was built test-first, reviewed by a fresh reviewer, and every finding is fixed (see "What Phase 3 built"). Tests are green, and Lighthouse is at parity with `main`. Not merged yet. |
+| **Phase 3**: Timeline, Lens (gallery) and Contact | **Done and merged into `v3` locally (2026-10-27).** Damian approved [`plan-phase-3.md`](plan-phase-3.md) unchanged. It was built test-first, reviewed by a fresh reviewer, and every finding is fixed (see "What Phase 3 built"); Damian's gate fixes are in `decisions.md` → "Phase 3 gate fixes". Tests are green, and Lighthouse is at parity with `main`. |
 | Phase 4: copy refresh, Leadership rows, Skills terminal, `/services`, page transition | Not started. |
 
-### The next step: Damian's visual gate on Phase 3, then merge
+### The next step: plan Phase 4
 
-1. **Branch:** `v3-phase-3` holds the whole Phase 3 build; nothing is merged into `v3` yet.
-2. **Gate:** Damian looks at the dev page (`http://localhost:3000/#timeline`, `#lens`, `#contact`) and the screenshots. Two questions are open for him:
-   - **Dark-mode Contact card contrast.** Settled: the card keeps the light-mode electric (#2563EB) in both themes, so its text passes AA (about 4.8:1). It's the one exception to the tokens-only rule.
-   - **The halftone look.** The dots are auto-levelled per photo, and in dark mode they are sized by brightness so the print stays a positive (see `decisions.md` → "Phase 3 build rulings"). This is a taste check.
-
-   Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, a hydration error that a browser extension caused is gone, and the dark-mode Contact card passes AA.
-3. **On his approval:** `git switch v3 && git merge --no-ff v3-phase-3`, delete the branch, and mark Phase 3 merged here.
-4. **Then Phase 4** (copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition), followed by `v3` → `main`. See "Before `v3` merges to `main`".
-5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+1. **Phase 3 is merged into `v3`** (2026-10-27, `60c1725`, a local `--no-ff` merge on Damian's approval). `v3-phase-3` is deleted.
+   - At the gate Damian settled the dark-mode Contact card: it keeps the light-mode electric (#2563EB) in both themes, so its text passes AA (about 4.8:1). It's the one exception to the tokens-only rule.
+   - Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, and a hydration error that a browser extension caused is gone.
+2. **Phase 4 next:** copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition. Write `plan-phase-4.md` for Damian's approval, then build it on `v3-phase-4`. After it, `v3` → `main`; see "Before `v3` merges to `main`".
+3. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
 
 ## Before `v3` merges to `main`
 
@@ -124,7 +120,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Canvases size from the ResizeObserver entry,** never `getBoundingClientRect` (a Phase 1 test counts canvas measurements).
 - **Keyboard e2e tests wait for `hydrated(page)`** before pressing keys.
 
-## What Phase 3 built (on `v3-phase-3`)
+## What Phase 3 built (on `v3`)
 
 **§ 05 Timeline (oldest first):**
 - Ten entries from `copy.md`, plus the new "2024–2025 · Head Prefect" entry after A-Levels.
@@ -204,8 +200,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 ## Repo state at hand-off
 
 - **Branches:**
-  - `v3` is local only, with no upstream. `v3-phase-1` and `v3-phase-2` are merged and deleted.
-  - `v3-phase-3` (current) is cut from `v3` and holds the whole Phase 3 build, not merged yet.
+  - `v3` (current) is local only, with no upstream. `v3-phase-1`, `v3-phase-2` and `v3-phase-3` are merged and deleted.
   - The working tree is clean.
 - **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing".
 - **`AGENTS.md`** is generated by `next dev` on every run. It is gitignored (Damian's call); don't commit it.
@@ -220,7 +215,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`decisions.md`](decisions.md): every decision with who made it and why, the rejected options (don't reintroduce them), and the status.
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
-- [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **built** on `v3-phase-3` and waiting for Damian's visual approval; read its status note for where the build departed from it.
+- [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **done**; read its status note for where the build departed from it.
 - [`research-reels.md`](research-reels.md): notes on the six Instagram reels and the ASCII reference video that shaped V3.
 - [`spike/`](spike/): throwaway prototypes and helper scripts. These are reference only, not production code; see [`spike/README.md`](spike/README.md).
   - `portrait-spike.html`: the portrait on its own, with controls.
