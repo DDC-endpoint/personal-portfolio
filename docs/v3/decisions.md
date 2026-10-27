@@ -267,6 +267,55 @@ Damian's answers while planning the page transition ([`plan-phase-5.md`](plan-ph
 - **The hero is already in place on arrival (Damian).** No curtain, no portrait wave, no float-in: the sweep is the only entrance. Reloads keep the curtain.
 - **Damian approved the plan and every builder's call (2026-10-27):** "See the full portfolio" → `/#work`; same-page links smooth-scroll; a slow flicker while covered; a 4 s fallback to a normal page load; focus moves to `<main>` on arrival; the reveal waits up to 0.4 s for Home's portrait; reduced motion and forced colours navigate instantly with no veil; idle prefetch of the other pages; GA4's enhanced measurement counts client-side page views (he checks the setting); `cacheComponents` stays off.
 
+### First load: the decode reveal replaces the curtain (Damian, during the build, 2026-10-27)
+
+Damian, mid-build: "Let the initial load itself have the decode fade instead of the curtain. I think that will be more aesthetic." His answers:
+
+- **Every page.** A first load or reload of Home, `/services`, `/privacy` or the 404 page starts covered and the sweep reveals it, so a first load looks like the end of a page change. (The curtain was Home only.)
+- **Home keeps its entrance.** After the reveal, the portrait's wave builds and the hero text rises, as they did after the curtain. Arriving by a page change still skips both.
+- **The stamp stays.** "DAMIAN DE CRUZ" and the coordinates still resolve from noise in the middle, now over the covered glyph field, before the sweep.
+- **Every load and reload,** like the curtain.
+- Reduced motion and no JS: no cover at all, as before. Forced colours keeps the plain stamp and its upward wipe, as before, without the glyph veil (builder's call: canvas colours ignore forced colours).
+
+This supersedes "Curtain back, on every reload" (Phase 1 review) for how the cover looks and where it plays; the timing rule (every load) stands.
+
+## Phase 5 build and review (2026-10-27)
+
+Builder's calls during the build (all recorded in the build ledger as rulings):
+
+- **Same-page links are handled by the transition controller,** through a shared Lenis registry (`lib/lenis.js`), not inside SmoothScroll. One listener owns path links; SmoothScroll keeps bare `#…` links. It also works under reduced motion and on pages without SmoothScroll.
+- **The 404 page's link home is a plain `<a>`.** A `next/link` navigates by itself, without the veil.
+- **Back and Forward return to a scroll position kept per URL** in memory. Next doesn't restore scroll under the veil. The same URL twice in history shares one position.
+- **The first-load intro lets the pointer through,** as the curtain did, so a hover under a resting mouse works the moment the page shows. A click on something that isn't a page link during the ~1 s intro lands on the covered page, as it did before.
+- **A page link clicked during the intro opens, rather than being dropped:** under the same cover if clicked during the stamp, right after the reveal if clicked during it. (The plan's Task 4b said such clicks were ignored.)
+- **Forced colours keeps the plain stamp and its wipe on first load,** since canvas colours ignore forced colours.
+- **A hydration later than 2.5 s skips the veil:** the page has been readable for a while.
+- **Back while the veil covers, before the next page has committed,** goes to the entry before the current one (as Back during a normal page load does), and the veil reveals that page.
+- **`/services`' hero entrance is left unshifted.** It plays under the cover and finishes as the sweep passes. **Gate question for Damian**, as is the stamp's ivory box over the glyph field.
+
+The fresh review found one Critical issue (a failed load of the veil's code left every page link dead until reload), three Important ones (Back during a transition froze the veil and then hard-loaded the page being left; the per-frame full redraw; the Lighthouse gate not yet run) and seven Minor ones. All are fixed test-first, minor ones included, and one more gap found while fixing (a click during the intro's reveal was dropped). The veil now draws only the cells that change, from a glyph atlas, within a 6 ms budget per frame for optional work, and caps and frees its canvas. Lighthouse ended at parity with `v3` (README → "Testing").
+
+## Phase 5 gate changes (2026-10-28)
+
+Damian's first look at the gate: "in the initial load and reload there is a flash of an empty screen which is a bit odd", and the name stamp should sit in "a faded spherical shape in the middle instead of an overlayed square". The flash was the server HTML's plain ivory screen with frozen letters (about 450 ms on the dev server), then the whole glyph field popping in. From the prototype `spike/intro-stamp.html` (shapes: Halo, Clearing, Globe, Lens), he chose:
+
+- **A · Halo.** The square ivory box becomes a soft ivory halo the glyphs fade into, with the name glowing ivory for contrast (`globals.css` → `.intro-stamp`, radius `--stamp-r` = `stampRadius()`).
+- **Glow + bloom.** Frame one already shows a faint electric glow around the name, which stays under the halo. The glyph field blooms out from the halo's edge over 0.38 s (`TIMING.bloom`, `bloomAt`) instead of popping in. Builder's call: if the veil arrives late, the reveal waits for the bloom to finish (plus 120 ms), so the halo over the glyphs is always seen.
+- **CSS shimmer.** The frozen server-HTML letters flicker (one span per letter, pure CSS) until the decode takes over.
+- **The Lens viewer follows the theme, frosted (Damian).** Its backdrop was navy in both themes; it's now the page colour at 80% with a blur (`bg-ivory/80 backdrop-blur-md`: ivory in light mode, navy in dark), with ink-coloured caption and controls.
+- **Opening an overlay no longer snaps the page (Damian: "because it causes the scrollbar to disappear the website appears to snap").** `lib/scrollLock.js` replaces the three hand-rolled locks (the viewer, both mobile menus): it gives the scrollbar's width back as body padding and as `--lock-gap`, which the fixed headers and the scroll progress use for their right edge. `scrollbar-gutter: stable` was tried first and doesn't work here: Chromium drops the gutter once the root's overflow is hidden.
+- **Last gate fixes (Damian):**
+  - The privacy page's email and external links underline their words, not the whole column (`items-start`). The two Google links' ↗ nudges up and right on hover, as "Visit the site ↗" does; the email stays plain, with no arrow (Damian).
+  - Closing the Lens viewer on a photo whose tile is off-screen leaves the page where it was: the viewer fades out instead of flying to the tile, and focus returns without scrolling (Damian chose this over gliding to the photo).
+  - The electric cards' buttons get a soft tint on hover and keyboard focus: the filled pill softens to 85% so the blue shows through, and the outlined pill gets a 15% wash of the card's text colour.
+  - The FAQ questions (`<summary>`) no longer show the pointer finger (`summary` joins the custom cursor's list in `globals.css`), and they get the custom cursor's hover growth (`data-hover`).
+  - A softer dark-mode halo was tried (fading over 1.9× its radius) and reverted at Damian's request: the dark halo is the same as the light one.
+  - The hero lede is a little wider (Damian): `max-w-lg` (512 px) instead of `max-w-md` (448 px). On large screens it's five lines; from `md` to about 1280 px the grid column was already the limit, so nothing changes there, and it never reaches the portrait.
+  - On phones the viewer's arrows sit at the bottom corners of the screen (Damian: "bottom of the screen"), clear of the photo; from `md` they stay beside it.
+  - On phones, while the Timeline's year strip is pinned, its background reaches up behind the transparent header (`::before`, shown on `data-stuck`), so no text shows through there (Damian).
+  - The viewer's caption is two lines on every screen (Damian): "FRAME 03 · MAY 2025", small and faint, then the photo's name.
+- **Merged into `v3` and `v3` pushed to `origin` (Damian, 2026-10-28):** "merge to v3 and push to origin". `v3` is not merged to `main`, so the site isn't redeployed.
+
 ## Gate changes (2026-10-27)
 
 Damian's changes at the Phase 4 visual gate:

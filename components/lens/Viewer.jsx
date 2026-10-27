@@ -4,14 +4,19 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { FRAMES } from "@/lib/lens";
 import { EASE } from "@/lib/motion";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { ScrambleText } from "../Scramble";
 
 // § 07 full-screen viewer (Damian): it expands from the photo's spot in the
 // grid, steps with the arrow keys or a swipe, and closes with Esc or a click
 // anywhere but its buttons, shrinking back into the current frame's tile.
+// If that tile is off-screen (the visitor stepped past where they started),
+// the viewer fades out instead, and the page stays put (Damian, Phase 5 gate).
 // A modal dialog: focus moves to Close and Tab stays inside. The page under
-// it is locked the way the mobile menu locks it (Nav): body overflow hidden
-// and <main> inert, plus data-lenis-prevent so the smooth scroll ignores it.
+// it is locked the way the mobile menu locks it (Nav): lockScroll() (which
+// keeps the page from shifting as the scrollbar goes) and <main> inert, plus
+// data-lenis-prevent so the smooth scroll ignores it. The
+// backdrop is frosted page colour, so it follows the theme (Damian).
 
 const OPEN_MS = 450;
 const SWIPE_PX = 50;
@@ -39,13 +44,12 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
 
   // Lock the page while open; focus Close.
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     const mainEl = document.querySelector("main");
     mainEl?.setAttribute("inert", "");
     closeBtn.current?.focus();
     return () => {
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       mainEl?.removeAttribute("inert");
     };
   }, []);
@@ -68,7 +72,13 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
     const i = current.current;
     const tile = tilePhoto(i);
     if (reducedMotion() || !tile) return onClose(i);
-    const to = flipFrom(box.current, tile.getBoundingClientRect());
+    const rect = tile.getBoundingClientRect();
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight) {
+      const fade = root.current.animate([{ opacity: 1 }, { opacity: 0 }], { duration: OPEN_MS, easing: ease, fill: "forwards" });
+      fade.finished.then(() => onClose(i), () => onClose(i));
+      return;
+    }
+    const to = flipFrom(box.current, rect);
     box.current.animate([{ transform: "none" }, { transform: to }], { duration: OPEN_MS, easing: ease, fill: "forwards" });
     const fade = backdrop.current.animate([{ opacity: 1 }, { opacity: 0 }], { duration: OPEN_MS, easing: ease, fill: "forwards" });
     fade.finished.then(() => onClose(i), () => onClose(i));
@@ -117,7 +127,7 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
 
   const f = FRAMES[index];
   const btn =
-    "pointer-events-auto font-mono text-[11px] uppercase tracking-[0.18em] text-ivory dark:text-ink p-3 opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100";
+    "pointer-events-auto font-mono text-[11px] uppercase tracking-[0.18em] text-ink p-3 opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100";
 
   return createPortal(
     <div
@@ -130,7 +140,7 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
       onPointerUp={onPointerUp}
       className="fixed inset-0 z-[100] flex touch-pan-y select-none flex-col items-center justify-center"
     >
-      <div ref={backdrop} aria-hidden="true" className="absolute inset-0 bg-ink/95 dark:bg-ivory/95" />
+      <div ref={backdrop} aria-hidden="true" data-viewer-backdrop className="absolute inset-0 bg-ivory/80 backdrop-blur-md" />
 
       <div
         ref={box}
@@ -148,15 +158,20 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
         />
       </div>
 
+      {/* Two lines, like the grid's tiles (Damian): the frame and month small
+          and faint, then the photo's name. */}
       <p
         data-viewer-caption
         aria-live="polite"
-        className="relative mt-4 px-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ivory dark:text-ink"
+        className="relative mt-4 px-6 text-center font-mono uppercase tracking-[0.18em]"
       >
-        {`FRAME ${f.n} — ${f.caption} · ${f.month}`}
+        <span data-caption-meta className="block text-[10px] text-ink-faint">{`FRAME ${f.n} · ${f.month}`}</span>
+        <span data-caption-title className="mt-1.5 block text-[11px] text-ink">{f.caption}</span>
       </p>
 
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 md:px-6">
+      {/* Beside the photo from md; on phones, where the photo is nearly full
+          width, at the bottom corners of the screen (Damian). */}
+      <div className="pointer-events-none absolute inset-0 flex items-end justify-between px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:items-center md:px-6 md:pb-0">
         <button type="button" aria-label="Previous photo" onClick={() => onStep(-1)} className={`${btn} text-2xl`}>
           ←
         </button>

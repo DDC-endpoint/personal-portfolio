@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import Lenis from "lenis";
+import { getLenis, setLenis } from "@/lib/lenis";
 
 export default function SmoothScroll() {
   useEffect(() => {
@@ -12,6 +13,8 @@ export default function SmoothScroll() {
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
     });
+    // Shared with the page transition, for links to the page you're on.
+    setLenis(lenis);
 
     // Lenis only smooths wheel events by default — anchor link clicks (#about,
     // #work, etc.) bypass it and cause an instant native browser jump. We
@@ -54,6 +57,7 @@ export default function SmoothScroll() {
 
     return () => {
       document.removeEventListener("click", handleAnchorClick);
+      if (getLenis() === lenis) setLenis(null);
       lenis.destroy();
     };
   }, []);

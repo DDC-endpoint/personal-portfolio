@@ -1,6 +1,6 @@
 # V3 Phase 5 Implementation Plan: the page transition
 
-> **Status: approved by Damian (2026-10-27), with every builder's call. Not started: begin at Task 0.** Build on `v3-phase-5`, then merge into `v3` locally on his approval at the visual gate. After it merges: the performance pass, then `v3` → `main`.
+> **Status: done, merged into `v3` (2026-10-28).** Built per this plan plus Task 4b (Damian's mid-build change: the first load reveals with the sweep) and his gate fixes. Where the build departed from the plan, the review fixes and the gate changes are in `decisions.md` → "Phase 5 build and review" and "Phase 5 gate changes", and README → "What Phase 5 built". Next: the performance pass, then `v3` → `main`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (native inline execution, as Phases 1–4) to implement this plan task-by-task, test-first, then one fresh reviewer at the end. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -121,6 +121,20 @@ Prefetch: once idle after load, `router.prefetch()` each page in `PAGES` other t
   - Timing: from click to `idle` takes between 1.2 s and 2.5 s on the dev server.
   - Fallback: with the next page's request blocked (`page.route` aborts it), the browser loads it normally after about 4 s.
   - Home's "Services" link on Home's footer (same page) smooth-scrolls and the veil stays `idle`.
+- [ ] Implement. Commit.
+
+## Task 4b: the first load reveals with the sweep (Damian's change during the build, 2026-10-27)
+
+Damian asked for the first load to use the decode reveal instead of the curtain (`decisions.md` → "First load: the decode reveal replaces the curtain"): every page, Home keeps its wave and float-in after the reveal, the stamp stays, every load and reload.
+
+**Files:** `components/IntroStamp.jsx`, `components/transition/PageTransitions.jsx`, `components/transition/Veil.js`, `app/(site)/page.jsx` (IntroStamp moves to the layout), `app/(site)/globals.css`, `e2e/transition.spec.js`, `e2e/loader.spec.js` if a loader spec needs the new shape.
+
+- **The server HTML still starts covered,** so nothing flashes before hydration: the `.intro-stamp` cover (ivory, the stamp in the middle) now comes from the layout on every page, above the veil. Its CSS gates (reduced motion, no JS, the 5 s failsafe) stay.
+- **On hydration,** when `shouldPlayIntro()`: import `Veil.js` at once (not on idle), `coverNow()` under the stamp, and fade the stamp's ivory away so the glyph field shows behind the resolving name (the text keeps a small ivory backing for contrast). After the resolve and hold, the stamp fades and `veil.reveal()` sweeps the page in. Home's wave and float-in start at `INTRO_OFFSET`, as the sweep passes the hero.
+- **If the veil can't draw in time** (the chunk is slow or fails), the stamp falls back to the old upward wipe. A late hydration (> 2.5 s) keeps the short resolve.
+- **The veil is busy during the intro,** so a click in that time is ignored like any second click.
+
+- [ ] **Tests first (e2e):** on a load of `/services`, `/privacy` and `/`, the stamp is in the server HTML, the veil goes `idle → covered → revealing → idle` (never `covering`), and `.intro-stamp` leaves the DOM; on Home the portrait still passes through `wave` and the name still rises; reduced motion and forced colours: no stamp and the veil stays `idle`; the existing loader specs stay green.
 - [ ] Implement. Commit.
 
 ## Task 5: Back and Forward

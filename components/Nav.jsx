@@ -6,6 +6,7 @@ import ThemeToggle from "./ThemeToggle";
 import Availability from "./Availability";
 import { NAV_LINKS, SHORT_YEAR } from "@/lib/site";
 import { EASE } from "@/lib/motion";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 export default function Nav() {
   const [open, setOpen] = useState(false);
@@ -55,8 +56,7 @@ export default function Nav() {
     };
 
     document.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
 
     // Hide the page content behind the overlay from assistive tech (browse-mode
     // readers navigate by landmark/heading and can otherwise reach it despite
@@ -66,7 +66,7 @@ export default function Nav() {
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       mainEl?.removeAttribute("inert");
       buttonRef.current?.focus();
     };
@@ -78,7 +78,9 @@ export default function Nav() {
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, ease: EASE, delay: 0.2 }}
-        className="fixed top-0 left-0 right-0 z-50 mix-blend-multiply dark:mix-blend-screen"
+        // right: --lock-gap keeps it still while a scroll lock hides the
+        // scrollbar (lib/scrollLock.js).
+        className="fixed top-0 left-0 right-[var(--lock-gap,0px)] z-50 mix-blend-multiply dark:mix-blend-screen"
       >
         <div className="px-6 md:px-10 py-6 flex items-center justify-between">
           {/* Left: logo */}

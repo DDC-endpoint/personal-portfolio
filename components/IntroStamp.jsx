@@ -1,13 +1,18 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EASE, shouldPlayIntro } from "@/lib/motion";
 
-// Every-reload intro: the name + coordinates resolve out of glitch characters
-// (same visual language as GlitchField), then the ivory curtain wipes upward
-// into the hero entrance. Reduced-motion-gated via shouldPlayIntro(); Hero
-// shifts its delays by INTRO_OFFSET on the same decision. pointer-events-none
-// — it can never trap a click.
+// Every-reload intro, on every page (Damian, Phase 5): the name + coordinates
+// resolve out of glitch characters (same visual language as GlitchField).
+// Mounted once by the page transition (components/transition/), which owns
+// the sequence: once its veil is drawn behind the stamp (`glyphs`), the
+// stamp's ivory gives way to the covered glyph field; when the name has
+// resolved (`onDone`), the stamp fades and the veil's sweep reveals the page.
+// If the veil isn't drawn by then, the ivory curtain wipes upward instead, as
+// it did before. Reduced-motion-gated via shouldPlayIntro(); Hero shifts its
+// delays by INTRO_OFFSET on the same decision. pointer-events-none — it can
+// never trap a click.
 //
 // The curtain is SSR-rendered so it covers the page from the very first paint:
 // pre-hydration visitors see the static glitch stamp instead of a blank page,
@@ -39,16 +44,34 @@ const seeded = (
 )(42);
 const INITIAL = LINES.map((l) => scramble(l, 0, seeded));
 
-export default function IntroStamp() {
-  // true at SSR: the curtain is part of the server HTML.
-  const [active, setActive] = useState(true);
+// The stamp leaves by fading over the veil, or by the old upward wipe.
+const VARIANTS = {
+  exit: (glyphs) =>
+    glyphs
+      ? { opacity: 0, transition: { duration: 0.2, ease: EASE } }
+      : { clipPath: "inset(0 0 100% 0)", transition: { duration: 0.35, ease: EASE } },
+};
+
+// One span per letter, so the letters can shimmer (CSS, globals.css) from the
+// first paint until the decode takes over.
+function Letters({ text }) {
+  return [...text].map((c, i) => (
+    <span key={i} data-ch="" style={{ "--i": i }}>
+      {c}
+    </span>
+  ));
+}
+
+// `active` is true at SSR: the curtain is part of the server HTML.
+export default function IntroStamp({ active, glyphs = false, onDone }) {
   const [display, setDisplay] = useState(INITIAL);
+  // The frozen server-HTML letters shimmer until the decode starts.
+  const [decoding, setDecoding] = useState(false);
+  const done = useRef(onDone);
+  done.current = onDone;
 
   useEffect(() => {
-    if (!shouldPlayIntro()) {
-      setActive(false);
-      return;
-    }
+    if (!shouldPlayIntro()) return;
     // Slow connection: the static stamp has already been on screen for
     // seconds (SSR curtain) — resolve quickly instead of holding the page
     // hostage for another full second. Prompt loads play the full timing.
@@ -56,11 +79,12 @@ export default function IntroStamp() {
     const resolveMs = late ? 220 : RESOLVE_MS;
     const holdMs = late ? 80 : HOLD_MS;
     const start = performance.now();
+    setDecoding(true);
     const id = setInterval(() => {
       const t = performance.now() - start;
       if (t >= resolveMs + holdMs) {
         clearInterval(id);
-        setActive(false);
+        done.current?.();
         return;
       }
       const p = Math.min(1, t / resolveMs);
@@ -70,23 +94,29 @@ export default function IntroStamp() {
   }, []);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence custom={glyphs}>
       {active && (
         <motion.div
           aria-hidden="true"
           // scrambled letters: never a search snippet
           data-nosnippet=""
-          exit={{ clipPath: "inset(0 0 100% 0)" }}
-          transition={{ duration: 0.35, ease: EASE }}
-          className="intro-stamp fixed inset-0 z-65 bg-ivory pointer-events-none grid place-items-center"
+          data-glyphs={glyphs ? "" : undefined}
+          data-shimmer={decoding ? undefined : ""}
+          custom={glyphs}
+          variants={VARIANTS}
+          exit="exit"
+          // Above the veil (z-70), so the name sits over the glyph field. Its
+          // backgrounds (ivory with a faint glow, then a soft halo over the
+          // glyphs) are in globals.css.
+          className="intro-stamp fixed inset-0 z-75 pointer-events-none grid place-items-center"
           style={{ clipPath: "inset(0 0 0% 0)" }}
         >
-          <div className="text-center font-mono uppercase">
+          <div className="px-6 py-4 text-center font-mono uppercase">
             <div className="text-[13px] md:text-[15px] tracking-[0.3em] text-ink">
-              {display[0]}
+              <Letters text={display[0]} />
             </div>
             <div className="mt-3 text-[10px] md:text-[11px] tracking-[0.24em] text-ink-faint">
-              {display[1]}
+              <Letters text={display[1]} />
             </div>
           </div>
         </motion.div>

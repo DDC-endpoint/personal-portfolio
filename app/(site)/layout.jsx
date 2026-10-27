@@ -2,6 +2,7 @@ import { Instrument_Serif, Manrope, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import MotionProvider from "@/components/MotionProvider";
+import PageTransitions from "@/components/transition/PageTransitions";
 import { ldJson } from "@/lib/jsonld";
 import { siteGraph } from "@/lib/structuredData";
 import { SHARE } from "@/lib/shareImages";
@@ -75,7 +76,12 @@ export default function RootLayout({ children }) {
         </Script>
         <div className="grain" aria-hidden />
         <div className="top-fade" aria-hidden />
-        <MotionProvider>{children}</MotionProvider>
+        <MotionProvider>
+          {children}
+          {/* The page transition's veil: persists across client-side page
+              changes, so it can cover one page and reveal the next. */}
+          <PageTransitions />
+        </MotionProvider>
         {/* The site's structured data: the WebSite, Damian and his business
             (lib/structuredData.js). Pages add their own nodes by @id. */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(siteGraph()) }} />

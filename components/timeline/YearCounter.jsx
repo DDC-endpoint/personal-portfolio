@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ENTRIES, counterYear } from "@/lib/timeline";
 import { scrambleText, TICK_MS } from "@/lib/decode";
 
@@ -10,7 +10,9 @@ import { scrambleText, TICK_MS } from "@/lib/decode";
 // There is no progress bar: the circuit beside it already shows progress.
 // Decorative: the list itself carries every year and title.
 //   side:  beside the list, in the sticky label column (md and up)
-//   strip: a compact strip stuck under the nav (phones)
+//   strip: a compact strip stuck under the nav (phones). While it's pinned
+//          its background reaches up behind the transparent header too, so
+//          no text scrolls through there (Damian, Phase 5 gate).
 // Hidden without JS. Reduced motion: the digits and caption switch instantly.
 
 const CAPTION_MS = 450;
@@ -23,7 +25,8 @@ const LOOK = {
     meta: "mt-3",
   },
   strip: {
-    root: "hidden js:max-md:flex sticky top-20 z-10 -mx-6 mt-8 items-end gap-5 border-b border-rule bg-paper px-6 py-3",
+    // ::before is the cover behind the header (top-20 = its 80 px height).
+    root: "hidden js:max-md:flex sticky top-20 z-10 -mx-6 mt-8 items-end gap-5 border-b border-rule bg-paper px-6 py-3 before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:hidden before:h-20 before:bg-paper data-[stuck]:before:block",
     digits: "text-[3.25rem]",
     meta: "flex-1 pb-1",
   },
@@ -34,6 +37,20 @@ export default function YearCounter({ index, reduce, variant }) {
   const year = counterYear(ENTRIES[Math.max(0, index)]);
   const caption = index < 0 ? "—" : ENTRIES[index].title;
   const captionRef = useRef(null);
+  const rootRef = useRef(null);
+  const [stuck, setStuck] = useState(false);
+
+  // The strip is pinned once its top reaches the nav's bottom (80 px): seen
+  // through a root margin that cuts the top 81 px off the viewport.
+  useEffect(() => {
+    if (variant !== "strip" || !rootRef.current) return;
+    const io = new IntersectionObserver(
+      ([e]) => setStuck(e.intersectionRatio < 1 && e.boundingClientRect.top <= 81 && e.boundingClientRect.bottom > 81),
+      { rootMargin: "-81px 0px 0px 0px", threshold: [0, 1] },
+    );
+    io.observe(rootRef.current);
+    return () => io.disconnect();
+  }, [variant]);
 
   // The caption is written only here (never as a React child), so the
   // decode can rewrite it freely. It resolves left to right out of noise.
@@ -66,7 +83,15 @@ export default function YearCounter({ index, reduce, variant }) {
   }, [caption, index, reduce]);
 
   return (
-    <div data-counter={variant} data-value={index < 0 ? "" : year} aria-hidden data-nosnippet="" className={look.root}>
+    <div
+      ref={rootRef}
+      data-counter={variant}
+      data-value={index < 0 ? "" : year}
+      data-stuck={stuck ? "" : undefined}
+      aria-hidden
+      data-nosnippet=""
+      className={look.root}
+    >
       <div
         className={`flex font-display leading-none text-ink transition-opacity duration-500 ${look.digits} ${
           index < 0 ? "opacity-25" : ""

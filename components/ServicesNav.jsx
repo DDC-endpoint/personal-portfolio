@@ -5,6 +5,7 @@ import ThemeToggle from "./ThemeToggle";
 import Availability from "./Availability";
 import { ScrambleText } from "./Scramble";
 import { SHORT_YEAR } from "@/lib/site";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 // In-page section anchors for the /services route. These resolve on this page
 // directly; SmoothScroll.jsx intercepts the clicks and Lenis-scrolls to them.
@@ -73,8 +74,7 @@ export default function ServicesNav() {
     };
 
     document.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
 
     // Hide the page content behind the overlay from assistive tech (browse-mode
     // readers navigate by landmark/heading and can otherwise reach it despite
@@ -84,7 +84,7 @@ export default function ServicesNav() {
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       mainEl?.removeAttribute("inert");
       buttonRef.current?.focus();
     };
@@ -96,7 +96,9 @@ export default function ServicesNav() {
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-        className="fixed top-0 left-0 right-0 z-50 mix-blend-multiply dark:mix-blend-screen"
+        // right: --lock-gap keeps it still while a scroll lock hides the
+        // scrollbar (lib/scrollLock.js).
+        className="fixed top-0 left-0 right-[var(--lock-gap,0px)] z-50 mix-blend-multiply dark:mix-blend-screen"
       >
         <div className="px-6 md:px-10 py-6 flex items-center justify-between">
           {/* Left: logo — scrolls back to the top of the services page */}

@@ -29,10 +29,11 @@ export default function Lens() {
   };
 
   // Focus goes back to the frame the viewer closed on, once the viewer has
-  // unmounted and lifted the inert lock off <main>.
+  // unmounted and lifted the inert lock off <main>, without scrolling to it:
+  // the page stays where the visitor left it (Damian, Phase 5 gate).
   useEffect(() => {
     if (open !== null || returnTo.current === null) return;
-    document.querySelector(`[data-frame="${FRAMES[returnTo.current].n}"]`)?.focus();
+    document.querySelector(`[data-frame="${FRAMES[returnTo.current].n}"]`)?.focus({ preventScroll: true });
     returnTo.current = null;
   }, [open]);
   const { col, row } = LENS_NOTE.area;

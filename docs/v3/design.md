@@ -72,10 +72,12 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 - **Link hover:** mono buttons (e.g. `SERVICES →`, `Request CV`) briefly scramble and resolve. Links that already have the underline draw (the nav links, "Services & pricing", serif text links) keep only the underline and don't scramble (Damian, 2026-10-27).
 - **Cursor lens:** when the ring grows into the lens, the centre dot disappears (Damian, 2026-10-27).
 - **Page transition (every page; revised by Damian 2026-10-27, see [`plan-phase-5.md`](plan-phase-5.md)):** a top-down glyph sweep of about 1.3 s. A band of blue characters sweeps down and covers the outgoing page, the incoming page swaps in underneath, and the same sweep decodes it in.
-  - It covers every link between Home, `/services`, `/privacy` and the 404 page, including links like `/#work`. Reloads get the curtain instead.
+  - It covers every link between Home, `/services`, `/privacy` and the 404 page, including links like `/#work`.
+  - **First load and reload (Damian, during the build):** every page starts covered. The "DAMIAN DE CRUZ" stamp resolves in a soft ivory halo over the covered glyph field, then the same sweep reveals the page. Frame one already shows a faint glow around the name and its letters shimmer; the glyph field blooms out from the halo (gate changes, 2026-10-28). On Home the portrait wave and the hero float-in still follow. Forced colours keeps the plain stamp and its upward wipe. A link clicked during the intro opens when the stamp is done, under the same cover.
   - Back and Forward decode in only: the page starts covered and the sweep reveals it where the visitor left it.
   - Arriving on Home this way never replays the curtain or the 2.4 s portrait wave, and the hero text is already in place.
   - Client-side navigation with a persistent transition overlay, rather than full reloads with a timed exit.
+  - Reduced motion: no cover; page changes are client-side and instant.
   - (Originally "glyph dissolve, about 0.6 s, Home ↔ `/services`"; Damian chose the sweep and the timing from `spike/page-transition.html`.)
 - **Cursor:** the existing ring and dot. Over the hero portrait the ring grows into the lens (see Hero).
 - **Marquee:** removed from the page.

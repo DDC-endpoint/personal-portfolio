@@ -186,7 +186,7 @@ export default function Services() {
             </SplitLines>
             <Reveal delay={0.1}>
               <a
-                href="/"
+                href="/#work"
                 data-hover
                 className="group mt-5 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-electric link-line"
               >
@@ -219,7 +219,7 @@ export default function Services() {
             {FAQS.map((f, i) => (
               <Reveal key={i} delay={i * 0.04}>
                 <details className="group border-t border-rule py-6 first:border-t-0">
-                  <summary className="flex items-center justify-between gap-6 cursor-pointer list-none font-display text-xl md:text-2xl text-ink [&::-webkit-details-marker]:hidden">
+                  <summary data-hover className="flex items-center justify-between gap-6 cursor-pointer list-none font-display text-xl md:text-2xl text-ink [&::-webkit-details-marker]:hidden">
                     <h3 className="font-normal">{f.q}</h3>
                     <span aria-hidden="true" className="font-mono text-electric text-2xl leading-none transition-transform duration-300 group-open:rotate-45">
                       +
