@@ -1,6 +1,6 @@
 # V3 Phase 3 Implementation Plan: Timeline, Lens and Contact
 
-> **Status: built on `v3-phase-3` (2026-10-27), waiting for Damian's visual approval.** Damian approved this plan unchanged. Where the build departed from it, and why, is in [`decisions.md`](decisions.md) → "Phase 3 build rulings": the halftone tone, the CSS stitch, the viewer's pointer-based taps and backdrop, and the Contact growth that ends at the bottom of the page on tall screens. Fixes from Damian's first look are under "Phase 3 gate fixes".
+> **Status: built on `v3-phase-3` (2026-10-27), waiting for Damian's visual approval.** Damian approved this plan unchanged. Where the build departed from it, and why, is in [`decisions.md`](decisions.md) → "Phase 3 build rulings": the halftone tone, the CSS stitch, the viewer's pointer-based taps and backdrop, and the Contact growth that ends at the bottom of the page on tall screens. Fixes from Damian's first look are under "Phase 3 gate fixes". Among them, the Lens develop below (Task 4's timed `IntersectionObserver` develop, and Task 2's `DEVELOP_MS` and `inView`) was replaced at the gate by a scroll-linked one.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

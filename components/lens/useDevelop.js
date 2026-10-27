@@ -1,24 +1,23 @@
 "use client";
 import { useEffect } from "react";
-import { HALFTONE, dotRadius, developMix, levels, dotTone, inView } from "@/lib/halftone";
+import { HALFTONE, dotRadius, developMix, levels, dotTone, scrollDevelop, dotGrid } from "@/lib/halftone";
 
 // Drives one Lens tile's halftone → colour develop on its canvas (maths in
-// lib/halftone.js). The tile's root carries the state as data-develop:
-//   halftone → developing → developed → (leaves view) halftone
+// lib/halftone.js). The develop is tied straight to scroll (Damian): it starts
+// as the tile's top enters the bottom of the screen, is complete when the
+// tile's centre reaches the screen's centre, and runs back as you scroll up.
+// Above the screen a tile stays developed. The tile's root carries the state
+// as data-develop:
+//   halftone (0) ↔ developing ↔ developed (1)
 //   static (reduced motion: the photo shows in colour, nothing runs)
 // The canvas sits under the photo and draws an ivory field of electric dots
-// sized by tone; the photo fades in over it. A tile develops each time it
-// comes 35% into view (a tile taller than the screen: once it fills most of
-// it) and drops straight back to halftone when it leaves
-// (Damian: replays every time). rAF runs only while a develop runs. The
-// photo is hidden from JS, so without JS it simply shows. A photo that fails
-// to load leaves the bare mat.
+// sized by tone; the photo fades in over it. Scroll work is coalesced to one
+// read per frame and only repaints when the tile's develop changes. The photo
+// is hidden from JS, so without JS it simply shows. A photo that fails to load
+// leaves the bare mat.
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const RESAMPLE_MS = 150; // resizes settle before the photo is sampled again
-// Fine IntersectionObserver steps, so a tile taller than the screen still
-// reports the ratio inView() needs (lib/halftone.js).
-const STEPS = Array.from({ length: 36 }, (_, i) => i / 100);
 
 export function useDevelop({ rootRef, canvasRef, imgRef }) {
   useEffect(() => {
@@ -28,12 +27,10 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       root.dataset.develop = "static";
       return;
     }
-    root.dataset.develop = "halftone";
-    img.style.opacity = "0";
     const ctx = canvas.getContext("2d");
-    const { CELL, DEVELOP_MS } = HALFTONE;
+    const { CELL } = HALFTONE;
     let W = 0, H = 0, cols = 0, rows = 0, lum = null, colours = null;
-    let raf = 0, start = 0, shown = false, failed = false, disposed = false, sampleRun = 0, resample = 0;
+    let t = -1, raf = 0, failed = false, disposed = false, sampleRun = 0, resample = 0;
 
     const readColours = () => {
       const s = getComputedStyle(document.documentElement);
@@ -50,11 +47,15 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       ctx.globalAlpha = dots;
       ctx.fillStyle = colours.electric;
       ctx.beginPath();
+      // Dots sit at the centres of the cells the photo was sampled into,
+      // stretched to the tile's current size (a resize repaints before the
+      // resample lands), so the print always registers with the photo.
+      const cw = W / cols, ch = H / rows, cell = Math.min(cw, ch);
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          const rad = dotRadius(dotTone(lum[r * cols + c], colours.dark), CELL) * grow;
+          const rad = dotRadius(dotTone(lum[r * cols + c], colours.dark), cell) * grow;
           if (rad < 0.25) continue;
-          const x = (c + 0.5) * CELL, y = (r + 0.5) * CELL;
+          const x = (c + 0.5) * cw, y = (r + 0.5) * ch;
           ctx.moveTo(x + rad, y);
           ctx.arc(x, y, rad, 0, Math.PI * 2);
         }
@@ -63,37 +64,27 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       ctx.globalAlpha = 1;
     }
 
-    // Back to the print: cancels any run and redraws the dots at once.
-    function rest() {
-      cancelAnimationFrame(raf);
-      raf = 0;
-      root.dataset.develop = "halftone";
-      img.style.opacity = "0";
-      readColours();
-      paint(developMix(0));
-    }
-
-    function developFrame(now) {
-      const t = (now - start) / DEVELOP_MS;
+    // Shows the develop at the current t: the photo's opacity, and the print
+    // under it until the photo has fully taken over.
+    function draw() {
       const mix = developMix(t);
-      paint(mix);
       img.style.opacity = String(mix.photo);
-      if (t >= 1) {
-        raf = 0;
-        root.dataset.develop = "developed";
-        ctx.clearRect(0, 0, W, H);
-        return;
-      }
-      raf = requestAnimationFrame(developFrame);
+      if (t >= 1) ctx.clearRect(0, 0, W, H);
+      else paint(mix);
     }
 
-    function startDevelop() {
-      if (!lum || raf || root.dataset.develop !== "halftone") return; // unsampled: sample() starts it
-      readColours();
-      root.dataset.develop = "developing";
-      start = performance.now();
-      raf = requestAnimationFrame(developFrame);
+    function update() {
+      raf = 0;
+      const r = root.getBoundingClientRect();
+      const next = scrollDevelop(r.top, r.height, window.innerHeight);
+      if (next === t) return;
+      t = next;
+      root.dataset.develop = t === 0 ? "halftone" : t === 1 ? "developed" : "developing";
+      draw();
     }
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
 
     function fail() {
       failed = true;
@@ -110,7 +101,7 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       const nw = img.naturalWidth, nh = img.naturalHeight;
       const scale = Math.max(W / nw, H / nh);
       const sw = W / scale, sh = H / scale;
-      const c = Math.ceil(W / CELL), r = Math.ceil(H / CELL);
+      const { cols: c, rows: r } = dotGrid(W, H, CELL);
       let bitmap;
       try {
         bitmap = await createImageBitmap(img, (nw - sw) / 2, (nh - sh) / 2, sw, sh, {
@@ -135,11 +126,7 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       cols = c;
       rows = r;
       lum = levels(next);
-      if (root.dataset.develop === "halftone") {
-        readColours();
-        paint(developMix(0));
-        if (shown) startDevelop();
-      }
+      draw();
     }
 
     // Sized from the observer entry, so it never forces a layout of its own.
@@ -153,30 +140,23 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       // Resizing the canvas clears it: repaint from the last sample at once,
       // then sample again once the resize settles.
       if (!lum) return sample();
-      if (root.dataset.develop === "halftone") paint(developMix(0));
+      draw();
       clearTimeout(resample);
       resample = setTimeout(sample, RESAMPLE_MS);
     });
     ro.observe(canvas);
 
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        const viewH = entry.rootBounds?.height ?? window.innerHeight;
-        shown = entry.isIntersecting && inView(entry.intersectionRatio, entry.boundingClientRect.height, viewH);
-        if (shown) startDevelop();
-        else if (root.dataset.develop !== "halftone") rest();
-      },
-      { threshold: STEPS }
-    );
-    io.observe(root);
-
-    // The dots follow a theme change, at rest or mid-develop.
+    // The dots follow a theme change, at any point in the develop.
     const mo = new MutationObserver(() => {
       readColours();
-      if (root.dataset.develop === "halftone") paint(developMix(0));
+      draw();
     });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
+    readColours();
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
     img.addEventListener("load", sample);
     img.addEventListener("error", fail);
     if (img.complete && img.naturalWidth === 0 && img.currentSrc) fail();
@@ -186,8 +166,9 @@ export function useDevelop({ rootRef, canvasRef, imgRef }) {
       clearTimeout(resample);
       cancelAnimationFrame(raf);
       ro.disconnect();
-      io.disconnect();
       mo.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
       img.removeEventListener("load", sample);
       img.removeEventListener("error", fail);
     };

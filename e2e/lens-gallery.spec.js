@@ -85,60 +85,88 @@ test("note tile links to Instagram", async ({ page }) => {
 });
 
 // ---- Halftone develop -------------------------------------------------------
+// The develop follows scroll (lib/halftone.js scrollDevelop): 0 while a tile's
+// top is at the screen's bottom edge, 1 once its centre reaches the centre.
 
 const scrollTo = (page, y) => page.evaluate((v) => window.scrollTo(0, v), y);
+// Brings frame n just past fully developed (20 px above the centre).
 const scrollToFrame = (page, n) =>
   page.evaluate((s) => {
     const r = document.querySelector(s).getBoundingClientRect();
-    window.scrollTo(0, r.top + window.scrollY - (innerHeight - r.height) / 2);
+    window.scrollTo(0, r.top + window.scrollY - (innerHeight - r.height) / 2 + 20);
   }, `[data-frame="${n}"]`);
+// Scrolls so frame n has developed to t.
+const scrollToDevelop = (page, n, t) =>
+  page.evaluate(
+    ([s, tt]) => {
+      const r = document.querySelector(s).getBoundingClientRect();
+      const vh = innerHeight;
+      window.scrollTo(0, r.top + window.scrollY - (vh - (tt * (vh + r.height)) / 2));
+    },
+    [`[data-frame="${n}"]`, t]
+  );
+const photoOpacity = (page, n) =>
+  frame(page, n).locator("[data-photo] img").evaluate((el) => parseFloat(getComputedStyle(el).opacity));
 
-// Counts requestAnimationFrame calls made from the develop hook only: Lenis
-// and the hero portrait keep their own loops running all the time.
-const countDevelopFrames = (page) =>
-  page.addInitScript(() => {
-    window.__developFrames = 0;
-    const raf = window.requestAnimationFrame.bind(window);
-    window.requestAnimationFrame = (cb) => {
-      if (/startDevelop|developFrame/.test(new Error().stack)) window.__developFrames++;
-      return raf(cb);
-    };
-  });
-
-test("photos develop on entering view and reset on leaving", async ({ page }, info) => {
+test("the develop follows scroll both ways", async ({ page }, info) => {
   desktopOnly(info);
   await page.goto("/");
   await expect(frame(page, "05")).toHaveAttribute("data-develop", "halftone");
+  await scrollToDevelop(page, "05", 0.5);
+  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developing");
+  const mid = await photoOpacity(page, "05");
+  expect(mid).toBeGreaterThan(0.2);
+  expect(mid).toBeLessThan(0.5);
+  await page.waitForTimeout(1500); // no timer: holding still holds the develop
+  expect(await photoOpacity(page, "05")).toBeCloseTo(mid, 2);
+  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developing");
+
   await scrollToFrame(page, "05");
-  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developing", { timeout: 3000 });
-  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developed", { timeout: 3000 });
-  await scrollTo(page, 0);
+  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developed");
+  expect(await photoOpacity(page, "05")).toBe(1);
+
+  // scrolling back up uncures it, through the same states
+  await scrollToDevelop(page, "05", 0.5);
+  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developing");
+  await expect.poll(() => photoOpacity(page, "05")).toBeCloseTo(mid, 2);
+  await scrollToDevelop(page, "05", -0.2);
   await expect(frame(page, "05")).toHaveAttribute("data-develop", "halftone");
-  await scrollToFrame(page, "05");
-  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developing", { timeout: 3000 });
-  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developed", { timeout: 3000 });
+  expect(await photoOpacity(page, "05")).toBe(0);
 });
 
-test("fast scroll leaves no tile stuck", async ({ page }, info) => {
+test("a photo above the screen stays in colour", async ({ page }, info) => {
   desktopOnly(info);
-  await countDevelopFrames(page);
   await page.goto("/");
-  await scrollToFrame(page, "05");
-  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developing", { timeout: 3000 });
-  expect(await page.evaluate(() => window.__developFrames)).toBeGreaterThan(0); // the probe sees the hook
+  await page.evaluate(() => {
+    const r = document.querySelector('[data-frame="05"]').getBoundingClientRect();
+    window.scrollTo(0, r.bottom + window.scrollY + 200);
+  });
+  await expect(frame(page, "05")).toHaveAttribute("data-develop", "developed");
+  expect(await photoOpacity(page, "05")).toBe(1);
+});
 
+test("fast scroll leaves every tile matching its position", async ({ page }, info) => {
+  desktopOnly(info);
+  await page.goto("/");
   const top = await page.locator("#lens").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-  for (let i = 0; i < 8; i++) {
-    await scrollTo(page, top - 300 + i * 300);
+  for (const dy of [600, -300, 1200, 300, 1500, 0, 900, 450]) {
+    await scrollTo(page, top - 300 + dy);
     await page.waitForTimeout(30);
   }
-  await scrollTo(page, 0);
-  await page.waitForTimeout(200);
-  const states = await page.locator("[data-frame]").evaluateAll((els) => els.map((el) => el.dataset.develop));
-  expect(states).toEqual(Array(10).fill("halftone"));
-  const before = await page.evaluate(() => window.__developFrames);
-  await page.waitForTimeout(500);
-  expect(await page.evaluate(() => window.__developFrames)).toBe(before);
+  await page.waitForTimeout(300);
+  const { states, expected } = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll("[data-frame]")];
+    return {
+      states: tiles.map((el) => el.dataset.develop),
+      expected: tiles.map((el) => {
+        const r = el.getBoundingClientRect();
+        const t = Math.min(1, Math.max(0, (innerHeight - r.top) / ((innerHeight + r.height) / 2)));
+        return t === 0 ? "halftone" : t === 1 ? "developed" : "developing";
+      }),
+    };
+  });
+  expect(states).toEqual(expected);
+  expect(new Set(states).size).toBeGreaterThan(1); // the settle point straddles the states
 });
 
 test.describe("reduced motion", () => {
@@ -162,14 +190,19 @@ test.describe("no JS", () => {
   });
 });
 
-test("theme toggle mid-develop keeps going", async ({ page }, info) => {
+test("theme toggle mid-develop repaints the print", async ({ page }, info) => {
   desktopOnly(info);
   const errors = trackErrors(page);
   await page.goto("/");
-  await scrollToFrame(page, "06");
-  await expect(frame(page, "06")).toHaveAttribute("data-develop", "developing", { timeout: 3000 });
+  await scrollToDevelop(page, "06", 0.4);
+  await expect(frame(page, "06")).toHaveAttribute("data-develop", "developing");
+  await page.waitForFunction(() => document.querySelector('[data-frame="06"] img').complete);
+  const field = () =>
+    frame(page, "06").locator("canvas").evaluate((c) => [...c.getContext("2d").getImageData(1, 1, 1, 1).data].join());
+  const before = await field();
   await page.evaluate(() => document.documentElement.classList.toggle("dark"));
-  await expect(frame(page, "06")).toHaveAttribute("data-develop", "developed", { timeout: 3000 });
+  await expect.poll(field).not.toBe(before); // the field follows the theme mid-develop
+  await expect(frame(page, "06")).toHaveAttribute("data-develop", "developing");
   expect(errors).toEqual([]);
 });
 

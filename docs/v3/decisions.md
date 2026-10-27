@@ -149,7 +149,7 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 - **Copy now (Damian):** Timeline, Lens and Contact switch to the approved `copy.md` text as they are rebuilt. Phase 4 covers the remaining sections.
 - **Head Prefect entry (Damian):** the Timeline gets a new "2024–2025 · Head Prefect" entry at St. Joseph's College, Colombo 10, right after A-Levels.
 - **Contact card start (Damian):** a small electric square under the § 08 label that grows right and down into the full-width card.
-- **Lens develop (Damian):** timed, about 1.2 s once a tile enters view, replaying each time it comes back into view.
+- **Lens develop (Damian):** timed, about 1.2 s once a tile enters view, replaying each time it comes back into view. *Superseded at the gate: the develop now follows scroll (see "Phase 3 gate fixes").*
 - **Builder's calls:**
   - The Contact card grows by `clip-path`, so layout never reflows and the links are always in the DOM.
   - The Lens viewer is a modal dialog with a focus trap. It reuses the site's scroll lock (`body` overflow, as in `Nav`).
@@ -173,6 +173,14 @@ See [`hero-portrait.md`](hero-portrait.md) for the full locked spec. Summary of 
 
 - **The needle sat off the thread (Damian).** The rule and the thread were pinned by their left edge, so their centres sat 0.5 and 0.75 px right of the needle, dots and cross-stitches. Both are now centred on that axis. Test: "needle, thread and milestones share one axis".
 - **The cursor hid behind the open viewer (Damian).** The custom cursor was `z-index: 70` and the viewer `z-100`; with the native cursor hidden, the pointer vanished over the photo. The cursor is now `z-index: 110`, above every layer. Test: "the custom cursor stays above the open viewer".
+- **The Lens develop follows scroll (Damian).** The timed develop was a little buggy scrolling in and out; Damian asked for it linked straight to scroll, so photos uncure as you scroll back up. His answers:
+  - **Effect:** keep the halftone develop (dots swell and fade, the photo fades in), scrubbed by scroll instead of the 1.2 s timer.
+  - **Range:** starts as the tile's top enters the bottom of the screen; full colour when the tile's centre reaches the screen's centre. Every tile finishes, heroes included.
+  - **Exit:** pure position. Above the screen a photo stays in colour; it only goes back to dots as it drops back toward the bottom.
+  - **Feel:** exact, 1:1 with scroll (Lenis already smooths it), no spring.
+
+  `scrollDevelop` in `lib/halftone.js` maps the tile's position to 0–1; `useDevelop` reads it once a frame on scroll and repaints only when it changes. The `IntersectionObserver`, the timer and `inView` are gone. Tests: the `scrollDevelop` unit tests; "the develop follows scroll both ways", "a photo above the screen stays in colour", "fast scroll leaves every tile matching its position".
+- **The dot print sat slightly off the photo (Damian).** The photo was sampled into `ceil(W / 7)` cells stretched across the tile, but the dots were drawn on a fixed 7 px grid, so the print ran up to 7 px past the tile and drifted off the photo toward the right and bottom edges. `dotGrid` now gives cells that span the tile exactly, and the dots are drawn at the centres of the same cells the photo was sampled into. Test: "the dot grid spans the tile exactly".
 - **Lens resize test flake (builder).** Under full-suite load a resize step could outlast the 150 ms debounce and add one sample (11 against a cap of 10). The cap is now under 20, still well below the 50 an undebounced resize gives.
 
 ## Phase 1 review (2026-10-27)

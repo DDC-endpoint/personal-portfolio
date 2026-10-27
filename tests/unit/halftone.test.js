@@ -1,6 +1,6 @@
-import { HALFTONE, dotRadius, developMix, levels, dotTone, inView } from "@/lib/halftone";
+import { HALFTONE, dotRadius, developMix, levels, dotTone, scrollDevelop, dotGrid } from "@/lib/halftone";
 
-test("constants", () => expect(HALFTONE).toEqual({ CELL: 7, DEVELOP_MS: 1200 }));
+test("constants", () => expect(HALFTONE).toEqual({ CELL: 7 }));
 
 test("dark areas get big dots, white gets none", () => {
   expect(dotRadius(1, 7)).toBe(0);
@@ -55,14 +55,43 @@ test("dark mode sizes dots by brightness, so the print stays a positive", () => 
   expect(dotRadius(dotTone(0.9, true), 7)).toBeGreaterThan(dotRadius(dotTone(0.1, true), 7)); // dark: bright → big
 });
 
-test("a tile develops once 35% of it is in view", () => {
-  expect(inView(0.34, 300, 900)).toBe(false);
-  expect(inView(0.35, 300, 900)).toBe(true);
+// Damian: the develop follows scroll. 0 while the tile's top is at or below
+// the screen's bottom edge, 1 once its centre reaches the screen's centre.
+test("develop starts as the tile's top enters the screen", () => {
+  expect(scrollDevelop(900, 300, 900)).toBe(0);
+  expect(scrollDevelop(1400, 300, 900)).toBe(0);
 });
 
-test("a tile taller than the screen develops once it fills most of it", () => {
-  // 950 px tile on a 300 px screen: at best 31.6% of it can show
-  expect(inView(0.3, 950, 300)).toBe(true); // 285 px of 300 shown
-  expect(inView(0.2, 950, 300)).toBe(false);
-  expect(inView(0, 950, 300)).toBe(false);
+test("develop completes when the tile's centre reaches the screen's centre", () => {
+  expect(scrollDevelop(300, 300, 900)).toBe(1); // centre at 450 of 900
+});
+
+test("develop is linear in scroll between the two", () => {
+  // a 300 px tile on a 900 px screen develops over 600 px of scroll
+  expect(scrollDevelop(600, 300, 900)).toBeCloseTo(0.5, 10);
+  expect(scrollDevelop(750, 300, 900)).toBeCloseTo(0.25, 10);
+});
+
+test("a tile above the screen stays developed", () => {
+  expect(scrollDevelop(-2000, 300, 900)).toBe(1);
+});
+
+test("a tile taller than the screen still completes", () => {
+  // 950 px tile on a 300 px screen: centre at 150 when its top is at -325
+  expect(scrollDevelop(-325, 950, 300)).toBe(1);
+  expect(scrollDevelop(300, 950, 300)).toBe(0);
+});
+
+// The dots must sit exactly on the cells the photo was sampled into, or the
+// print drifts off the photo toward the right and bottom edges.
+test("the dot grid spans the tile exactly", () => {
+  for (const [w, h] of [[213, 284], [217, 290], [440.5, 587.3], [7, 7]]) {
+    const g = dotGrid(w, h, 7);
+    expect(g.cols).toBe(Math.ceil(w / 7));
+    expect(g.rows).toBe(Math.ceil(h / 7));
+    expect(g.cols * g.cw).toBeCloseTo(w, 9);
+    expect(g.rows * g.ch).toBeCloseTo(h, 9);
+    expect(g.cw).toBeLessThanOrEqual(7);
+    expect(g.ch).toBeLessThanOrEqual(7);
+  }
 });
