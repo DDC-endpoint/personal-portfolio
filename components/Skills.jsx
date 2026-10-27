@@ -17,11 +17,8 @@ export default function Skills() {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 md:col-span-9 md:col-start-4">
-          <Terminal />
-        </div>
-      </div>
+      {/* The terminal spans the section's full width (Damian). */}
+      <Terminal />
     </section>
   );
 }

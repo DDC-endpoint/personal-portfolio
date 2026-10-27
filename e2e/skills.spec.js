@@ -180,3 +180,14 @@ test("the terminal never overlaps its columns or clips text", async ({ page, isM
     expect(r.overlaps, `${width}px`).toEqual([]);
   }
 });
+
+// Damian: the stack fills the section's full width, not just the nine
+// columns right of the label.
+test("the terminal spans the section's full width", async ({ page }) => {
+  await page.goto("/");
+  const term = await page.locator("[data-terminal]").boundingBox();
+  const vw = page.viewportSize().width;
+  const gutter = vw >= 768 ? 40 : 24;
+  expect(Math.round(term.x)).toBe(gutter);
+  expect(Math.round(term.width)).toBe(vw - 2 * gutter);
+});
