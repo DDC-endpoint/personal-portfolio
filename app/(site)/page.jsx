@@ -23,7 +23,6 @@ export const metadata = {
     type: "website",
     url: "/",
     siteName: "Damian De Cruz",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Damian De Cruz — Freelance Web Designer & Developer" }],
   },
 };
 

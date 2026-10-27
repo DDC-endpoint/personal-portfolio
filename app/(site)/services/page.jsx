@@ -19,13 +19,11 @@ export const metadata = {
     type: "website",
     url: "/services",
     siteName: "DDC Web Services",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Web Design Services in Colombo | DDC Web Services" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Web Design Services in Colombo | DDC Web Services",
     description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
-    images: ["/og.jpg"],
   },
 };
 

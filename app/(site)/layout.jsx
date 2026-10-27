@@ -27,6 +27,7 @@ const mono = JetBrains_Mono({
 
 // Site-wide defaults, which are Home's. Each page sets its own canonical and
 // og:url, so a page that forgets one (the 404, say) never points at Home.
+// Share images are the opengraph-image.jpg files (docs/v3/spike/og-cards.cjs).
 export const metadata = {
   title: "Damian De Cruz — Freelance Web Designer & Developer",
   description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
@@ -36,13 +37,11 @@ export const metadata = {
     description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
     type: "website",
     siteName: "Damian De Cruz",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Damian De Cruz — Freelance Web Designer & Developer" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Damian De Cruz — Freelance Web Designer & Developer",
     description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
-    images: ["/og.jpg"],
   },
 };
 
