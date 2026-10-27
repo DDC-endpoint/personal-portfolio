@@ -1,4 +1,4 @@
-import { SERVICES_HERO, SERVICES, PRICING_NOTE, STEPS, WORK, FAQS, START_TEXT, faqJsonLd } from "@/lib/services";
+import { SERVICES_HERO, SERVICES, PRICING_NOTE, PRICES_UPDATED, BUSINESS, STEPS, WORK, FAQS, START_TEXT, faqJsonLd } from "@/lib/services";
 import { PROJECTS } from "@/lib/projects";
 import { ldJson } from "@/lib/jsonld";
 
@@ -7,9 +7,9 @@ import { ldJson } from "@/lib/jsonld";
 
 test("hero", () => {
   expect(SERVICES_HERO).toEqual({
-    kicker: "Freelance · Colombo, Sri Lanka",
+    kicker: "Freelance web designer · Colombo, Sri Lanka",
     heading: ["Clean, fast websites, ", "built in days", "."],
-    lead: "I’m Damian, a creative technologist and freelance web designer in Colombo. I design and build custom websites for businesses and creatives that load quickly, look sharp on every screen and are ready for Google. Most projects ship within days.",
+    lead: "I’m Damian, a creative technologist and freelance web designer in Colombo, working as DDC Web Services. I design and build custom websites for businesses and creatives that load quickly, look sharp on every screen and are ready for Google. Most projects ship within days.",
   });
 });
 
@@ -35,6 +35,15 @@ test("titles, prices, turnarounds and includes are unchanged", () => {
     ["06", "SEO & GEO implementation", "LKR 65,000", "$400", "1–2 weeks", ["Technical & on-page fixes", "Schema & structured data", "AI snippet optimisation"]],
     ["07", "Ongoing SEO & GEO retainer", "LKR 48,000", "$225", "Monthly", ["Monthly SEO health checks", "GEO monitoring & updates", "Monthly performance report"]],
   ]);
+});
+
+test("the business on the page: DDC Web Services, by Damian", () => {
+  expect(BUSINESS).toEqual({ name: "DDC Web Services", by: "by Damian De Cruz" });
+  expect(PRICES_UPDATED).toBe("Prices updated October 2026.");
+});
+
+test("Spades is a client design that hasn't launched", () => {
+  expect(WORK.find((w) => w.slug === "spades-solutions").tag).toBe("Client design · not launched");
 });
 
 test("pricing note and start text", () => {

@@ -1,6 +1,6 @@
 "use client";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { Fragment, useRef } from "react";
 import Reveal from "./Reveal";
 import EagerReveal from "./EagerReveal";
 import SplitLines from "./SplitLines";
@@ -10,7 +10,7 @@ import RecentWork from "./services/RecentWork";
 import StartCard from "./services/StartCard";
 import { EMAIL, WHATSAPP_LINK } from "@/lib/site";
 import { EASE } from "@/lib/motion";
-import { SERVICES_HERO, SERVICES, PRICING_NOTE, FAQS } from "@/lib/services";
+import { BUSINESS, SERVICES_HERO, SERVICES, PRICING_NOTE, PRICES_UPDATED, FAQS } from "@/lib/services";
 
 function CTAButtons() {
   return (
@@ -78,23 +78,32 @@ export default function Services() {
               the SSR HTML — the lead paragraph is the page's LCP element. */}
           <div className="col-span-12 md:col-span-3">
             <EagerReveal>
-              <div className="section-label">Damian De Cruz</div>
-              <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
-                Web design & development
-              </div>
+              <div className="section-label">{BUSINESS.name}</div>
+              <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">{BUSINESS.by}</div>
             </EagerReveal>
           </div>
           <div className="col-span-12 md:col-span-9 md:col-start-4">
-            <EagerReveal delay={0.05}>
-              <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-soft mb-5">
-                {SERVICES_HERO.kicker}
-              </div>
-            </EagerReveal>
-            <SplitLines as="h1" delay={0.1} className="font-display text-5xl md:text-8xl leading-[0.92] tracking-tight text-ink">
-              {SERVICES_HERO.heading[0]}
-              <span className="italic text-electric">{SERVICES_HERO.heading[1]}</span>
-              {SERVICES_HERO.heading[2]}
-            </SplitLines>
+            {/* The kicker sits inside the H1, so the heading names the service
+                and the place; it looks as it did. */}
+            <h1>
+              <EagerReveal as="span" delay={0.05} className="block font-mono text-[11px] uppercase tracking-[0.22em] text-ink-soft mb-5">
+                {/* each half stays whole, so a phone wraps it at the dot */}
+                {SERVICES_HERO.kicker.split(" · ").map((part, i, all) => (
+                  <Fragment key={part}>
+                    <span className="whitespace-nowrap">
+                      {part}
+                      {i < all.length - 1 && " ·"}
+                    </span>
+                    {i < all.length - 1 && " "}
+                  </Fragment>
+                ))}
+              </EagerReveal>{" "}
+              <SplitLines as="span" delay={0.1} className="block font-display text-5xl md:text-8xl leading-[0.92] tracking-tight text-ink">
+                {SERVICES_HERO.heading[0]}
+                <span className="italic text-electric">{SERVICES_HERO.heading[1]}</span>
+                {SERVICES_HERO.heading[2]}
+              </SplitLines>
+            </h1>
             <EagerReveal replay={false}>
               <p className="mt-8 max-w-xl text-lg md:text-xl leading-relaxed text-ink-soft">
                 {SERVICES_HERO.lead}
@@ -160,7 +169,7 @@ export default function Services() {
 
         <Reveal>
           <p className="mt-10 max-w-2xl text-sm md:text-base text-ink-faint leading-relaxed">
-            {PRICING_NOTE}
+            {PRICING_NOTE} {PRICES_UPDATED}
           </p>
         </Reveal>
       </section>
@@ -220,7 +229,7 @@ export default function Services() {
               <Reveal key={i} delay={i * 0.04}>
                 <details className="group border-t border-rule py-6 first:border-t-0">
                   <summary className="flex items-center justify-between gap-6 cursor-pointer list-none font-display text-xl md:text-2xl text-ink [&::-webkit-details-marker]:hidden">
-                    {f.q}
+                    <h3 className="font-normal">{f.q}</h3>
                     <span className="font-mono text-electric text-2xl leading-none transition-transform duration-300 group-open:rotate-45">
                       +
                     </span>

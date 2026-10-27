@@ -321,3 +321,36 @@ for (const theme of ["light", "dark"]) {
     for (const r of ratio) expect(r).toBeGreaterThanOrEqual(4.5);
   });
 }
+
+// The trading name on the business page (docs/v3/seo-geo.md).
+test.describe("DDC Web Services on /services", () => {
+  test.use({ javaScriptEnabled: false });
+  test.skip(({ isMobile }) => isMobile, "markup is the same on both projects");
+
+  test("the H1 names the service and the place", async ({ page }) => {
+    await page.goto("/services");
+    const h1 = page.locator("h1");
+    await expect(h1).toHaveCount(1);
+    const name = (await h1.textContent()).replace(/\s+/g, " ");
+    expect(name).toContain("Freelance web designer · Colombo, Sri Lanka");
+    expect(name).toContain("Clean, fast websites, built in days.");
+  });
+
+  test("the hero names the business, by Damian, and the lead says so", async ({ page }) => {
+    await page.goto("/services");
+    await expect(page.locator("#top")).toContainText("DDC Web Services");
+    await expect(page.locator("#top")).toContainText("by Damian De Cruz");
+    await expect(page.locator("#top p").first()).toContainText("freelance web designer in Colombo, working as DDC Web Services.");
+  });
+
+  test("prices carry their date, and FAQ questions are headings", async ({ page }) => {
+    await page.goto("/services");
+    await expect(page.locator("#what-i-do")).toContainText("Prices updated October 2026.");
+    await expect(page.locator("#faq summary h3")).toHaveCount(7);
+  });
+
+  test("Spades is labelled a client design that hasn't launched", async ({ page }) => {
+    await page.goto("/services");
+    await expect(page.locator("#recent [data-card]").nth(1)).toContainText("Client design · not launched");
+  });
+});
