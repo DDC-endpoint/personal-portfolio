@@ -193,7 +193,7 @@ export default function SplitLines({
         {lines === null ? (
           <span
             ref={measureRef}
-            className={`block ${played ? "" : "opacity-0"}`}
+            className={`block ${played ? "" : "opacity-0 nojs:opacity-100"}`}
           >
             {words.map((w, i) => (
               <WordSpan key={i} word={w} />

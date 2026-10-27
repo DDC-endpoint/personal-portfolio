@@ -50,7 +50,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, li
             height={900}
             loading="lazy"
             decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-top opacity-0 data-[on=true]:opacity-100 motion-reduce:opacity-100"
+            className="absolute inset-0 h-full w-full object-cover object-top opacity-0 data-[on=true]:opacity-100 motion-reduce:opacity-100 nojs:opacity-100"
           />
         )}
         <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full font-mono motion-reduce:hidden" />
@@ -61,7 +61,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, li
         </span>
         <span
           data-reveal
-          className="flex flex-wrap gap-1.5 opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100"
+          className="flex flex-wrap gap-1.5 opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100 nojs:opacity-100"
         >
           {live ? (
             p.tags.map((t) => (
@@ -79,7 +79,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, li
           )}
         </span>
       </div>
-      <p id={blurbId} className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100">
+      <p id={blurbId} className="mt-2 max-w-xl text-[13px] leading-snug text-ink-soft opacity-0 transition-opacity duration-500 group-data-[active=true]:opacity-100 group-data-[decode=shot]:opacity-100 motion-reduce:opacity-100 nojs:opacity-100">
         {p.blurb}
       </p>
     </>

@@ -334,6 +334,8 @@ test.describe("DDC Web Services on /services", () => {
     const name = (await h1.textContent()).replace(/\s+/g, " ");
     expect(name).toContain("Freelance web designer · Colombo, Sri Lanka");
     expect(name).toContain("Clean, fast websites, built in days.");
+    await expect(h1.getByText("Freelance web designer ·")).toBeVisible();
+    expect(await h1.locator("span.font-display").evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
   });
 
   test("the hero names the business, by Damian, and the lead says so", async ({ page }) => {
@@ -351,6 +353,7 @@ test.describe("DDC Web Services on /services", () => {
 
   test("Spades is labelled a client design that hasn't launched", async ({ page }) => {
     await page.goto("/services");
-    await expect(page.locator("#recent [data-card]").nth(1)).toContainText("Client design · not launched");
+    // visible, not only present: no-JS visitors see the tags (nothing starts hidden without JS)
+    await expect(page.locator("#recent [data-card]").nth(1).getByText("Client design · not launched")).toBeVisible();
   });
 });

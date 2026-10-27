@@ -3,6 +3,9 @@
 @custom-variant dark (&:is(.dark *));
 /* Set pre-paint by the inline script in (site)/layout.jsx when JS runs. */
 @custom-variant js (&:is(.js *));
+/* The opposite: no JS ran. For class-based start states that must not hide
+   content from no-JS visitors (e.g. nojs:opacity-100). */
+@custom-variant nojs (&:is(html:not(.js) *));
 /* md+ with a real hover: the Lens captions hide at rest only here. */
 @custom-variant can-hover (@media (hover: hover) and (min-width: 48rem));
 
@@ -195,6 +198,13 @@ html:not(.js) .intro-stamp { display: none !important; }
   [data-cursor] { animation: term-blink 1.06s steps(1) infinite; }
 }
 @keyframes term-blink { 50% { opacity: 0; } }
+
+/* No JS: framer-motion server-renders every entrance's start state as an
+   inline style (opacity:0, or the hero name's translateY below its line
+   mask) that only its own JS would animate away, so without JS that content
+   would never show. Show it. */
+html:not(.js) [style*="opacity:0"],
+html:not(.js) [style*="transform:translateY"] { opacity: 1 !important; transform: none !important; }
 
 /* Hero blob */
 @keyframes float-slow {

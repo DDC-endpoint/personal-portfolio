@@ -181,3 +181,39 @@ test("the lab's title says Lab once", async ({ page, isMobile }) => {
   await page.goto("http://lab.localhost:3000/");
   await expect(page).toHaveTitle("Lab — Damian De Cruz");
 });
+
+// Without JS nothing may start hidden (plan → Global Constraints): no-JS
+// visitors, and crawlers that don't run scripts, see the whole page.
+test.describe("no JS: every text is visible", () => {
+  test.use({ javaScriptEnabled: false });
+  test.skip(({ isMobile }) => isMobile, "markup is the same on both projects");
+  for (const path of ["/", "/services", "/privacy"]) {
+    test(path, async ({ page }) => {
+      await page.goto(path);
+      const hidden = await page.evaluate(() => {
+        const out = [];
+        const walker = document.createTreeWalker(document.querySelector("main"), NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const el = n.parentElement;
+          if (!n.textContent.trim() || el.closest('[aria-hidden="true"], .sr-only, script, template')) continue;
+          let o = 1;
+          for (let e = el; e; e = e.parentElement) o *= Number(getComputedStyle(e).opacity);
+          if (o < 0.99) out.push(`${n.textContent.trim().slice(0, 40)} (${o.toFixed(2)})`);
+        }
+        return out;
+      });
+      expect(hidden).toEqual([]);
+    });
+  }
+});
+
+test("no JS: the Home name isn't left below its line mask", async ({ browser }) => {
+  const ctx = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  await page.goto("/");
+  const clipped = await page.locator("h1 > div > span").evaluateAll((els) =>
+    els.filter((el) => el.getBoundingClientRect().top >= el.parentElement.getBoundingClientRect().bottom - 1).map((el) => el.textContent)
+  );
+  expect(clipped).toEqual([]);
+  await ctx.close();
+});
