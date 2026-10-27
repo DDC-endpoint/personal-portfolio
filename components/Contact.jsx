@@ -1,31 +1,28 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useScroll } from "framer-motion";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { SOCIALS, EMAIL, WHATSAPP_LINK, AVAILABILITY } from "@/lib/site";
-import { CONTACT, growInset, growProgress, colomboClock } from "@/lib/contact";
+import { CONTACT, colomboClock } from "@/lib/contact";
 import { DecodeLabel, ScrambleText } from "./Scramble";
+import { useGrowCard } from "./useGrowCard";
 
 // § 08 Contact — the closing moment (Damian): a small electric tile under the
 // label grows right and down into a full-width card as you scroll, and shrinks
-// back as you scroll up. The growth is a clip-path written by an effect, so the
-// server HTML is the full card (no JS, reduced motion) and the layout never
-// reflows. Keyboard focus inside the card holds it fully open.
+// back as you scroll up (useGrowCard, shared with /services "Start a project").
+// The server HTML is the full card (no JS, reduced motion) and the layout
+// never reflows. Keyboard focus inside the card holds it fully open.
 // "Ivory" text on the card is text-ivory in light mode and text-ink in dark
 // mode, because the ivory token turns navy there.
 // The card keeps the light-mode electric (#2563EB) in dark mode too (Damian):
 // the brightened dark-mode token gives its small labels only ~3.4:1.
 
 const CLOCK_MS = 15_000;
-const FULL = "inset(0px 0px 0px 0px round 8px)";
 
 export default function Contact() {
   const cardRef = useRef(null);
   const contentRef = useRef(null);
   const reduce = useReducedMotion();
   const [clock, setClock] = useState("Colombo · --:--");
-
-  const { scrollY } = useScroll();
 
   useEffect(() => {
     const tick = () => setClock(colomboClock(new Date()));
@@ -34,67 +31,7 @@ export default function Contact() {
     return () => clearInterval(id);
   }, []);
 
-  // Scroll-scrubbed growth (lib/contact.js growProgress). The card's size
-  // comes from its ResizeObserver entry; its page position and the page's
-  // scroll range are re-measured whenever the card or the page resizes.
-  useEffect(() => {
-    const card = cardRef.current, content = contentRef.current;
-    if (!card || !content || reduce) return;
-    let W = 0, H = 0, held = false, geo = null;
-    const measure = () => {
-      const root = document.documentElement;
-      geo = {
-        cardTop: card.getBoundingClientRect().top + window.scrollY,
-        vh: window.innerHeight,
-        maxScroll: root.scrollHeight - window.innerHeight,
-      };
-    };
-    const apply = () => {
-      if (!W || !geo) return;
-      const p = growProgress(scrollY.get(), geo);
-      card.style.clipPath = held ? FULL : growInset(p, { W, H, tile: CONTACT.tile });
-      content.style.opacity = held ? "1" : String(Math.min(1, Math.max(0, (p - 0.6) / 0.4)));
-    };
-    const ro = new ResizeObserver(([entry]) => {
-      W = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
-      H = entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height;
-      measure();
-      apply();
-    });
-    ro.observe(card);
-    const pageRo = new ResizeObserver(() => {
-      measure();
-      apply();
-    });
-    pageRo.observe(document.body);
-    const onResize = () => {
-      measure();
-      apply();
-    };
-    window.addEventListener("resize", onResize);
-    const unsub = scrollY.on("change", apply);
-    const onFocusIn = () => {
-      held = true;
-      apply();
-    };
-    const onFocusOut = (e) => {
-      if (card.contains(e.relatedTarget)) return;
-      held = false;
-      apply();
-    };
-    card.addEventListener("focusin", onFocusIn);
-    card.addEventListener("focusout", onFocusOut);
-    return () => {
-      ro.disconnect();
-      pageRo.disconnect();
-      window.removeEventListener("resize", onResize);
-      unsub();
-      card.removeEventListener("focusin", onFocusIn);
-      card.removeEventListener("focusout", onFocusOut);
-      card.style.clipPath = "";
-      content.style.opacity = "";
-    };
-  }, [reduce, scrollY]);
+  useGrowCard({ cardRef, contentRef, reduce, tile: CONTACT.tile });
 
   const [lead, accent, tail] = CONTACT.headline;
   const onCard = "text-ivory dark:text-ink";
@@ -104,7 +41,7 @@ export default function Contact() {
     <section id="contact" className="relative px-6 md:px-10 pt-32 md:pt-48 pb-20 md:pb-32 border-t border-rule">
       <DecodeLabel className="section-label">§ 08 — Contact</DecodeLabel>
 
-      <div ref={cardRef} data-contact-card className={`mt-8 md:mt-10 rounded-lg bg-electric dark:bg-[#2563EB] ${onCard}`}>
+      <div ref={cardRef} data-contact-card data-electric-card className={`mt-8 md:mt-10 rounded-lg bg-electric dark:bg-[#2563EB] ${onCard}`}>
         <div ref={contentRef} data-contact-content className="flex flex-col gap-12 p-7 md:p-14">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <span className={`inline-flex items-center gap-2 ${mono}`}>

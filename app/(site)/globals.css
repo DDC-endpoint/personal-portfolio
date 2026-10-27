@@ -123,12 +123,13 @@
   outline-offset: 3px;
   border-radius: 2px;
 }
-/* On the electric Contact card an electric ring would vanish: it takes the
+/* On the electric cards (Contact, /services "Start a project") an electric
+   ring would vanish: it takes the
    card's text colour instead (ivory, which is the ink token in dark mode),
    and the pill buttons keep their shape. */
-[data-contact-card] :focus-visible { outline-color: rgb(var(--c-ivory)); }
-.dark [data-contact-card] :focus-visible { outline-color: rgb(var(--c-ink)); }
-[data-contact-card] .rounded-full:focus-visible { border-radius: 9999px; }
+[data-electric-card] :focus-visible { outline-color: rgb(var(--c-ivory)); }
+.dark [data-electric-card] :focus-visible { outline-color: rgb(var(--c-ink)); }
+[data-electric-card] .rounded-full:focus-visible { border-radius: 9999px; }
 
 /* Grain overlay */
 .grain {
