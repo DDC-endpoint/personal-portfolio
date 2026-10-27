@@ -279,6 +279,22 @@ Damian, mid-build: "Let the initial load itself have the decode fade instead of 
 
 This supersedes "Curtain back, on every reload" (Phase 1 review) for how the cover looks and where it plays; the timing rule (every load) stands.
 
+## Phase 5 build and review (2026-10-27)
+
+Builder's calls during the build (all recorded in the build ledger as rulings):
+
+- **Same-page links are handled by the transition controller,** through a shared Lenis registry (`lib/lenis.js`), not inside SmoothScroll. One listener owns path links; SmoothScroll keeps bare `#…` links. It also works under reduced motion and on pages without SmoothScroll.
+- **The 404 page's link home is a plain `<a>`.** A `next/link` navigates by itself, without the veil.
+- **Back and Forward return to a scroll position kept per URL** in memory. Next doesn't restore scroll under the veil. The same URL twice in history shares one position.
+- **The first-load intro lets the pointer through,** as the curtain did, so a hover under a resting mouse works the moment the page shows. A click on something that isn't a page link during the ~1 s intro lands on the covered page, as it did before.
+- **A page link clicked during the intro opens, rather than being dropped:** under the same cover if clicked during the stamp, right after the reveal if clicked during it. (The plan's Task 4b said such clicks were ignored.)
+- **Forced colours keeps the plain stamp and its wipe on first load,** since canvas colours ignore forced colours.
+- **A hydration later than 2.5 s skips the veil:** the page has been readable for a while.
+- **Back while the veil covers, before the next page has committed,** goes to the entry before the current one (as Back during a normal page load does), and the veil reveals that page.
+- **`/services`' hero entrance is left unshifted.** It plays under the cover and finishes as the sweep passes. **Gate question for Damian**, as is the stamp's ivory box over the glyph field.
+
+The fresh review found one Critical issue (a failed load of the veil's code left every page link dead until reload), three Important ones (Back during a transition froze the veil and then hard-loaded the page being left; the per-frame full redraw; the Lighthouse gate not yet run) and seven Minor ones. All are fixed test-first, minor ones included, and one more gap found while fixing (a click during the intro's reveal was dropped). The veil now draws only the cells that change, from a glyph atlas, within a 6 ms budget per frame for optional work, and caps and frees its canvas. Lighthouse ended at parity with `v3` (README → "Testing").
+
 ## Gate changes (2026-10-27)
 
 Damian's changes at the Phase 4 visual gate:

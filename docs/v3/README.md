@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (end of 2026-10-27: Phases 1–4, the Timeline circuit and SEO/GEO merged; Phase 5 approved, not started)
+## Where we are (end of 2026-10-27: Phases 1–4, the Timeline circuit and SEO/GEO merged; Phase 5 built, at the visual gate)
 
 | Track | State |
 |---|---|
@@ -14,17 +14,13 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Timeline circuit** (replaces the running stitch) | **Done and merged into `v3` locally (2026-10-27)** from `v3-timeline-circuit`, on Damian's go-ahead after the prototype. See `decisions.md` → "Timeline circuit". |
 | **Phase 4**: copy refresh, Leadership rows, Skills terminal, `/services` | **Done and merged into `v3` locally (2026-10-27)** as `24b16d7`. Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. His gate changes (pinning, Recent work rows, prices, full-width stack) are in `decisions.md` → "Phase 4 build and review" and "Gate changes". See "What Phase 4 built". |
 | SEO and GEO upgrade (Phase 4 Task 11) | **Done and merged with Phase 4 (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
-| Phase 5: page transition (every page) | **Approved (2026-10-27), not started.** Damian approved [`plan-phase-5.md`](plan-phase-5.md) with every builder's call: a top-down glyph sweep of about 1.3 s, chosen from a prototype. |
+| **Phase 5**: page transition (every page) and the first-load reveal | **Built on `v3-phase-5` (2026-10-27), at the visual gate; not merged.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
 
-### The next step (resume here): build Phase 5 from Task 0
+### The next step (resume here): Phase 5's visual gate
 
-**State at hand-off (end of 2026-10-27):** on `v3`, working tree clean. Phase 4 and SEO/GEO merged as `24b16d7`. The Phase 5 plan and prototype are committed (`827688f`) and approved. Nothing of Phase 5 is built yet, and `v3-phase-5` doesn't exist. Unit tests and e2e pass on `v3`. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, and the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load").
+**State at hand-off (end of 2026-10-27):** Phase 5 is built on `v3-phase-5` (not merged), reviewed by a fresh reviewer, and every finding is fixed, minor ones included. Unit tests (152) and e2e pass. Lighthouse is at parity with `v3` (see "Testing"). `v3` itself is unchanged since `901160d`. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load"), and the transition's sweep-timing test (it retries).
 
-1. **Build Phase 5, the page transition,** per [`plan-phase-5.md`](plan-phase-5.md), starting at Task 0 (`git switch -c v3-phase-5` off `v3`).
-   - **What it is:** a top-down sweep of blue characters covers the page, the next page swaps in underneath (client-side), and the sweep reveals it; about 1.3 s; every link between Home, `/services`, `/privacy` and the 404 page. Back and Forward decode in only. Arriving on Home: no curtain, no portrait wave, no hero float-in.
-   - **Before coding, read:** the plan (Damian's decisions and the confirmed builder's calls), `decisions.md` → "Phase 5 planning", and the prototype `spike/page-transition.html` (`node docs/v3/spike/serve.cjs`, then `http://localhost:3200/page-transition.html`; its drawing code is the starting point for `components/transition/Veil.js`).
-   - **Working rules:** test-first per task, native inline execution, one fresh reviewer over the whole diff at the end, fix minor findings too, then the visual gate with the dev page open for Damian.
-   - **Facts checked while planning:** links between pages are plain `<a href>` (Nav, Hero, About, Footer, ServicesNav, Services, not-found), so one delegated listener catches them all. `shouldPlayIntro()` in `lib/motion.js` is memoized per full load, and IntroStamp's state starts `true`, so without the new soft-navigation flag a client-side arrival on Home would replay the curtain and delay the hero. `cacheComponents` is off (keep it off). `router.push(href, { scroll: false })` and `router.prefetch()` are the Next 16 APIs to use (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-router.md`).
+1. **Visual gate:** Damian looks at the transition and the new first load on the dev server (open `http://localhost:3000/`, click between Home, Services and Privacy, try Back). Gate questions: the stamp's ivory box over the glyph field, and `/services`' hero entrance playing under the cover (`decisions.md` → "Phase 5 build and review"). On his approval: `git switch v3 && git merge --no-ff v3-phase-5`, delete the branch, update these docs. No push.
 2. **Damian, outside the repo:** check GA4 → Admin → Data streams → the web stream → Enhanced measurement → Page views → "Page changes based on browser history events" is on, so client-side page changes are counted.
 3. **Then the performance pass (Damian, 2026-10-27: after Phase 5 merges, before `v3` → `main`).** Mobile Lighthouse on `v3` is 2–4 points below `main`, mostly from before Phase 4 (see "Testing"). The target is "no worse than `main`".
 4. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
@@ -244,6 +240,43 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Only the Timeline and "How it works" pin.** No other § label is sticky (`e2e/services.spec.js` checks). "How it works" pins its label and the current step's title (`StepCounter.jsx`), like the Timeline's year counter.
 - **Typed text is clipped, never removed.** The terminal un-clips spans with `--n`, so screen readers, crawlers and no-JS visitors always get the whole stack.
 
+## What Phase 5 built (on `v3-phase-5`)
+
+**The page transition:**
+- Every link between Home, `/services`, `/privacy` and the 404 page plays one glyph sweep instead of a full page load. A band of electric-blue characters sweeps down and covers the page (0.52 s), the next page swaps in client-side underneath (a 0.12 s hold at least), and the same sweep reveals it (0.64 s).
+- Arriving on Home this way skips the stamp, the portrait wave and the hero float-in: the sweep is the only entrance.
+- **Back and Forward** cover at once and reveal the page where the visitor left it.
+- **Same-page links** (`/` on Home, `/#work` on Home) smooth-scroll instead. Modified clicks, middle clicks, new-tab links, downloads and other hosts are left to the browser.
+- "See the full portfolio" on `/services` now goes to `/#work`.
+- **Never stuck:** if the next page hasn't arrived 4 s after the cover, the browser loads it normally, and any failure on the way (the veil's code not loading, say) does the same. Back and Forward get the same 4 s guard. A second click while the veil runs is dropped.
+- **Back during a transition** calls it off and reveals the page the visitor went back to. Before the next page has committed, that's the entry before the current one, as Back during a normal page load would be.
+- **On arrival** focus moves to `<main>`; the reveal waits up to 0.4 s for Home's portrait to be drawn.
+- **Reduced motion and forced colours:** page changes are client-side and instant, with no veil. **No JS:** plain links.
+- The other pages are prefetched once the browser is idle.
+
+**The first load (Damian's change during the build):**
+- Every page starts covered, on every load and reload. The "DAMIAN DE CRUZ" stamp resolves over the covered glyph field, then the sweep reveals the page. Home's portrait wave and hero float-in follow, as they did after the curtain.
+- The stamp is still in the server HTML (`.intro-stamp`), so nothing flashes before hydration. If the veil can't draw in time, the stamp wipes upward as the old curtain did. Forced colours always gets that wipe.
+- The intro (stamp and reveal) lets the pointer through, as the curtain did. A page link clicked during the stamp opens under the same cover; one clicked during the reveal opens right after it.
+- A hydration later than 2.5 s skips the veil: the page has been readable for a while, so the stamp just wipes away.
+
+**Code map:**
+- **Pure, unit-tested:** `lib/pageTransition.js`: the timings, `PAGES`, `intercept` (which clicks it takes over), `pageOf`, `sweepAt`, `arrivalAt`, `cellAt`.
+- `lib/motion.js`: `markSoftNavigation()` / `isSoftNavigation()`. Once set, `shouldPlayIntro()` is false until a reload.
+- `lib/lenis.js`: the page's Lenis instance, shared by SmoothScroll with the transition.
+- `components/transition/Veil.js`: the canvas drawing engine (no React), split out of the first load. It writes `data-veil`: `idle → covering → covered → revealing → idle` (Back, Forward and the intro skip `covering`). It draws only the cells that change, copies glyphs from a pre-rendered atlas (an `OffscreenCanvas`), caps its backing store (`veilScale`), and is 0 × 0 when idle.
+- `components/transition/PageTransitions.jsx`: the controller and the canvas, mounted once in `app/(site)/layout.jsx`. It also mounts the IntroStamp now. `html[data-transitions="ready"]` says it's live.
+- `components/IntroStamp.jsx`: the stamp, driven by the controller.
+
+**Rules that came out of Phase 5** (don't undo them):
+- **Links between pages stay plain `<a href>`.** A `next/link` navigates by itself, without the veil (the 404 page's link was one).
+- **Effects that load something at mount need a cleanup that drops it.** React's dev double mount destroyed the veil the intro had just loaded, and every later sweep was cut short.
+- **Overlays above the page let the pointer through unless they must block clicks.** The intro veil is `data-intro` (pointer-transparent); a transition veil blocks clicks.
+- **e2e tests wait for `settle()`** (the stamp gone, `data-transitions="ready"`, the veil idle) before clicking.
+- **Every async step of a transition checks it's still the current run** (`token`), and every wait for a page has the 4 s fallback. A stuck `busy` flag would leave every page link dead.
+- **Measure canvas frame cost with the GPU on** (`channel: "chromium"`, `--enable-gpu --use-angle=d3d11 --ignore-gpu-blocklist`). The default headless shell paints in software, and the page alone runs at 33 ms frames there, so it measures the page, not the canvas.
+- **`portrait.spec` counts every `createElement("canvas")`.** A helper canvas that's never shown should be an `OffscreenCanvas`.
+
 ## Testing
 
 - **Unit:** `npm test` runs Vitest over `tests/unit/` (the pure `lib/` modules).
@@ -287,12 +320,22 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
   Desktop is 100 on both pages for every branch. LCP equals FCP throughout: the LCP element is the hero text, and the page's first paint is what moves. Phase 4's own cost against `v3` is 0–1 point. The gap to `main` was mostly already there before Phase 4, so a performance pass before `v3` → `main` is Damian's call (see "The next step").
 
+  Phase 5 result (production builds in scratchpad worktrees, interleaved in one batch; mobile medians of 7, desktop medians of 3). This batch ran slower than earlier ones on this machine, so compare within the table:
+
+  | | Mobile `/` | LCP | TBT | Mobile `/services` | LCP | TBT |
+  |---|---|---|---|---|---|---|
+  | `v3` | 73 | 2395 ms | 946 ms | 75 | 2362 ms | 834 ms |
+  | `v3-phase-5` | 73 | 2366 ms | 946 ms | 74 | 2345 ms | 877 ms |
+
+  Desktop is 100 on both pages for both. Before the frame budget (`BUDGET_MS` in `Veil.js`) and the gradual intro fill, mobile `/` was 74 against 80 (TBT 972 against 618 ms): the intro's one-task fill and the reveal frames shared the portrait wave's frames. The veil's code is its own 2.9 KB chunk, absent from the first-load HTML.
+
   The worktree route: `git worktree add --detach <dir> <branch>`, then `npm ci && npx next build && npx next start -p <port>` in each. Copy any uncommitted `public/` assets in first.
 
 ## Repo state at hand-off
 
 - **Branches:**
-  - `v3` (current) is local only, with no upstream. `v3-phase-1` to `v3-phase-4` and `v3-timeline-circuit` are merged and deleted. The working tree is clean.
+  - `v3` is local only, with no upstream. `v3-phase-1` to `v3-phase-4` and `v3-timeline-circuit` are merged and deleted.
+  - `v3-phase-5` (current) holds Phase 5, at the visual gate, not merged. The working tree is clean.
   - Other local branches, `main` and `upgrade/deps`, are untouched by V3.
 - **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another.
 - **Prototype server:** `node docs/v3/spike/serve.cjs` on :3200 (see "Running the prototypes"). It may still be running from the last session.
@@ -309,7 +352,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **done**; read its status note for where the build departed from it.
-- [`plan-phase-5.md`](plan-phase-5.md): the Phase 5 plan (the page transition). **Approved 2026-10-27, not started.**
+- [`plan-phase-5.md`](plan-phase-5.md): the Phase 5 plan (the page transition, plus Task 4b, the first-load reveal). **Built**, at the gate; read its status note.
 - [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`, and Task 11, SEO and GEO). **Built**, at the gate; read its status note.
 - [`pricing-2026-10.md`](pricing-2026-10.md): the October 2026 price research behind the `/services` prices, and what to re-check next time.
 - [`seo-geo.md`](seo-geo.md): the SEO and GEO audit summary, Damian's decisions, what we built, what Damian does outside the repo, and the monthly GEO prompt set.
