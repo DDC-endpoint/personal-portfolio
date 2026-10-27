@@ -24,10 +24,13 @@ async function record(page) {
   });
 }
 
-// Wait for the page to be ready to take a click: hydrated, curtain gone.
+// Wait for the page to be ready to take a click: hydrated, the first-load
+// stamp gone and its reveal finished. Then start the veil log afresh.
 async function settle(page) {
   await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 6000 });
   await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
+  await expect(page.locator("[data-veil]")).toHaveAttribute("data-veil", "idle", { timeout: 8000 });
+  await page.evaluate(() => { window.__veil = ["idle"]; });
 }
 
 // Leaves a marker on window: if it survives, the page change was client-side.
@@ -79,14 +82,6 @@ test.describe("the veil at rest", () => {
     expect(await veil(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   });
 
-  test("never leaves idle on a plain load or a reload", async ({ page }) => {
-    await record(page);
-    await page.goto("/");
-    await settle(page);
-    await page.reload();
-    await settle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
-  });
 
   test("is hidden without JS", async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
@@ -248,4 +243,59 @@ test.describe("transitions", () => {
     expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
     expect(await sameDocument(page)).toBe(true);
   });
+});
+
+// ---- Task 4b: the first load reveals with the sweep ------------------------
+
+test.describe("first load", () => {
+  // The intro is timed from hydration; a cold dev compile can make it late.
+  test.describe.configure({ retries: 2 });
+
+  for (const path of ["/services", "/privacy", "/"]) {
+    test(`${path}: the stamp, then the sweep reveals the page, on every load`, async ({ page, request }) => {
+      expect(await (await request.get(path)).text()).toContain("intro-stamp");
+      await record(page);
+      for (const load of [() => page.goto(path), () => page.reload()]) {
+        await load();
+        await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 6000 });
+        await idle(page);
+        expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+      }
+    });
+  }
+
+  test("Home keeps its entrance: the name rises and the portrait waves after the sweep starts", async ({ page }) => {
+    await record(page);
+    await page.addInitScript(() => {
+      new MutationObserver(() => {
+        if (document.querySelector("[data-veil]")?.dataset.veil !== "revealing" || window.__heroAtReveal) return;
+        const word = document.querySelector("#top h1 span.inline-block");
+        if (word) window.__heroAtReveal = getComputedStyle(word).transform;
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-veil"] });
+    });
+    await page.goto("/");
+    await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
+    await idle(page);
+    const t = await page.evaluate(() => window.__heroAtReveal);
+    expect(t).toMatch(/^matrix\(1, 0, 0, 1, 0, [1-9]/); // still below its line
+  });
+
+  test("a click during the intro is ignored", async ({ page }) => {
+    await page.goto("/services");
+    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 6000 });
+    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await idle(page);
+    await expect(page).toHaveURL(/\/services$/);
+  });
+
+  for (const [name, media] of [["reduced motion", { reducedMotion: "reduce" }], ["forced colours", { forcedColors: "active" }]]) {
+    test(`${name}: the veil stays idle`, async ({ page }) => {
+      await page.emulateMedia(media);
+      await record(page);
+      await page.goto("/services");
+      await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 6000 });
+      await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
+      expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+    });
+  }
 });

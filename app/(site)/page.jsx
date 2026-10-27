@@ -11,7 +11,6 @@ import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import ClientEnhancements from "@/components/ClientEnhancements";
 import ScrollProgress from "@/components/ScrollProgress";
-import IntroStamp from "@/components/IntroStamp";
 import { ldJson } from "@/lib/jsonld";
 import { homeGraph } from "@/lib/structuredData";
 import { SHARE } from "@/lib/shareImages";
@@ -31,7 +30,6 @@ export const metadata = {
 export default function Home() {
   return (
     <>
-      <IntroStamp />
       <ClientEnhancements />
       <ScrollProgress />
       <Nav />

@@ -1,13 +1,18 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { EASE, isSoftNavigation, shouldPlayIntro } from "@/lib/motion";
+import { useEffect, useRef, useState } from "react";
+import { EASE, shouldPlayIntro } from "@/lib/motion";
 
-// Every-reload intro: the name + coordinates resolve out of glitch characters
-// (same visual language as GlitchField), then the ivory curtain wipes upward
-// into the hero entrance. Reduced-motion-gated via shouldPlayIntro(); Hero
-// shifts its delays by INTRO_OFFSET on the same decision. pointer-events-none
-// — it can never trap a click.
+// Every-reload intro, on every page (Damian, Phase 5): the name + coordinates
+// resolve out of glitch characters (same visual language as GlitchField).
+// Mounted once by the page transition (components/transition/), which owns
+// the sequence: once its veil is drawn behind the stamp (`glyphs`), the
+// stamp's ivory gives way to the covered glyph field; when the name has
+// resolved (`onDone`), the stamp fades and the veil's sweep reveals the page.
+// If the veil isn't drawn by then, the ivory curtain wipes upward instead, as
+// it did before. Reduced-motion-gated via shouldPlayIntro(); Hero shifts its
+// delays by INTRO_OFFSET on the same decision. pointer-events-none — it can
+// never trap a click.
 //
 // The curtain is SSR-rendered so it covers the page from the very first paint:
 // pre-hydration visitors see the static glitch stamp instead of a blank page,
@@ -39,18 +44,22 @@ const seeded = (
 )(42);
 const INITIAL = LINES.map((l) => scramble(l, 0, seeded));
 
-export default function IntroStamp() {
-  // true at SSR: the curtain is part of the server HTML. A page transition
-  // arriving on Home mounts this client-side with the flag set, so the
-  // curtain never appears (a first load reads false and matches the server).
-  const [active, setActive] = useState(() => !isSoftNavigation());
+// The stamp leaves by fading over the veil, or by the old upward wipe.
+const VARIANTS = {
+  exit: (glyphs) =>
+    glyphs
+      ? { opacity: 0, transition: { duration: 0.2, ease: EASE } }
+      : { clipPath: "inset(0 0 100% 0)", transition: { duration: 0.35, ease: EASE } },
+};
+
+// `active` is true at SSR: the curtain is part of the server HTML.
+export default function IntroStamp({ active, glyphs = false, onDone }) {
   const [display, setDisplay] = useState(INITIAL);
+  const done = useRef(onDone);
+  done.current = onDone;
 
   useEffect(() => {
-    if (!shouldPlayIntro()) {
-      setActive(false);
-      return;
-    }
+    if (!shouldPlayIntro()) return;
     // Slow connection: the static stamp has already been on screen for
     // seconds (SSR curtain) — resolve quickly instead of holding the page
     // hostage for another full second. Prompt loads play the full timing.
@@ -62,7 +71,7 @@ export default function IntroStamp() {
       const t = performance.now() - start;
       if (t >= resolveMs + holdMs) {
         clearInterval(id);
-        setActive(false);
+        done.current?.();
         return;
       }
       const p = Math.min(1, t / resolveMs);
@@ -72,18 +81,23 @@ export default function IntroStamp() {
   }, []);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence custom={glyphs}>
       {active && (
         <motion.div
           aria-hidden="true"
           // scrambled letters: never a search snippet
           data-nosnippet=""
-          exit={{ clipPath: "inset(0 0 100% 0)" }}
-          transition={{ duration: 0.35, ease: EASE }}
-          className="intro-stamp fixed inset-0 z-65 bg-ivory pointer-events-none grid place-items-center"
+          data-glyphs={glyphs ? "" : undefined}
+          custom={glyphs}
+          variants={VARIANTS}
+          exit="exit"
+          // Above the veil (z-70), so the name sits over the glyph field.
+          className={`intro-stamp fixed inset-0 z-75 pointer-events-none grid place-items-center transition-colors duration-200 ${glyphs ? "bg-transparent" : "bg-ivory"}`}
           style={{ clipPath: "inset(0 0 0% 0)" }}
         >
-          <div className="text-center font-mono uppercase">
+          {/* The ivory backing keeps the name legible over the glyph field;
+              on the plain ivory curtain it doesn't show. */}
+          <div className="bg-ivory px-6 py-4 text-center font-mono uppercase">
             <div className="text-[13px] md:text-[15px] tracking-[0.3em] text-ink">
               {display[0]}
             </div>

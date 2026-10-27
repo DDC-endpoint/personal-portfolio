@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import IntroStamp from "@/components/IntroStamp";
 import { FALLBACK_MS, PAGES, TIMING, intercept } from "@/lib/pageTransition";
-import { markSoftNavigation } from "@/lib/motion";
+import { markSoftNavigation, shouldPlayIntro } from "@/lib/motion";
 import { getLenis } from "@/lib/lenis";
 
 // The page transition (docs/v3/plan-phase-5.md). Mounted once in the site
@@ -14,10 +15,16 @@ import { getLenis } from "@/lib/lenis";
 // covers the page, the router swaps the next one in underneath, and the veil
 // reveals it. Links to the page you're on scroll instead.
 //
+// The first load of any page plays the same reveal (Damian, during the
+// build): the server HTML starts covered by the IntroStamp, the veil is drawn
+// fully covered behind it, the name resolves over the glyph field, and the
+// sweep reveals the page. The veil is busy meanwhile, so clicks wait.
+//
 // The canvas is in the server HTML but idle and invisible; the drawing engine
-// (Veil.js) is split out of the first load and imported once the browser is
-// idle, or at the first click if that comes sooner.
-// html[data-transitions="ready"] says the controller is live.
+// (Veil.js) is split out of the first load. It's imported at once when the
+// intro plays, otherwise once the browser is idle, or at the first click if
+// that comes sooner. html[data-transitions="ready"] says the controller is
+// live.
 
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
 const PORTRAIT_WAIT_MS = 400; // the reveal waits this long for Home's portrait
@@ -72,6 +79,51 @@ export default function PageTransitions() {
   const busy = useRef(false);
   const pathRef = useRef(pathname);
   const waiters = useRef([]);
+  // The first-load intro: the stamp is in the server HTML (active), and shows
+  // the glyph field through it once the veil is drawn behind it.
+  const [intro, setIntro] = useState({ active: true, glyphs: false });
+  const introRef = useRef({ ended: false, veil: null });
+
+  const loadVeil = () =>
+    (veilRef.current ??= import("./Veil").then(({ createVeil }) => createVeil(canvasRef.current)));
+
+  // The stamp's name has resolved: fade it and sweep the page in (or, if the
+  // veil never got drawn, let the stamp wipe away as the old curtain did).
+  const finishIntro = () => {
+    const state = introRef.current;
+    state.ended = true;
+    setIntro((s) => ({ ...s, active: false }));
+    if (!state.veil) {
+      busy.current = false;
+      return;
+    }
+    state.veil.reveal().then(() => {
+      busy.current = false;
+    });
+  };
+
+  useEffect(() => {
+    if (!shouldPlayIntro()) {
+      setIntro({ active: false, glyphs: false });
+      return;
+    }
+    busy.current = true;
+    // Canvas colours ignore forced colours: those visitors keep the plain
+    // stamp and its wipe.
+    if (window.matchMedia("(forced-colors: active)").matches) return;
+    let live = true;
+    loadVeil().then((veil) => {
+      if (!live || introRef.current.ended) return;
+      veil.coverNow();
+      introRef.current.veil = veil;
+      setIntro({ active: true, glyphs: true });
+    });
+    return () => {
+      live = false;
+    };
+    // Once per document: the layout never remounts on a page change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Resolve anyone waiting for the router to reach a path.
   useEffect(() => {
@@ -81,8 +133,6 @@ export default function PageTransitions() {
 
   useEffect(() => {
     let cancelled = false;
-    const loadVeil = () =>
-      (veilRef.current ??= import("./Veil").then(({ createVeil }) => createVeil(canvasRef.current)));
     const waitForPath = (path) =>
       new Promise((resolve) => (pathRef.current === path ? resolve() : waiters.current.push({ path, resolve })));
 
@@ -140,17 +190,26 @@ export default function PageTransitions() {
       cancelled = true;
       cancelIdle();
       document.removeEventListener("click", onClick);
-      veilRef.current?.then((v) => v.destroy());
+      // Drop the veil, so a remount (React's dev double mount, for one)
+      // builds a fresh one instead of reusing a destroyed one.
+      const veil = veilRef.current;
+      veilRef.current = null;
+      veil?.then((v) => v.destroy());
       delete document.documentElement.dataset.transitions;
     };
+    // loadVeil only reads refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      data-veil="idle"
-      aria-hidden="true"
-      className="page-veil fixed inset-0 z-70 h-full w-full pointer-events-none nojs:hidden"
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        data-veil="idle"
+        aria-hidden="true"
+        className="page-veil fixed inset-0 z-70 h-full w-full pointer-events-none nojs:hidden"
+      />
+      <IntroStamp active={intro.active} glyphs={intro.glyphs} onDone={finishIntro} />
+    </>
   );
 }
