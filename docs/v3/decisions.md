@@ -302,6 +302,8 @@ Damian's first look at the gate: "in the initial load and reload there is a flas
 - **A · Halo.** The square ivory box becomes a soft ivory halo the glyphs fade into, with the name glowing ivory for contrast (`globals.css` → `.intro-stamp`, radius `--stamp-r` = `stampRadius()`).
 - **Glow + bloom.** Frame one already shows a faint electric glow around the name, which stays under the halo. The glyph field blooms out from the halo's edge over 0.38 s (`TIMING.bloom`, `bloomAt`) instead of popping in. Builder's call: if the veil arrives late, the reveal waits for the bloom to finish (plus 120 ms), so the halo over the glyphs is always seen.
 - **CSS shimmer.** The frozen server-HTML letters flicker (one span per letter, pure CSS) until the decode takes over.
+- **The Lens viewer follows the theme, frosted (Damian).** Its backdrop was navy in both themes; it's now the page colour at 80% with a blur (`bg-ivory/80 backdrop-blur-md`: ivory in light mode, navy in dark), with ink-coloured caption and controls.
+- **Opening an overlay no longer snaps the page (Damian: "because it causes the scrollbar to disappear the website appears to snap").** `lib/scrollLock.js` replaces the three hand-rolled locks (the viewer, both mobile menus): it gives the scrollbar's width back as body padding and as `--lock-gap`, which the fixed headers and the scroll progress use for their right edge. `scrollbar-gutter: stable` was tried first and doesn't work here: Chromium drops the gutter once the root's overflow is hidden.
 
 ## Gate changes (2026-10-27)
 

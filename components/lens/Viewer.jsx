@@ -4,14 +4,17 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { FRAMES } from "@/lib/lens";
 import { EASE } from "@/lib/motion";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { ScrambleText } from "../Scramble";
 
 // § 07 full-screen viewer (Damian): it expands from the photo's spot in the
 // grid, steps with the arrow keys or a swipe, and closes with Esc or a click
 // anywhere but its buttons, shrinking back into the current frame's tile.
 // A modal dialog: focus moves to Close and Tab stays inside. The page under
-// it is locked the way the mobile menu locks it (Nav): body overflow hidden
-// and <main> inert, plus data-lenis-prevent so the smooth scroll ignores it.
+// it is locked the way the mobile menu locks it (Nav): lockScroll() (which
+// keeps the page from shifting as the scrollbar goes) and <main> inert, plus
+// data-lenis-prevent so the smooth scroll ignores it. The
+// backdrop is frosted page colour, so it follows the theme (Damian).
 
 const OPEN_MS = 450;
 const SWIPE_PX = 50;
@@ -39,13 +42,12 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
 
   // Lock the page while open; focus Close.
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     const mainEl = document.querySelector("main");
     mainEl?.setAttribute("inert", "");
     closeBtn.current?.focus();
     return () => {
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       mainEl?.removeAttribute("inert");
     };
   }, []);
@@ -117,7 +119,7 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
 
   const f = FRAMES[index];
   const btn =
-    "pointer-events-auto font-mono text-[11px] uppercase tracking-[0.18em] text-ivory dark:text-ink p-3 opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100";
+    "pointer-events-auto font-mono text-[11px] uppercase tracking-[0.18em] text-ink p-3 opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100";
 
   return createPortal(
     <div
@@ -130,7 +132,7 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
       onPointerUp={onPointerUp}
       className="fixed inset-0 z-[100] flex touch-pan-y select-none flex-col items-center justify-center"
     >
-      <div ref={backdrop} aria-hidden="true" className="absolute inset-0 bg-ink/95 dark:bg-ivory/95" />
+      <div ref={backdrop} aria-hidden="true" data-viewer-backdrop className="absolute inset-0 bg-ivory/80 backdrop-blur-md" />
 
       <div
         ref={box}
@@ -151,7 +153,7 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
       <p
         data-viewer-caption
         aria-live="polite"
-        className="relative mt-4 px-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ivory dark:text-ink"
+        className="relative mt-4 px-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink"
       >
         {`FRAME ${f.n} — ${f.caption} · ${f.month}`}
       </p>

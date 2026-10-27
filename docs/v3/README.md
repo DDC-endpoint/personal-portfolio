@@ -277,6 +277,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Every async step of a transition checks it's still the current run** (`token`), and every wait for a page has the 4 s fallback. A stuck `busy` flag would leave every page link dead.
 - **Measure canvas frame cost with the GPU on** (`channel: "chromium"`, `--enable-gpu --use-angle=d3d11 --ignore-gpu-blocklist`). The default headless shell paints in software, and the page alone runs at 33 ms frames there, so it measures the page, not the canvas.
 - **`portrait.spec` counts every `createElement("canvas")`.** A helper canvas that's never shown should be an `OffscreenCanvas`.
+- **Lock the page's scroll with `lib/scrollLock.js`,** never by setting `body.style.overflow` directly: the helper keeps the page and the fixed bars (`right-[var(--lock-gap,0px)]`) from shifting when the scrollbar goes. A new full-width fixed bar needs that right edge too. `e2e/viewer-backdrop.spec.js` shows real scrollbars to test it (Playwright hides them by default).
 
 ## Testing
 
