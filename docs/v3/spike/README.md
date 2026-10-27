@@ -22,6 +22,7 @@ Then open:
 - http://localhost:3200/portrait-spike.html: the portrait on its own, with controls.
 - http://localhost:3200/hero-live.html: the portrait inside a replica of the live hero (nav, SERVICES button, blobs, scroll drift, mobile order, dimmed dark-mode orb).
 - http://localhost:3200/gallery-mockup.html: the locked Lens gallery (compact mixed grid, framed tiles, tracing highlighter, mobile captions under the photo).
+- http://localhost:3200/timeline-rails.html: candidates to replace the Timeline's running stitch (2026-10-27), with the current stitch as `0 Now`. The bar at the bottom switches between them: 1 decode rail, 2 signal trace, 3 circuit route, 4 halftone thread, 5 pinned year counter. `+ Year` adds the counter to any rail, and `Dark` flips the theme. `?v=0..5&y=1` links straight to one.
 
 `cutout*.png`, `cutout*.jpg` and `gal/` are gitignored. Don't commit them here; the production copies go through the normal image pipeline.
 

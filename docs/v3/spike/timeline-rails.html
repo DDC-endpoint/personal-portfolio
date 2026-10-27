@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V3 spike · Timeline rails</title>
+<!-- Throwaway prototype: five candidate replacements for the Timeline's running stitch, plus the
+     current stitch for comparison. Switch with the bar at the bottom (or ?v=0..5, &y=1 adds the
+     year counter to any rail). Copy is a static copy of lib/timeline.js. Not production code. -->
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --ivory:#F6F6F1; --paper:#FBFBF7; --ink:#0B1F3A; --ink-soft:#16315A; --ink-faint:#5A6B82; --electric:#2563EB; --rule:#D9DEE6; }
+  .dark { --ivory:#0B1F3A; --paper:#112646; --ink:#F6F6F1; --ink-soft:#A2B4D0; --ink-faint:#8EA1C0; --electric:#3B82F6; --rule:#2A3F63; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--ivory); color:var(--ink); font-family:Manrope,sans-serif; -webkit-font-smoothing:antialiased; padding-bottom:5rem; }
+  .label { font:500 11px 'JetBrains Mono',monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft); }
+  .filler { min-height:75vh; padding:8rem 40px; border-top:1px solid var(--rule); }
+  .filler p { margin-top:1rem; color:var(--ink-faint); max-width:32rem; }
+  #timeline { background:var(--paper); border-top:1px solid var(--rule); padding:11rem 40px; }
+  .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:24px; }
+  .side { grid-column:1/span 3; }
+  .side .sticky { position:sticky; top:8rem; }
+  .main { grid-column:4/span 9; }
+  h2 { font-family:'Instrument Serif',serif; font-weight:400; font-size:4.5rem; line-height:.95; letter-spacing:-.01em; }
+  h2 i { color:var(--electric); }
+  .list { position:relative; margin-top:6rem; --rail:0px; --pl:80px; }
+  ol { list-style:none; display:flex; flex-direction:column; gap:4rem; }
+  li { position:relative; padding-left:var(--pl); }
+  .body { transition:opacity .5s; }
+  li[data-lit=false] .body { opacity:.45; }
+  .yr { font:400 11px 'JetBrains Mono',monospace; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:.5rem; }
+  h3 { font-family:'Instrument Serif',serif; font-weight:400; font-size:3rem; line-height:1.25; }
+  li p { margin-top:.75rem; max-width:36rem; font-size:1.125rem; color:var(--ink-soft); }
+  .rail { position:absolute; left:var(--rail); top:0; bottom:0; width:0; pointer-events:none; }
+  .rail * { pointer-events:none; }
+
+  /* control bar */
+  .bar { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:20; display:flex; gap:2px; padding:5px;
+         border:1px solid var(--rule); border-radius:999px; background:var(--paper); box-shadow:0 10px 30px rgba(11,31,58,.12);
+         font:500 10px 'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; max-width:calc(100vw - 24px); overflow-x:auto; scrollbar-width:none; }
+  .bar button { all:unset; cursor:pointer; padding:8px 12px; border-radius:999px; color:var(--ink-soft); white-space:nowrap; }
+  .bar button:hover { color:var(--ink); }
+  .bar button[aria-pressed=true] { background:var(--electric); color:#F6F6F1; }
+  .bar .sep { width:1px; margin:4px 4px; background:var(--rule); flex:none; }
+  .note { position:fixed; left:50%; bottom:68px; transform:translateX(-50%); z-index:20; font:500 10px 'JetBrains Mono',monospace;
+          letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); white-space:nowrap; }
+
+  /* 0 · current stitch */
+  .st-base { position:absolute; left:-.5px; top:0; bottom:0; width:1px; background:linear-gradient(to bottom,transparent,var(--rule) 12%,var(--rule) 88%,transparent); }
+  .st-thread { position:absolute; left:-.75px; top:0; bottom:0; width:1.5px; background:repeating-linear-gradient(to bottom,var(--electric) 0 7px,transparent 7px 12px); }
+  .st-needle { position:absolute; left:0; top:0; }
+  .st-dot { position:absolute; left:-4px; width:8px; height:8px; border-radius:50%; border:1px solid var(--rule); background:var(--paper); }
+  .st-x { position:absolute; left:-6px; width:12px; height:12px; transform:scale(0); transition:transform .3s ease-out; }
+  .st-x.on { transform:scale(1); }
+  .st-x::before, .st-x::after { content:""; position:absolute; left:50%; top:50%; width:11px; height:1.5px; border-radius:2px; background:var(--electric); transform:translate(-50%,-50%) rotate(45deg); }
+  .st-x::after { transform:translate(-50%,-50%) rotate(-45deg); }
+
+  /* 1 · decode rail */
+  .dr { position:absolute; left:-7px; top:0; width:14px; }
+  .dr span, .dr-mk, .dr-caret { font-family:'JetBrains Mono',Consolas,'DejaVu Sans Mono',monospace; }
+  .dr span { position:absolute; left:0; width:14px; height:14px; line-height:14px; text-align:center; font-size:13px; }
+  .dr .off { color:var(--rule); }
+  .dr .near { color:var(--ink-faint); }
+  .dr .hot { color:var(--electric); opacity:.75; }
+  .dr .cool { color:var(--ink-faint); }
+  .dr .on { color:var(--electric); }
+  .dr-caret { position:absolute; left:0; top:0; font-size:13px; line-height:16px; color:var(--electric); }
+  .dr-caret.blink { animation:blink 1.06s steps(1) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  .dr-mk { position:absolute; left:-9px; width:18px; height:16px; line-height:16px; text-align:center; font-size:14px; background:var(--paper); color:var(--ink-faint); }
+  .dr-mk.on { color:var(--electric); }
+  .roll { display:inline-block; height:1.2em; line-height:1.2em; overflow:hidden; vertical-align:top; }
+  .roll span { display:block; }
+
+  /* 2 · signal trace */
+  .sv { position:absolute; left:-40px; top:0; width:80px; overflow:visible; }
+  .sg-base { fill:none; stroke:var(--rule); stroke-width:1.25; stroke-linejoin:round; }
+  .sg-lit { fill:none; stroke:var(--electric); stroke-width:1.5; stroke-linejoin:round; }
+  .sg-trail { fill:none; stroke-width:5; stroke-linejoin:round; filter:blur(3px); }
+  .sg-stop0 { stop-color:var(--electric); stop-opacity:0; }
+  .sg-stop1 { stop-color:var(--electric); stop-opacity:1; }
+  .sg-node { fill:var(--paper); stroke:var(--rule); stroke-width:1.25; transition:fill .3s, stroke .3s; }
+  .sg-node.on { fill:var(--electric); stroke:var(--electric); }
+  .sg-ripple { fill:none; stroke:var(--electric); stroke-width:1.5; transform-box:fill-box; transform-origin:center; animation:rip .85s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes rip { from { transform:scale(.3); opacity:.9; } to { transform:scale(3.2); opacity:0; } }
+  .sg-head .core { fill:var(--electric); filter:drop-shadow(0 0 4px var(--electric)); }
+  .sg-head .halo { fill:var(--electric); opacity:.18; transform-box:fill-box; transform-origin:center; }
+  .sv.idle .sg-head .halo { animation:breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity:.05; } }
+  .sg-head.kick .halo { animation:kick .6s ease-out; }
+  @keyframes kick { from { opacity:.55; transform:scale(2); } to { opacity:.18; transform:scale(1); } }
+
+  /* 3 · circuit route */
+  .cv { position:absolute; left:-40px; top:0; overflow:visible; }
+  .cc-base { fill:none; stroke:var(--rule); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+  .cc-lit { fill:none; stroke:var(--electric); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+  .cc-flow { fill:none; stroke:#fff; stroke-opacity:.9; stroke-width:1; stroke-dasharray:2 14; animation:flow .5s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset:-16; } }
+  .cc-stub { fill:none; stroke:var(--rule); stroke-width:1.25; stroke-dasharray:1; stroke-dashoffset:0; }
+  .cc-g.on .cc-stub { stroke:var(--electric); animation:drawin .35s ease-out; }
+  @keyframes drawin { from { stroke-dashoffset:1; } to { stroke-dashoffset:0; } }
+  .cc-via { fill:var(--paper); stroke:var(--rule); stroke-width:1.25; transition:fill .2s .3s, stroke .2s .3s; }
+  .cc-g.on .cc-via { stroke:var(--electric); fill:var(--electric); }
+  .cc-pad { fill:var(--paper); stroke:var(--rule); stroke-width:2; transition:fill .25s, stroke .25s; }
+  .cc-g.on .cc-pad { stroke:var(--electric); fill:var(--electric); filter:drop-shadow(0 0 5px var(--electric)); }
+  .cc-hole { fill:var(--rule); }
+  .cc-g.on .cc-hole { fill:var(--paper); }
+  .cc-lbl { font:500 8px 'JetBrains Mono',monospace; letter-spacing:.1em; fill:var(--ink-faint); }
+  .cc-g.on .cc-lbl { fill:var(--electric); }
+  .cc-head { fill:var(--electric); filter:drop-shadow(0 0 4px var(--electric)); }
+
+  /* 4 · halftone thread */
+  .hc { position:absolute; left:-24px; top:0; width:48px; }
+
+  /* 5 · plain rail under the year counter */
+  .pl-base { position:absolute; left:-.5px; top:0; bottom:0; width:1px; background:linear-gradient(to bottom,transparent,var(--rule) 12%,var(--rule) 88%,transparent); }
+  .pl-line { position:absolute; left:-.75px; top:0; width:1.5px; background:var(--electric); }
+  .pl-dot { position:absolute; left:-4px; width:8px; height:8px; border-radius:50%; border:1px solid var(--rule); background:var(--paper); transition:background .3s, border-color .3s, box-shadow .3s; }
+  .pl-dot.on { background:var(--electric); border-color:var(--electric); box-shadow:0 0 0 4px color-mix(in srgb,var(--electric) 18%,transparent); }
+
+  /* year counter (variant 5, or "+ year" on any rail) */
+  .ctr { display:none; }
+  .ctr.show { display:block; }
+  .ctr .big { font-family:'Instrument Serif',serif; font-size:7rem; line-height:1; color:var(--ink); transition:opacity .4s; display:flex; }
+  .ctr .big.dim { opacity:.25; }
+  .ctr .dg { display:inline-block; height:1em; overflow:hidden; }
+  .ctr .col { display:block; transition:transform .9s cubic-bezier(.2,.8,.1,1); }
+  .ctr .col span { display:block; height:1em; line-height:1em; text-align:center; }
+  .ctr .meta { display:flex; flex-direction:column; gap:4px; margin-top:.75rem; font:400 11px 'JetBrains Mono',monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft); }
+  .ctr .cnt { color:var(--ink-faint); white-space:nowrap; }
+  .ctr .pbar { position:relative; height:1px; margin-top:.9rem; background:var(--rule); }
+  .ctr .fill { position:absolute; inset:-.5px 0; background:var(--electric); transform-origin:left; transform:scaleX(0); }
+  .ctr .tick { position:absolute; top:-3px; width:1px; height:7px; background:var(--rule); transition:background .3s; }
+  .ctr .tick.on { background:var(--electric); }
+  .ctr-d { margin-top:2.5rem; max-width:17rem; }
+  .ctr-m { position:sticky; top:0; z-index:3; background:var(--paper); padding:14px 0 12px; margin-top:2rem; border-bottom:1px solid var(--rule); }
+  .ctr-m .big { font-size:3.25rem; }
+  .ctr-m.show { display:none; }
+
+  @media (max-width:767px) {
+    .filler { padding:6rem 24px; }
+    #timeline { padding:8rem 24px; }
+    .side, .main { grid-column:1/-1; }
+    .side .sticky { position:static; }
+    h2 { font-size:3rem; }
+    .list { margin-top:4rem; --rail:16px; --pl:48px; }
+    ol { gap:3rem; }
+    h3 { font-size:1.875rem; }
+    li p { font-size:1rem; }
+    .cc-lbl { display:none; }
+    .ctr-d.show { display:none; }
+    .ctr-m.show { display:block; }
+    .note { display:none; }
+  }
+</style>
+</head>
+<body>
+<section class="filler">
+  <div class="label">§ 04 — Work</div>
+  <p>Stand-in for the section above. Scroll down: the rail draws as the list moves through the screen, and runs back as you scroll up.</p>
+</section>
+
+<section id="timeline">
+  <div class="grid">
+    <div class="side">
+      <div class="sticky">
+        <div class="label">§ 05 — Timeline</div>
+        <div id="ctr-d"></div>
+      </div>
+    </div>
+    <div class="main">
+      <h2>How I got <i>here</i>.</h2>
+      <div id="ctr-m"></div>
+      <div class="list" id="list">
+        <div class="rail" id="rail"></div>
+        <ol></ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="filler">
+  <div class="label">§ 06 — Lens</div>
+  <p>Stand-in for the section below.</p>
+</section>
+
+<div class="note" id="note"></div>
+<nav class="bar" id="bar" aria-label="Prototype controls"></nav>
+
+<script>
+const ENTRIES = [
+  { year: "2018", title: "Where it began", place: "Self-taught · Scratch, Micro:bit & Arduino", detail: "My first taste of making things: block-coding in Scratch, then wiring up a Micro:bit and an Arduino." },
+  { year: "2020", title: "Video games as a hobby", place: "Curiosity", detail: "Fell deep into video games, half for the play and half out of curiosity about how the worlds behind the screen were built." },
+  { year: "2022–2024", title: "Edexcel A-Levels", place: "St. Joseph's College, Colombo 10", detail: "Pearson Edexcel IAL in Mathematics, Physics and Chemistry, alongside serving as Senior Prefect and Interact Club President." },
+  { year: "2024–2025", title: "Head Prefect", place: "St. Joseph's College, Colombo 10", detail: "Led the student body as Head Prefect in the year after my A-Levels." },
+  { year: "2024", title: "First lines of code", place: "Self-taught · web development", detail: "Taught myself web development (HTML, CSS, then JavaScript) and started collecting small projects on GitHub." },
+  { year: "Sep 2025", title: "Began BSc (Hons) Computer Science", place: "IIT · University of Westminster", detail: "The formal start of turning a self-taught hobby into a craft." },
+  { year: "2025–2026", title: "Completed first year", place: "IIT · University of Westminster", detail: "Finished the first year of my degree, with the fundamentals in programming, systems and problem-solving." },
+  { year: "Sep 2026", title: "Began second year", place: "IIT · University of Westminster", detail: "Started the second year of my BSc (Hons) Computer Science." },
+  { year: "2026", title: "Personal Dashboard", place: "Side project", detail: "A self-updating homepage I open every morning: RSS, a reading queue and quick links." },
+  { year: "2026", title: "This portfolio", place: "Personal project · Next.js & Framer Motion", detail: "Designed and built this site as a living journal of my work. I'll keep refining it through the rest of university." },
+];
+
+// ---------- helpers ----------
+const $ = (s) => document.querySelector(s);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const NOISE = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#$%&@*+=<>/\\";
+
+// Resolves text left to right out of noise (the site's decode vocabulary).
+function scramble(node, text, ms, charset = NOISE) {
+  const id = (node._s = (node._s || 0) + 1), t0 = performance.now();
+  let last = 0;
+  const step = (now) => {
+    if (node._s !== id) return;
+    const p = (now - t0) / ms;
+    if (p >= 1) { node.textContent = text; return; }
+    if (now - last >= 45) {
+      last = now;
+      const k = Math.floor(text.length * p);
+      let o = "";
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const keep = i < k || /\s/.test(c) || (charset === "digits" && !/\d/.test(c));
+        o += keep ? c : charset === "digits" ? String((Math.random() * 10) | 0) : charset[(Math.random() * charset.length) | 0];
+      }
+      node.textContent = o;
+    }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const settle = (node, text) => { node._s = (node._s || 0) + 1; node.textContent = text; };
+
+// Odometer roll for the digits of a year: each digit spins up to its value, left to right.
+function roll(node, text) {
+  node._s = (node._s || 0) + 1;
+  node.textContent = "";
+  let k = 0;
+  for (const c of text) {
+    if (!/\d/.test(c)) { node.append(c); continue; }
+    const w = el("span", "roll"), col = el("span");
+    const start = (Math.random() * 10) | 0, seq = [];
+    for (let j = 0; j < 7 + k * 2; j++) seq.push((start + j) % 10);
+    seq.push(c);
+    col.innerHTML = seq.map((n) => `<span>${n}</span>`).join("");
+    w.append(col);
+    node.append(w);
+    const dur = 520 + k * 110;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      col.style.transition = `transform ${dur}ms cubic-bezier(.2,.75,.15,1)`;
+      col.style.transform = `translateY(-${(seq.length - 1) * 1.2}em)`;
+    }));
+    k++;
+  }
+}
+
+// A polyline whose y only ever increases: lets a rail find its point and length at the head's y.
+function poly(pts) {
+  const L = [0];
+  for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return {
+    d: "M" + pts.map((p) => p.join(" ")).join(" L"),
+    at(y) {
+      if (y <= pts[0][1]) return { x: pts[0][0], len: 0 };
+      for (let i = 1; i < pts.length; i++) {
+        const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+        if (y <= y1) { const f = y1 === y0 ? 1 : (y - y0) / (y1 - y0); return { x: x0 + (x1 - x0) * f, len: L[i - 1] + (L[i] - L[i - 1]) * f }; }
+      }
+      return { x: pts.at(-1)[0], len: L.at(-1) };
+    },
+  };
+}
+
+let colourCache = null;
+const colours = () => {
+  if (colourCache) return colourCache;
+  const s = getComputedStyle(document.documentElement);
+  return (colourCache = { electric: s.getPropertyValue("--electric").trim(), rule: s.getPropertyValue("--rule").trim(), faint: s.getPropertyValue("--ink-faint").trim() });
+};
+
+// ---------- page ----------
+const list = $("#list"), ol = list.querySelector("ol"), rail = $("#rail");
+ol.innerHTML = ENTRIES.map((e) => `<li data-lit="false"><div class="body"><div class="yr"><span class="y">${e.year}</span> — ${e.place}</div><h3>${e.title}</h3><p>${e.detail}</p></div></li>`).join("");
+const items = [...ol.children];
+const yearEl = (i) => items[i].querySelector(".y");
+const titleEl = (i) => items[i].querySelector("h3");
+const isLit = (i) => items[i].dataset.lit === "true";
+let H = 0, ys = [];
+
+// Shared milestone treatment: the year's digits decode, as on the site now.
+const decodeYear = (i, on) => (on ? scramble(yearEl(i), ENTRIES[i].year, 500, "digits") : settle(yearEl(i), ENTRIES[i].year));
+
+// ---------- 0 · the current running stitch ----------
+const stitch = (() => {
+  let thread, needle, dots = [], xs = [];
+  return {
+    name: "Stitch (now)",
+    note: "Current: dashed thread, needle, cross-stitches",
+    mount() {
+      rail.append(el("div", "st-base"), (thread = el("div", "st-thread")), (needle = el("div", "st-needle")));
+      needle.innerHTML = `<svg width="6" height="16" viewBox="0 0 6 16" style="display:block;overflow:visible"><ellipse cx="3" cy="3" rx="1.6" ry="2.4" style="fill:none;stroke:var(--electric)"/><path d="M3 5.6 L3 16" style="stroke:var(--electric);stroke-width:2;stroke-linecap:round"/></svg>`;
+      this.layout();
+    },
+    layout() {
+      [...dots, ...xs].forEach((e) => e.remove());
+      dots = ys.map((y) => { const d = el("span", "st-dot"); d.style.top = y - 4 + "px"; rail.append(d); return d; });
+      xs = ys.map((y, i) => { const x = el("span", "st-x" + (isLit(i) ? " on" : "")); x.style.top = y - 6 + "px"; rail.append(x); return x; });
+    },
+    frame(d, hy) {
+      thread.style.clipPath = `inset(0 0 ${(1 - d) * 100}% 0)`;
+      needle.style.transform = `translate(-50%, ${hy - 16}px)`;
+      needle.style.opacity = d > 0.0005 ? 1 : 0;
+    },
+    lit(i, on) { xs[i]?.classList.toggle("on", on); decodeYear(i, on); },
+  };
+})();
+
+// ---------- 1 · decode rail ----------
+const decodeRail = (() => {
+  const CH = 14, GL = "╎╏┆┇┊┋:;¦|!/\\#*+=%";
+  let box, caret, cells = [], act = [], t0 = [], shown = [], rnd = [], marks = [], lastTick = 0;
+  return {
+    name: "1 Decode",
+    note: "Glyphs settle into a line · years roll · titles decode",
+    mount() { rail.append((box = el("div", "dr")), (caret = el("span", "dr-caret", "▮"))); this.layout(); },
+    layout() {
+      box.innerHTML = "";
+      cells = []; act = []; t0 = []; shown = []; rnd = [];
+      for (let i = 0, n = Math.ceil(H / CH); i < n; i++) {
+        const s = el("span");
+        s.style.top = i * CH + "px";
+        box.append(s);
+        cells.push(s); act.push(false); t0.push(-1e9); shown.push(""); rnd.push("·");
+      }
+      marks.forEach((m) => m.remove());
+      marks = ys.map((y, i) => { const m = el("span", "dr-mk" + (isLit(i) ? " on" : ""), isLit(i) ? "◆" : "◇"); m.style.top = y - 8 + "px"; rail.append(m); return m; });
+    },
+    frame(d, hy, now, moving) {
+      const tick = now - lastTick >= 45;
+      if (tick) lastTick = now;
+      for (let i = 0; i < cells.length; i++) {
+        const want = (i + 0.5) * CH <= hy;
+        if (want !== act[i]) { act[i] = want; t0[i] = now; }
+        const age = now - t0[i];
+        let ch, cls;
+        if (age < 260) {
+          if (tick) rnd[i] = GL[(Math.random() * GL.length) | 0];
+          ch = rnd[i]; cls = act[i] ? "hot" : "cool";
+        } else if (act[i]) { ch = "│"; cls = "on"; }
+        else {
+          const ahead = i * CH - hy;
+          if (d > 0.0005 && d < 0.9995 && ahead >= 0 && ahead < 5 * CH) {
+            if (tick) rnd[i] = Math.random() < 0.5 ? ":.·'"[(Math.random() * 4) | 0] : "·";
+            ch = rnd[i]; cls = "near";
+          } else { ch = "·"; cls = "off"; }
+        }
+        const key = ch + cls;
+        if (shown[i] !== key) { shown[i] = key; cells[i].textContent = ch; cells[i].className = cls; }
+      }
+      caret.style.transform = `translate(-50%, ${hy - 8}px)`;
+      caret.style.opacity = d > 0.0005 ? 1 : 0;
+      caret.classList.toggle("blink", !moving);
+    },
+    lit(i, on) {
+      const m = marks[i];
+      if (m) { m.classList.toggle("on", on); on ? scramble(m, "◆", 260, "◇◈◆▣▢◊") : settle(m, "◇"); }
+      if (on) { roll(yearEl(i), ENTRIES[i].year); scramble(titleEl(i), ENTRIES[i].title, 520); }
+      else { settle(yearEl(i), ENTRIES[i].year); settle(titleEl(i), ENTRIES[i].title); }
+    },
+  };
+})();
+
+// ---------- 2 · signal trace ----------
+const signal = (() => {
+  let svg, base, litP, trail, head, rip, nodesG, nodes = [], P, rClip, tClip, grad;
+  return {
+    name: "2 Signal",
+    note: "Electric pulse · heartbeat blip at each milestone",
+    mount() {
+      svg = svgEl("svg", { class: "sv" });
+      svg.innerHTML = `<defs><clipPath id="sgc"><rect x="-40" y="0" width="80" height="0"/></clipPath><clipPath id="sgt"><rect x="-40" y="0" width="80" height="0"/></clipPath><linearGradient id="sgg" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="1"><stop offset="0" class="sg-stop0"/><stop offset="1" class="sg-stop1"/></linearGradient></defs><path class="sg-base"/><path class="sg-lit" clip-path="url(#sgc)"/><path class="sg-trail" clip-path="url(#sgt)" stroke="url(#sgg)"/><g class="sg-nodes"></g><g class="sg-rip"></g><g class="sg-head"><circle class="halo" r="9"/><circle class="core" r="3"/></g>`;
+      rail.append(svg);
+      [base, litP, trail] = svg.querySelectorAll("path");
+      rClip = svg.querySelector("#sgc rect"); tClip = svg.querySelector("#sgt rect"); grad = svg.querySelector("#sgg");
+      head = svg.querySelector(".sg-head"); rip = svg.querySelector(".sg-rip"); nodesG = svg.querySelector(".sg-nodes");
+      this.layout();
+    },
+    layout() {
+      svg.setAttribute("viewBox", `-40 0 80 ${H}`);
+      svg.style.height = H + "px";
+      const pts = [[0, 0]];
+      for (const y of ys) pts.push([0, y - 14], [-5, y - 8], [10, y - 2], [-7, y + 4], [3, y + 9], [0, y + 13]);
+      pts.push([0, H]);
+      P = poly(pts);
+      for (const p of [base, litP, trail]) p.setAttribute("d", P.d);
+      nodesG.innerHTML = "";
+      nodes = ys.map((y, i) => { const c = svgEl("circle", { cx: P.at(y).x, cy: y, r: 2.5, class: "sg-node" + (isLit(i) ? " on" : "") }); nodesG.append(c); return c; });
+    },
+    frame(d, hy, now, moving) {
+      rClip.setAttribute("height", Math.max(0, hy));
+      const tl = 150;
+      tClip.setAttribute("y", hy - tl); tClip.setAttribute("height", tl);
+      grad.setAttribute("y1", hy - tl); grad.setAttribute("y2", hy);
+      head.setAttribute("transform", `translate(${P.at(hy).x} ${hy})`);
+      head.style.opacity = d > 0.0005 ? 1 : 0;
+      trail.style.opacity = moving ? 1 : 0.35;
+      svg.classList.toggle("idle", !moving);
+    },
+    lit(i, on) {
+      nodes[i]?.classList.toggle("on", on);
+      if (on) {
+        const c = svgEl("circle", { cx: P.at(ys[i]).x, cy: ys[i], r: 8, class: "sg-ripple" });
+        rip.append(c);
+        setTimeout(() => c.remove(), 900);
+        head.classList.remove("kick"); head.getBoundingClientRect(); head.classList.add("kick");
+      }
+      decodeYear(i, on);
+    },
+  };
+})();
+
+// ---------- 3 · circuit route ----------
+const circuit = (() => {
+  let svg, P, rc, head, groups = [], padsG;
+  return {
+    name: "3 Circuit",
+    note: "PCB trace · 45° bends · pads light as current passes",
+    mount() {
+      svg = svgEl("svg", { class: "cv" });
+      svg.innerHTML = `<defs><clipPath id="cc"><rect x="-60" y="0" width="400" height="0"/></clipPath></defs><path class="cc-base"/><path class="cc-lit" clip-path="url(#cc)"/><path class="cc-flow" clip-path="url(#cc)"/><g class="cc-pads"></g><rect class="cc-head" x="-3" y="-3" width="6" height="6"/>`;
+      rail.append(svg);
+      rc = svg.querySelector("#cc rect"); head = svg.querySelector(".cc-head"); padsG = svg.querySelector(".cc-pads");
+      this.layout();
+    },
+    layout() {
+      const stubX = parseFloat(getComputedStyle(list).getPropertyValue("--pl")) - 22;
+      svg.setAttribute("viewBox", `-40 0 ${stubX + 60} ${H}`);
+      svg.setAttribute("width", stubX + 60);
+      svg.style.height = H + "px";
+      const o = 12, pts = [[0, 0]];
+      ys.forEach((y0, i) => {
+        pts.push([0, y0]);
+        const y1 = ys[i + 1];
+        if (y1 == null) return;
+        const s = i % 2 ? -1 : 1;
+        pts.push([0, y0 + 18], [s * o, y0 + 18 + o], [s * o, y1 - 18 - o], [0, y1 - 18]);
+      });
+      pts.push([0, H]);
+      P = poly(pts);
+      svg.querySelectorAll(".cc-base,.cc-lit,.cc-flow").forEach((p) => p.setAttribute("d", P.d));
+      padsG.innerHTML = "";
+      groups = ys.map((y, i) => {
+        const g = svgEl("g", { class: "cc-g" + (isLit(i) ? " on" : "") });
+        const lbl = svgEl("text", { x: -12, y: y + 3, "text-anchor": "end", class: "cc-lbl" });
+        lbl.textContent = "P" + String(i + 1).padStart(2, "0");
+        g.append(
+          lbl,
+          svgEl("path", { d: `M6 ${y} L${stubX} ${y}`, pathLength: 1, class: "cc-stub" }),
+          svgEl("circle", { cx: stubX, cy: y, r: 2.5, class: "cc-via" }),
+          svgEl("circle", { cx: 0, cy: y, r: 5, class: "cc-pad" }),
+          svgEl("circle", { cx: 0, cy: y, r: 1.6, class: "cc-hole" }),
+        );
+        padsG.append(g);
+        return g;
+      });
+    },
+    frame(d, hy) {
+      rc.setAttribute("height", Math.max(0, hy));
+      head.setAttribute("transform", `translate(${P.at(hy).x} ${hy}) rotate(45)`);
+      head.style.opacity = d > 0.0005 && d < 0.9995 ? 1 : 0;
+    },
+    lit(i, on) { groups[i]?.classList.toggle("on", on); decodeYear(i, on); },
+  };
+})();
+
+// ---------- 4 · halftone thread ----------
+const halftone = (() => {
+  const W = 48, ROW = 5, R = 2.4;
+  let cv, ctx, dpr = 1, mv = [], tgt = [];
+  return {
+    name: "4 Halftone",
+    note: "Dot ribbon swells as you pass · milestones develop like the Lens",
+    mount() {
+      rail.append((cv = el("canvas", "hc")));
+      ctx = cv.getContext("2d");
+      mv = ys.map((_, i) => (isLit(i) ? 1 : 0));
+      this.layout();
+    },
+    layout() {
+      dpr = Math.min(devicePixelRatio || 1, 2);
+      cv.width = W * dpr; cv.height = Math.ceil(H * dpr); cv.style.height = H + "px";
+      tgt = ys.map((_, i) => (isLit(i) ? 1 : 0));
+      while (mv.length < ys.length) mv.push(0);
+    },
+    frame(d, hy, now, moving, dt) {
+      const C = colours();
+      ctx.setTransform(dpr, 0, 0, dpr, (W / 2) * dpr, 0);
+      ctx.clearRect(-W / 2, 0, W, H);
+      const on = new Path2D(), off = new Path2D();
+      const dot = (p, x, y, r) => { p.moveTo(x + r, y); p.arc(x, y, r, 0, Math.PI * 2); };
+      const travelling = d > 0.0005 && d < 0.9995;
+      for (let r = 0, n = Math.ceil(H / ROW); r <= n; r++) {
+        const y = r * ROW;
+        if (ys.some((my) => Math.abs(y - my) < 14)) continue;
+        const dist = hy - y;
+        let e = dist <= 0 ? 0 : Math.min(1, dist / 110);
+        e = 1 - (1 - e) * (1 - e);
+        const sw = travelling ? Math.exp(-(((y - hy) / 16) ** 2)) * 0.9 : 0;
+        for (const x of r & 1 ? [-3, 3] : [-6, 0, 6]) {
+          const tone = Math.max(0, 1 - Math.abs(x) / 9.5), rad = R * tone * Math.max(e, sw);
+          if (rad >= 0.45) dot(on, x, y, rad);
+          else if (x === 0 || r & 1) dot(off, x * 0.5, y, 0.65);
+        }
+      }
+      ys.forEach((my, i) => {
+        mv[i] += (tgt[i] - mv[i]) * (1 - Math.exp(-dt / 0.16));
+        for (let r = -2; r <= 2; r++) {
+          const y = my + r * ROW;
+          for (const x of Math.abs(r) & 1 ? [-9, -3, 3, 9] : [-12, -6, 0, 6, 12]) {
+            const rd = Math.hypot(x, r * ROW);
+            if (rd > 12.6) continue;
+            const tone = 1 - rd / 13, local = clamp(mv[i] * 1.6 - (rd / 12.6) * 0.6, 0, 1);
+            const rad = 2.7 * (0.35 + 0.65 * tone) * local;
+            if (rad >= 0.45) dot(on, x, y, rad);
+            else dot(off, x, y, 0.7);
+          }
+        }
+      });
+      ctx.fillStyle = C.rule; ctx.fill(off);
+      ctx.fillStyle = C.electric; ctx.fill(on);
+    },
+    lit(i, on) { tgt[i] = on ? 1 : 0; decodeYear(i, on); },
+  };
+})();
+
+// ---------- 5 · plain rail (the year counter carries the motion) ----------
+const plain = (() => {
+  let line, dots = [];
+  return {
+    name: "5 Year",
+    note: "Pinned year rolls like an odometer · plain progress rail",
+    counter: true,
+    mount() { rail.append(el("div", "pl-base"), (line = el("div", "pl-line"))); this.layout(); },
+    layout() {
+      dots.forEach((e) => e.remove());
+      dots = ys.map((y, i) => { const s = el("span", "pl-dot" + (isLit(i) ? " on" : "")); s.style.top = y - 4 + "px"; rail.append(s); return s; });
+    },
+    frame(d, hy) { line.style.height = Math.max(0, hy) + "px"; },
+    lit(i, on) { dots[i]?.classList.toggle("on", on); decodeYear(i, on); },
+  };
+})();
+
+// ---------- the year counter ----------
+function makeCounter(host, cls) {
+  const root = el("div", "ctr " + cls);
+  root.innerHTML = `<div class="big dim" aria-hidden="true"></div><div class="meta"><span class="cur">—</span><span class="cnt"></span></div><div class="pbar"><i class="fill"></i></div>`;
+  const big = root.querySelector(".big"), cur = root.querySelector(".cur"), cnt = root.querySelector(".cnt"), fill = root.querySelector(".fill"), bar = root.querySelector(".pbar");
+  const cols = [];
+  for (let k = 0; k < 4; k++) {
+    const w = el("span", "dg"), col = el("span", "col");
+    col.innerHTML = [..."0123456789"].map((c) => `<span>${c}</span>`).join("");
+    col.style.transitionDelay = k * 70 + "ms";
+    w.append(col); big.append(w); cols.push(col);
+  }
+  let ticks = [], shown = -2;
+  host.replaceWith(root); // the counter itself must be the sticky box, not a wrapper
+  const api = {
+    root,
+    set(idx) {
+      if (idx === shown) return;
+      shown = idx;
+      const e = ENTRIES[Math.max(0, idx)];
+      const yr = (e.year.match(/\d{4}/) || ["0000"])[0];
+      [...yr].forEach((c, k) => (cols[k].style.transform = `translateY(-${+c}em)`));
+      big.classList.toggle("dim", idx < 0);
+      if (idx < 0) settle(cur, "—"); else scramble(cur, `${e.year} · ${e.title}`, 450);
+      cnt.textContent = `${String(idx + 1).padStart(2, "0")} / ${ENTRIES.length}`;
+      ticks.forEach((t, i) => t.classList.toggle("on", i <= idx));
+    },
+    layout() {
+      ticks.forEach((t) => t.remove());
+      ticks = ys.map((y, i) => { const t = el("i", "tick" + (i <= shown ? " on" : "")); t.style.left = (y / H) * 100 + "%"; bar.append(t); return t; });
+    },
+    frame(d) { fill.style.transform = `scaleX(${d})`; },
+  };
+  return api;
+}
+const counters = [makeCounter($("#ctr-d"), "ctr-d"), makeCounter($("#ctr-m"), "ctr-m")];
+
+// ---------- driver: scroll → sprung progress → rail ----------
+const VARIANTS = [stitch, decodeRail, signal, circuit, halftone, plain];
+const qs = new URLSearchParams(location.search);
+let vi = clamp(+qs.get("v") || 1, 0, VARIANTS.length - 1), extraYear = qs.get("y") === "1", cur = null;
+let d = 0, v = 0, last = performance.now(), lit = 0;
+
+// The rail draws as the list moves through the screen: from its top at 70% down
+// to its end just below the middle (the site's offsets), on the site's draw spring.
+function target() {
+  const r = list.getBoundingClientRect(), vh = innerHeight;
+  return clamp((0.7 * vh - r.top) / (r.height + 0.15 * vh), 0, 1);
+}
+
+function measure() {
+  H = list.offsetHeight;
+  ys = items.map((li) => li.offsetTop + 17);
+  cur?.layout();
+  counters.forEach((c) => c.layout());
+}
+
+const counterOn = () => cur.counter || extraYear;
+function mount(i) {
+  rail.innerHTML = "";
+  vi = i;
+  cur = VARIANTS[i];
+  items.forEach((_, k) => { settle(yearEl(k), ENTRIES[k].year); settle(titleEl(k), ENTRIES[k].title); });
+  cur.mount();
+  counters.forEach((c) => c.root.classList.toggle("show", counterOn()));
+  $("#note").textContent = cur.note;
+  const p = new URLSearchParams({ v: i });
+  if (extraYear) p.set("y", 1);
+  history.replaceState(null, "", "?" + p);
+  renderBar();
+}
+
+function renderBar() {
+  const bar = $("#bar");
+  bar.innerHTML = "";
+  VARIANTS.forEach((V, i) => {
+    const b = el("button", "", i === 0 ? "0 Now" : V.name);
+    b.setAttribute("aria-pressed", i === vi);
+    b.onclick = () => mount(i);
+    bar.append(b);
+  });
+  bar.append(el("span", "sep"));
+  const y = el("button", "", "+ Year");
+  y.setAttribute("aria-pressed", counterOn());
+  y.disabled = !!cur.counter;
+  y.onclick = () => { extraYear = !extraYear; mount(vi); };
+  const dk = el("button", "", "Dark");
+  dk.setAttribute("aria-pressed", document.documentElement.classList.contains("dark"));
+  dk.onclick = () => { document.documentElement.classList.toggle("dark"); colourCache = null; renderBar(); };
+  bar.append(y, dk);
+}
+
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  const t = target();
+  for (let s = 0; s < 4; s++) { const h = dt / 4, a = 90 * (t - d) - 30 * v; v += a * h; d += v * h; }
+  if (Math.abs(t - d) < 1e-4 && Math.abs(v) < 1e-4) { d = t; v = 0; }
+  const hy = d * H, moving = Math.abs(v) > 5e-4;
+  const n = ys.filter((y) => y <= hy).length;
+  if (n !== lit) {
+    for (let i = lit; i < n; i++) { items[i].dataset.lit = "true"; cur.lit(i, true); }
+    for (let i = lit - 1; i >= n; i--) { items[i].dataset.lit = "false"; cur.lit(i, false); }
+    lit = n;
+  }
+  cur.frame(d, hy, now, moving, dt);
+  if (counterOn()) counters.forEach((c) => { c.set(lit - 1); c.frame(d); });
+  requestAnimationFrame(frame);
+}
+
+measure();
+mount(vi);
+new ResizeObserver(measure).observe(list);
+document.fonts.ready.then(measure);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
