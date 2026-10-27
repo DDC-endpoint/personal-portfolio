@@ -299,3 +299,40 @@ test.describe("first load", () => {
     });
   }
 });
+
+// ---- Task 5: Back and Forward ----------------------------------------------
+
+test.describe("back and forward", () => {
+  test("Back covers at once, then reveals Home where the visitor left it; Forward returns", async ({ page }) => {
+    const errors = trackErrors(page);
+    await record(page);
+    await page.goto("/");
+    await settle(page);
+    await page.locator("#timeline").scrollIntoViewIfNeeded();
+    await page.evaluate(() => window.scrollBy(0, 200));
+    await expect.poll(() => page.evaluate(() => Math.round(scrollY)), { timeout: 3000 }).toBeGreaterThan(1000);
+    const y = await page.evaluate(() => scrollY);
+    await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+    await expect(page).toHaveURL(/\/services$/);
+    await idle(page);
+    await mark(page);
+    await page.evaluate(() => { window.__veil = ["idle"]; });
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+    await idle(page);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await sameDocument(page)).toBe(true);
+    expect(Math.abs((await page.evaluate(() => scrollY)) - y)).toBeLessThan(80);
+    await expect(page.locator(".intro-stamp")).toHaveCount(0);
+    expect(await page.evaluate(() => window.__portrait)).not.toContain("wave");
+
+    await page.evaluate(() => { window.__veil = ["idle"]; });
+    await page.goForward();
+    await expect(page).toHaveURL(/\/services$/);
+    await idle(page);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+    expect(await sameDocument(page)).toBe(true);
+    expect(errors).toEqual([]);
+  });
+});

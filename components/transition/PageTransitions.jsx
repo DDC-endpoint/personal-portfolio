@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import IntroStamp from "@/components/IntroStamp";
-import { FALLBACK_MS, PAGES, TIMING, intercept } from "@/lib/pageTransition";
+import { FALLBACK_MS, PAGES, TIMING, intercept, pageOf } from "@/lib/pageTransition";
 import { markSoftNavigation, shouldPlayIntro } from "@/lib/motion";
 import { getLenis } from "@/lib/lenis";
 
@@ -51,9 +51,9 @@ function targetTop(hash) {
   return el ? el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET : el === null ? null : 0;
 }
 
-// The new page is in: put it where it should be and move focus to it.
-function land(hash) {
-  window.scrollTo({ top: targetTop(hash) ?? 0, behavior: "instant" });
+// The new page is in: put it at `top` and move focus to it.
+function land(top) {
+  window.scrollTo({ top, behavior: "instant" });
   const main = document.querySelector("main");
   if (!main) return;
   if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
@@ -79,6 +79,8 @@ export default function PageTransitions() {
   const busy = useRef(false);
   const pathRef = useRef(pathname);
   const waiters = useRef([]);
+  // Where each page was left (by URL), so Back and Forward return there.
+  const positions = useRef(new Map());
   // The first-load intro: the stamp is in the server HTML (active), and shows
   // the glyph field through it once the veil is drawn behind it.
   const [intro, setIntro] = useState({ active: true, glyphs: false });
@@ -136,9 +138,14 @@ export default function PageTransitions() {
     const waitForPath = (path) =>
       new Promise((resolve) => (pathRef.current === path ? resolve() : waiters.current.push({ path, resolve })));
 
+    const here = () => window.location.pathname + window.location.hash;
+    let current = here(); // the URL whose scroll position is on screen
+
     async function go(path, hash) {
       busy.current = true;
       markSoftNavigation();
+      positions.current.set(current, window.scrollY);
+      current = path + hash;
       const veil = await loadVeil();
       await veil.cover();
       const coveredAt = performance.now();
@@ -151,7 +158,27 @@ export default function PageTransitions() {
       if (path === "/") await portraitDrawn();
       const left = TIMING.hold * 1000 - (performance.now() - coveredAt);
       if (left > 0) await sleep(left);
-      land(hash);
+      land(targetTop(hash) ?? 0);
+      await veil.reveal();
+      busy.current = false;
+    }
+
+    // Back and Forward: the browser has already switched the URL, so there's
+    // nothing to sweep over. Cover at once, wait for the page, and reveal it
+    // where the visitor left it.
+    async function onPop() {
+      positions.current.set(current, window.scrollY); // still the old page's
+      current = here();
+      const path = pageOf(window.location.pathname);
+      if (!path || path === pathRef.current || busy.current) return;
+      busy.current = true;
+      markSoftNavigation();
+      const veil = await loadVeil();
+      veil.coverNow();
+      await waitForPath(path);
+      await frames(2);
+      if (path === "/") await portraitDrawn();
+      land(positions.current.get(current) ?? 0);
       await veil.reveal();
       busy.current = false;
     }
@@ -181,6 +208,7 @@ export default function PageTransitions() {
     }
 
     document.addEventListener("click", onClick);
+    window.addEventListener("popstate", onPop);
     const cancelIdle = whenIdle(async () => {
       for (const p of PAGES) if (p !== window.location.pathname) router.prefetch(p);
       await loadVeil();
@@ -190,6 +218,7 @@ export default function PageTransitions() {
       cancelled = true;
       cancelIdle();
       document.removeEventListener("click", onClick);
+      window.removeEventListener("popstate", onPop);
       // Drop the veil, so a remount (React's dev double mount, for one)
       // builds a fresh one instead of reusing a destroyed one.
       const veil = veilRef.current;

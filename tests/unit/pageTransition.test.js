@@ -1,4 +1,4 @@
-import { TIMING, FALLBACK_MS, PAGES, intercept, sweepAt, arrivalAt, cellAt } from "@/lib/pageTransition";
+import { TIMING, FALLBACK_MS, PAGES, intercept, pageOf, sweepAt, arrivalAt, cellAt } from "@/lib/pageTransition";
 
 const here = { origin: "https://damiandc.com", pathname: "/" };
 const left = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false };
@@ -58,6 +58,17 @@ describe("intercept", () => {
   });
   test("a trailing slash still names the page", () => {
     expect(intercept(left, link("/services/"), here)).toEqual({ kind: "transition", path: "/services", hash: "" });
+  });
+});
+
+describe("pageOf", () => {
+  test("names one of the pages, with or without a trailing slash", () => {
+    expect(pageOf("/")).toBe("/");
+    expect(pageOf("/services/")).toBe("/services");
+  });
+  test("is null for anything else", () => {
+    expect(pageOf("/no-such-page")).toBeNull();
+    expect(pageOf("/lab")).toBeNull();
   });
 });
 
