@@ -18,7 +18,7 @@ export default function Resume() {
           </SplitLines>
           <Reveal delay={0.1}>
             <p className="mt-6 max-w-md text-base md:text-lg text-ink-soft">
-              Education, coursework, and current pursuits — packaged as a single page.
+              Education, coursework and current pursuits, on a single page.
             </p>
           </Reveal>
         </div>

@@ -45,8 +45,8 @@ export default function Leadership() {
           <Reveal delay={0.1}>
             <p className="mt-6 max-w-xl text-base md:text-lg text-ink-soft">
               Before the code, there was the council room. Years of student leadership and Rotary
-              Interact service taught me how to organise people, run projects, and ship things that
-              matter to a community.
+              Interact service taught me how to organise people, run projects and deliver them for
+              a community.
             </p>
           </Reveal>
         </div>
