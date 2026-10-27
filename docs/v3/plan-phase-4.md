@@ -1,6 +1,6 @@
 # V3 Phase 4 Implementation Plan: copy refresh, quiet sections and `/services`
 
-> **Status: planned (2026-10-27), waiting for Damian's approval.** The page transition was split out of this phase at Damian's request; it becomes Phase 5 (see "Decisions made while planning").
+> **Status: approved by Damian (2026-10-27), building on `v3-phase-4`.** He added an SEO and GEO upgrade at approval; it becomes Task 11, scoped by an audit and approved separately. The page transition was split out of this phase at Damian's request; it becomes Phase 5 (see "Decisions made while planning").
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

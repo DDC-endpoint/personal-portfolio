@@ -221,6 +221,8 @@ Phase 4 is planned in [`plan-phase-4.md`](plan-phase-4.md). Damian's answers whi
   - The recent-work cards activate like Projects.
   - `/services` metadata and Offer JSON-LD stay as they are, while the FAQ JSON-LD is built from the visible FAQ.
 
+**Approved (Damian, 2026-10-27).** He approved the plan and its builder's calls as written. In the same message he added an SEO and GEO upgrade, so the call that `/services` metadata and Offer JSON-LD stay as they are no longer holds. Those changes come from the SEO/GEO audit, are listed in the plan as Task 11, and need his approval before they're built, because they change copy and claims.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
