@@ -66,7 +66,7 @@ export default function Contact() {
             <a
               href={`mailto:${EMAIL}?subject=Website%20enquiry`}
               data-hover
-              className={`group inline-flex items-center justify-between gap-4 rounded-full bg-ivory px-6 py-4 text-ink dark:bg-ink dark:text-ivory font-mono text-[12px] tracking-[0.12em] focus-visible:outline-offset-4`}
+              className={`group inline-flex items-center justify-between gap-4 rounded-full bg-ivory px-6 py-4 text-ink transition-[background-color] duration-300 hover:bg-ivory/85 focus-visible:bg-ivory/85 dark:bg-ink dark:text-ivory dark:hover:bg-ink/85 dark:focus-visible:bg-ink/85 font-mono text-[12px] tracking-[0.12em] focus-visible:outline-offset-4`}
             >
               <ScrambleText text={EMAIL} />
               <span aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-1">
@@ -78,7 +78,7 @@ export default function Contact() {
               target="_blank"
               rel="noopener noreferrer"
               data-hover
-              className={`group inline-flex items-center justify-between gap-4 rounded-full border border-current px-6 py-4 ${mono} focus-visible:outline-offset-4`}
+              className={`group inline-flex items-center justify-between gap-4 rounded-full border border-current px-6 py-4 transition-[background-color] duration-300 hover:bg-ivory/15 focus-visible:bg-ivory/15 dark:hover:bg-ink/15 dark:focus-visible:bg-ink/15 ${mono} focus-visible:outline-offset-4`}
             >
               <ScrambleText text="WhatsApp" />
               <span aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-1">

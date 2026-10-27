@@ -10,6 +10,8 @@ import { ScrambleText } from "../Scramble";
 // § 07 full-screen viewer (Damian): it expands from the photo's spot in the
 // grid, steps with the arrow keys or a swipe, and closes with Esc or a click
 // anywhere but its buttons, shrinking back into the current frame's tile.
+// If that tile is off-screen (the visitor stepped past where they started),
+// the viewer fades out instead, and the page stays put (Damian, Phase 5 gate).
 // A modal dialog: focus moves to Close and Tab stays inside. The page under
 // it is locked the way the mobile menu locks it (Nav): lockScroll() (which
 // keeps the page from shifting as the scrollbar goes) and <main> inert, plus
@@ -70,7 +72,13 @@ export default function Viewer({ index, originRect, onClose, onStep }) {
     const i = current.current;
     const tile = tilePhoto(i);
     if (reducedMotion() || !tile) return onClose(i);
-    const to = flipFrom(box.current, tile.getBoundingClientRect());
+    const rect = tile.getBoundingClientRect();
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight) {
+      const fade = root.current.animate([{ opacity: 1 }, { opacity: 0 }], { duration: OPEN_MS, easing: ease, fill: "forwards" });
+      fade.finished.then(() => onClose(i), () => onClose(i));
+      return;
+    }
+    const to = flipFrom(box.current, rect);
     box.current.animate([{ transform: "none" }, { transform: to }], { duration: OPEN_MS, easing: ease, fill: "forwards" });
     const fade = backdrop.current.animate([{ opacity: 1 }, { opacity: 0 }], { duration: OPEN_MS, easing: ease, fill: "forwards" });
     fade.finished.then(() => onClose(i), () => onClose(i));

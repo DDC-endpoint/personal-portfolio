@@ -304,6 +304,12 @@ Damian's first look at the gate: "in the initial load and reload there is a flas
 - **CSS shimmer.** The frozen server-HTML letters flicker (one span per letter, pure CSS) until the decode takes over.
 - **The Lens viewer follows the theme, frosted (Damian).** Its backdrop was navy in both themes; it's now the page colour at 80% with a blur (`bg-ivory/80 backdrop-blur-md`: ivory in light mode, navy in dark), with ink-coloured caption and controls.
 - **Opening an overlay no longer snaps the page (Damian: "because it causes the scrollbar to disappear the website appears to snap").** `lib/scrollLock.js` replaces the three hand-rolled locks (the viewer, both mobile menus): it gives the scrollbar's width back as body padding and as `--lock-gap`, which the fixed headers and the scroll progress use for their right edge. `scrollbar-gutter: stable` was tried first and doesn't work here: Chromium drops the gutter once the root's overflow is hidden.
+- **Last gate fixes (Damian):**
+  - The privacy page's email and external links underline their words, not the whole column (`items-start`).
+  - Closing the Lens viewer on a photo whose tile is off-screen leaves the page where it was: the viewer fades out instead of flying to the tile, and focus returns without scrolling (Damian chose this over gliding to the photo).
+  - The electric cards' buttons get a soft tint on hover and keyboard focus: the filled pill softens to 85% so the blue shows through, and the outlined pill gets a 15% wash of the card's text colour.
+  - The FAQ questions (`<summary>`) no longer show the pointer finger: `summary` joins the custom cursor's list in `globals.css`.
+  - In dark mode the stamp's halo fades out over 1.9× its radius on an eased curve; its navy rim showed against the bright glyphs. Light mode keeps its halo.
 
 ## Gate changes (2026-10-27)
 

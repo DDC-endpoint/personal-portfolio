@@ -96,7 +96,7 @@ export default function PrivacyPage() {
                   ))}
                 </div>
               ))}
-              <div className="mt-12 border-t border-rule pt-8 flex flex-col gap-3 font-mono text-[12px] tracking-[0.08em]">
+              <div className="mt-12 border-t border-rule pt-8 flex flex-col items-start gap-3 font-mono text-[12px] tracking-[0.08em]">
                 <a href={`mailto:${EMAIL}?subject=${encodeURIComponent("Privacy request — damiandc.com")}`} className={link}>
                   {EMAIL}
                 </a>
