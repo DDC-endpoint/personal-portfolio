@@ -128,20 +128,38 @@ test.describe("transitions", () => {
     await record(page);
     await page.addInitScript(() => {
       new MutationObserver(() => {
-        if (document.querySelector("[data-veil]")?.dataset.veil === "idle") window.__idleAt = performance.now();
+        const v = document.querySelector("[data-veil]")?.dataset.veil;
+      if (v === "idle") window.__idleAt = performance.now();
+      if (v === "covered" && !window.__coveredAt) window.__coveredAt = performance.now();
+      if (v === "revealing" && !window.__revealingAt) window.__revealingAt = performance.now();
       }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-veil"] });
     });
   });
 
-  test("Home → /services by the hero button, at the top, in about 1.3 s", async ({ page }) => {
-    const errors = trackErrors(page);
-    await page.goto("/");
-    await settle(page);
-    const ms = await transitionTo(page, () => page.locator('#top a[href="/services"]:visible').click(), /\/services$/);
-    expect(await page.evaluate(() => scrollY)).toBe(0);
-    expect(ms).toBeGreaterThan(1200);
-    expect(ms).toBeLessThan(2500);
-    expect(errors).toEqual([]);
+  // The sweeps are timed on their own: the page fetch between them depends on
+  // the dev server's load (production prefetches it). Timing-dependent, so
+  // only this retries, like the loader's timing group.
+  test.describe("timing", () => {
+    test.describe.configure({ retries: 2 });
+
+    test("Home → /services by the hero button, at the top: a 0.52 s cover and a 0.64 s reveal", async ({ page }) => {
+      const errors = trackErrors(page);
+      await page.goto("/");
+      await settle(page);
+      await page.evaluate(() => { window.__coveredAt = window.__revealingAt = undefined; });
+      const total = await transitionTo(page, () => page.locator('#top a[href="/services"]:visible').click(), /\/services$/);
+      expect(await page.evaluate(() => scrollY)).toBe(0);
+      const { cover, reveal } = await page.evaluate(() => ({
+        cover: window.__coveredAt - window.__t0,
+        reveal: window.__idleAt - window.__revealingAt,
+      }));
+      expect(cover).toBeGreaterThan(480);
+      expect(cover).toBeLessThan(900);
+      expect(reveal).toBeGreaterThan(600);
+      expect(reveal).toBeLessThan(1000);
+      expect(total).toBeGreaterThan(1200);
+      expect(errors).toEqual([]);
+    });
   });
 
   test("Home → /services from the mobile menu", async ({ page }, info) => {
@@ -289,12 +307,22 @@ test.describe("first load", () => {
     expect(t).toMatch(/^matrix\(1, 0, 0, 1, 0, [1-9]/); // still below its line
   });
 
-  test("a click during the intro is ignored", async ({ page }) => {
+  test("a link clicked during the intro opens once the stamp is done, under the same cover", async ({ page }) => {
+    await record(page);
     await page.goto("/services");
     await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 6000 });
-    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
+    await expect(page).toHaveURL(/\/privacy$/);
     await idle(page);
-    await expect(page).toHaveURL(/\/services$/);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await sameDocument(page)).toBe(true);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+  });
+
+  test("the intro lets the pointer through, as the curtain did", async ({ page }) => {
+    await page.goto("/services");
+    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 6000 });
+    expect(await veil(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   });
 
   for (const [name, media] of [["reduced motion", { reducedMotion: "reduce" }], ["forced colours", { forcedColors: "active" }]]) {

@@ -88,22 +88,30 @@ export default function PageTransitions() {
   // The first-load intro: the stamp is in the server HTML (active), and shows
   // the glyph field through it once the veil is drawn behind it.
   const [intro, setIntro] = useState({ active: true, glyphs: false });
-  const introRef = useRef({ ended: false, veil: null });
+  const introRef = useRef({ ended: false, veil: null, pending: null });
+  const goRef = useRef(null); // the controller's go(), for a click made during the intro
 
   const loadVeil = () =>
     (veilRef.current ??= import("./Veil").then(({ createVeil }) => createVeil(canvasRef.current)));
 
   // The stamp's name has resolved: fade it and sweep the page in (or, if the
   // veil never got drawn, let the stamp wipe away as the old curtain did).
+  // A link clicked during the intro opens now, under the cover already there.
   const finishIntro = () => {
     const state = introRef.current;
     state.ended = true;
     setIntro((s) => ({ ...s, active: false }));
+    if (state.pending) {
+      delete canvasRef.current?.dataset.intro;
+      goRef.current?.(state.pending.path, state.pending.hash, { covered: Boolean(state.veil) });
+      return;
+    }
     if (!state.veil) {
       busy.current = false;
       return;
     }
     state.veil.reveal().then(() => {
+      delete canvasRef.current.dataset.intro;
       busy.current = false;
     });
   };
@@ -120,6 +128,7 @@ export default function PageTransitions() {
     let live = true;
     loadVeil().then((veil) => {
       if (!live || introRef.current.ended) return;
+      canvasRef.current.dataset.intro = "";
       veil.coverNow();
       introRef.current.veil = veil;
       setIntro({ active: true, glyphs: true });
@@ -154,7 +163,8 @@ export default function PageTransitions() {
     const here = () => window.location.pathname + window.location.hash;
     let current = here(); // the URL whose scroll position is on screen
 
-    async function go(path, hash) {
+    // `covered`: the veil already covers the page (a click during the intro).
+    async function go(path, hash, { covered = false } = {}) {
       busy.current = true;
       markSoftNavigation();
       positions.current.set(current, window.scrollY);
@@ -167,7 +177,7 @@ export default function PageTransitions() {
         return;
       }
       const veil = await loadVeil();
-      await veil.cover();
+      if (!covered) await veil.cover();
       const coveredAt = performance.now();
       await swap(path, hash);
       await frames(2); // let the new page paint under the veil
@@ -225,11 +235,17 @@ export default function PageTransitions() {
       );
       if (!hit) return;
       e.preventDefault();
-      if (busy.current) return; // a second click while the veil runs
+      if (busy.current) {
+        // During the intro, the page opens once the stamp is done (the last
+        // link clicked wins); a second click during a transition is dropped.
+        if (!introRef.current.ended && hit.kind === "transition") introRef.current.pending = hit;
+        return;
+      }
       if (hit.kind === "scroll") scrollHere(hit.hash);
       else go(hit.path, hit.hash);
     }
 
+    goRef.current = go;
     document.addEventListener("click", onClick);
     window.addEventListener("popstate", onPop);
     const cancelIdle = whenIdle(async () => {
