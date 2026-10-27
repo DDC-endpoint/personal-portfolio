@@ -584,3 +584,69 @@ test.describe("robustness", () => {
     expect(await sameDocument(page)).toBe(true);
   });
 });
+
+// ---- Gate changes: the halo, the first frame, the shimmer --------------------
+
+test.describe("the stamp (gate changes)", () => {
+  test("sits in a soft halo over the glyphs, not a box", async ({ page }) => {
+    await page.goto("/services");
+    await page.locator(".intro-stamp[data-glyphs]").waitFor({ timeout: 6000 });
+    const look = await page.evaluate(() => {
+      const s = document.querySelector(".intro-stamp");
+      return {
+        image: getComputedStyle(s).backgroundImage,
+        box: getComputedStyle(s.firstElementChild).backgroundColor,
+      };
+    });
+    expect(look.image).toContain("radial-gradient");
+    expect(look.box).toBe("rgba(0, 0, 0, 0)");
+  });
+
+  test("before any script runs, frame one shows the glow and the letters shimmer", async ({ page }) => {
+    // Hold every script back (not the stylesheet), so the page sits at its
+    // server-HTML first paint.
+    await page.route("**/_next/static/chunks/**", async (route) => {
+      if (route.request().url().endsWith(".css")) return route.continue();
+      await new Promise((r) => setTimeout(r, 3000));
+      return route.continue().catch(() => {});
+    });
+    await page.goto("/services", { waitUntil: "domcontentloaded" });
+    const stamp = page.locator(".intro-stamp");
+    await expect(stamp).toHaveAttribute("data-shimmer", "");
+    await expect.poll(() => stamp.evaluate((s) => getComputedStyle(s).backgroundImage)).toContain("radial-gradient");
+    await expect.poll(() => stamp.evaluate((s) => s.querySelector("[data-ch]").getAnimations().length)).toBeGreaterThan(0);
+  });
+
+  test("if the veil arrives late, the reveal still waits for the glyphs to bloom out", async ({ page }) => {
+    // Find the veil's chunk on a first visit, then delay only that request:
+    // proxying every chunk would make hydration itself late.
+    let veilUrl;
+    page.on("response", async (res) => {
+      if (res.url().includes("/_next/static/chunks/") && (await res.text().catch(() => "")).includes('"revealing"')) veilUrl = res.url();
+    });
+    await page.goto("/services");
+    await expect.poll(() => veilUrl, { timeout: 10000 }).toBeTruthy();
+    await page.route(veilUrl, async (route) => {
+      await new Promise((r) => setTimeout(r, 450));
+      return route.continue();
+    });
+    await page.addInitScript(() => {
+      new MutationObserver(() => {
+        if (document.querySelector(".intro-stamp[data-glyphs]") && !window.__glyphsAt) window.__glyphsAt = performance.now();
+        if (document.querySelector("[data-veil]")?.dataset.veil === "revealing" && !window.__revealAt) window.__revealAt = performance.now();
+      }).observe(document, { subtree: true, attributes: true, childList: true });
+    });
+    await page.goto("/services");
+    await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+    await idle(page);
+    const gap = await page.evaluate(() => window.__revealAt - window.__glyphsAt);
+    expect(gap).toBeGreaterThanOrEqual(380);
+  });
+
+  test("once the decode starts, the shimmer stops", async ({ page }) => {
+    await page.goto("/services");
+    await page.locator(".intro-stamp[data-glyphs]").waitFor({ timeout: 6000 });
+    const moving = await page.evaluate(() => [...document.querySelectorAll(".intro-stamp [data-ch]")].reduce((n, el) => n + el.getAnimations().length, 0));
+    expect(moving).toBe(0);
+  });
+});

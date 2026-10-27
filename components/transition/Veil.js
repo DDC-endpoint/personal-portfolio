@@ -15,7 +15,7 @@
 // typeset: about 25k cells on a big screen would otherwise blow the frame
 // budget.
 
-import { TIMING, sweepAt, arrivalAt, veilScale } from "@/lib/pageTransition";
+import { TIMING, sweepAt, arrivalAt, veilScale, bloomAt } from "@/lib/pageTransition";
 import { NOISE } from "@/lib/decode";
 
 const RAMP = ".·:;-=+*#%@";
@@ -39,6 +39,9 @@ export function createVeil(canvas) {
   let at = new Float32Array(0); // per-cell arrival time in the running phase
   let drawn = new Uint8Array(0);
   let filled = 0; // cells whose covered glyph is drawn (a gradual fill runs up to all)
+  let order = null; // a gradual fill's drawing order: out from the middle
+  let bloom = null; // when (0..1 of TIMING.bloom) each cell's glyph appears
+  let bloomStart = 0;
   let atlas = null;
   let colour = { ivory: "#F6F6F1", electric: "#2563EB" };
   let raf = 0;
@@ -160,24 +163,35 @@ export function createVeil(canvas) {
     ctx.globalAlpha = 1;
   }
 
-  // Cover everything: ivory at once, then the covered glyphs. `gradual` draws
-  // the glyphs a few rows per frame within the budget (the flicker loop does
-  // it); otherwise all at once.
-  function fill(gradual = false) {
+  // Cover everything: ivory at once, then the covered glyphs. `gradual` (the
+  // first load) blooms the glyphs out from the middle over TIMING.bloom, a
+  // few per frame within the budget (the flicker loop does it); otherwise
+  // they're all drawn at once.
+  function fill(gradual = false, inner = 0) {
     ctx.globalAlpha = 1;
     ctx.fillStyle = colour.ivory;
     ctx.fillRect(0, 0, W, H);
     drawn.fill(SETTLED);
     filled = 0;
-    if (!gradual) fillRows(Infinity);
+    order = bloom = null;
+    if (!gradual) return fillSome(Infinity, 1);
+    const n = drawn.length, far = Math.hypot(W / 2, H / 2);
+    bloom = new Float32Array(n);
+    for (let i = 0; i < n; i++) bloom[i] = bloomAt(((i % cols) + 0.5) * cw - W / 2, (((i / cols) | 0) + 0.5) * ch - H / 2, far, jit[i], inner);
+    order = Uint32Array.from({ length: n }, (_, i) => i).sort((a, b) => bloom[a] - bloom[b]);
+    bloomStart = 0;
   }
 
-  function fillRows(budget) {
+  // Draw the next covered glyphs (in bloom order, if blooming) up to `grown`
+  // (0..1), for at most `budget` ms.
+  function fillSome(budget, grown) {
     const t0 = performance.now();
-    while (filled < drawn.length && performance.now() - t0 < budget) {
-      const end = Math.min(drawn.length, filled + cols);
-      for (let i = filled; i < end; i++) glyph(i, ramp(i), dim(i));
-      filled = end;
+    while (filled < drawn.length) {
+      const i = order ? order[filled] : filled;
+      if (order && bloom[i] > grown) break;
+      glyph(i, ramp(i), dim(i));
+      filled++;
+      if ((filled & 63) === 0 && performance.now() - t0 >= budget) break;
     }
     ctx.globalAlpha = 1;
   }
@@ -188,7 +202,9 @@ export function createVeil(canvas) {
     const step = () => {
       const n = drawn.length;
       if (filled < n) {
-        fillRows(BUDGET_MS);
+        const now = performance.now();
+        if (order && !bloomStart) bloomStart = now;
+        fillSome(BUDGET_MS, order ? (now - bloomStart) / 1000 / TIMING.bloom : 1);
         raf = requestAnimationFrame(step);
         return;
       }
@@ -261,13 +277,14 @@ export function createVeil(canvas) {
     },
     // Fully covered at once (Back and Forward: the browser has already
     // switched pages, so there's nothing to sweep over). `gradual`: the
-    // glyphs arrive over a few frames (the intro, where the stamp already
-    // covers the page), so drawing them is never one long task.
-    async coverNow({ gradual = false } = {}) {
+    // glyphs bloom out over a few frames (the intro, where the stamp already
+    // covers the page), so drawing them is never one long task; `inner` (px)
+    // is the part hidden under the stamp's halo, where the bloom starts.
+    async coverNow({ gradual = false, inner = 0 } = {}) {
       ++gen;
       stop();
       prepare();
-      fill(gradual);
+      fill(gradual, inner);
       setState("covered");
       flicker();
     },

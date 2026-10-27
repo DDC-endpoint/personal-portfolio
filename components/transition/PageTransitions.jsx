@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import IntroStamp from "@/components/IntroStamp";
-import { FALLBACK_MS, PAGES, TIMING, intercept, pageOf } from "@/lib/pageTransition";
+import { FALLBACK_MS, PAGES, TIMING, intercept, pageOf, stampRadius } from "@/lib/pageTransition";
 import { markSoftNavigation, shouldPlayIntro } from "@/lib/motion";
 import { getLenis } from "@/lib/lenis";
 
@@ -35,6 +35,7 @@ import { getLenis } from "@/lib/lenis";
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
 const PORTRAIT_WAIT_MS = 400; // the reveal waits this long for Home's portrait
 const LATE_MS = 2500; // hydration later than this: the page is readable already
+const BLOOM_REST_MS = 120; // the full glyph field holds this long before the reveal
 
 // Reduced motion and forced colours: page changes stay client-side but
 // instant, with no veil.
@@ -140,6 +141,16 @@ export default function PageTransitions() {
   const finishIntro = () => {
     const state = introRef.current;
     state.ended = true;
+    // A veil that arrived late is still blooming: let the glyph field fill
+    // the screen (and rest a beat) before the reveal, so the halo over the
+    // glyphs is always seen. A link clicked meanwhile is picked up then.
+    if (state.veil && !state.pending) {
+      const wait = TIMING.bloom * 1000 + BLOOM_REST_MS - (performance.now() - state.coveredAt);
+      if (wait > 0) {
+        setTimeout(finishIntro, wait);
+        return;
+      }
+    }
     const next = state.pending;
     state.pending = null;
     if (next) {
@@ -181,8 +192,10 @@ export default function PageTransitions() {
       .then((veil) => {
         if (!live || introRef.current.ended) return;
         canvasRef.current.dataset.intro = "";
-        veil.coverNow({ gradual: true });
+        // The glyphs bloom out from the halo's edge (half its radius in).
+        veil.coverNow({ gradual: true, inner: stampRadius(window.innerWidth, window.innerHeight) * 0.5 });
         introRef.current.veil = veil;
+        introRef.current.coveredAt = performance.now();
         setIntro({ active: true, glyphs: true });
       })
       .catch(() => {}); // the stamp wipes away as the old curtain did

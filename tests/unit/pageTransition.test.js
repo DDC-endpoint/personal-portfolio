@@ -1,4 +1,4 @@
-import { TIMING, FALLBACK_MS, PAGES, VEIL_PIXELS, intercept, pageOf, sweepAt, arrivalAt, cellAt, veilScale } from "@/lib/pageTransition";
+import { TIMING, FALLBACK_MS, PAGES, VEIL_PIXELS, intercept, pageOf, sweepAt, arrivalAt, cellAt, veilScale, bloomAt, stampRadius } from "@/lib/pageTransition";
 
 const here = { origin: "https://damiandc.com", pathname: "/" };
 const left = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false };
@@ -124,5 +124,32 @@ describe("veilScale", () => {
   });
   test("never drops below 1", () => {
     expect(veilScale(5120, 2880, 2)).toBe(1);
+  });
+});
+
+describe("bloomAt", () => {
+  test("the glyph field grows out from the middle", () => {
+    expect(bloomAt(0, 0, 800, 0)).toBe(0);
+    expect(bloomAt(400, 0, 800, 0)).toBeLessThan(bloomAt(700, 300, 800, 0));
+  });
+  test("each cell's own jitter softens the edge, and it stays within 0..1", () => {
+    expect(bloomAt(400, 0, 800, 1)).toBeGreaterThan(bloomAt(400, 0, 800, 0));
+    expect(bloomAt(800, 0, 800, 1)).toBeLessThanOrEqual(1);
+    expect(bloomAt(2000, 0, 800, 1)).toBe(1);
+  });
+  test("can start from the halo's edge: everything inside it arrives at once", () => {
+    expect(bloomAt(50, 0, 800, 0, 100)).toBe(0);
+    expect(bloomAt(100, 0, 800, 0, 100)).toBe(0);
+    expect(bloomAt(450, 0, 800, 0, 100)).toBeCloseTo(0.44, 5);
+  });
+  test("takes about 0.38 s", () => {
+    expect(TIMING.bloom).toBeCloseTo(0.38, 5);
+  });
+});
+
+describe("stampRadius", () => {
+  test("is 24% of the shorter side, never under 150 px (globals.css --stamp-r)", () => {
+    expect(stampRadius(1440, 900)).toBe(216);
+    expect(stampRadius(390, 844)).toBe(150);
   });
 });
