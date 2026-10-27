@@ -6,9 +6,10 @@ import { PROMPT, TOOLS, typingSchedule, typedChars, scheduleEnd } from "@/lib/sk
 // view. Every string is real text in the server HTML; typing only un-clips it
 // (globals.css → .term-t, driven by --n). The panel's data-term goes
 // idle → typing → done, and "done" un-clips everything, so anything that
-// interrupts the run (a resize across md, which swaps layouts; a hidden tab
+// interrupts the run (a resize across lg, which swaps layouts; a hidden tab
 // that stalls rAF) just ends it finished. Both layouts are in the DOM and CSS
-// shows one: four columns from md, one `ls` per folder below it.
+// shows one: four columns from lg (they need about 950 px), one `ls` per
+// folder below it.
 
 const ACCENT = "text-[rgb(var(--c-term-accent))]";
 
@@ -46,7 +47,7 @@ export default function Terminal() {
 
   useEffect(() => {
     const panel = ref.current;
-    const wide = window.matchMedia("(min-width: 48rem)");
+    const wide = window.matchMedia("(min-width: 64rem)");
     let raf = 0;
     let timer = 0;
     let started = false;
@@ -67,9 +68,14 @@ export default function Terminal() {
       );
       panel.dataset.term = "typing";
       const t0 = performance.now();
+      const shown = new Map(); // last --n written, so unchanged spans aren't touched
       const tick = (now) => {
         const t = now - t0;
-        for (const [k, n] of typedChars(steps, t)) els.get(k)?.style.setProperty("--n", n);
+        for (const [k, n] of typedChars(steps, t)) {
+          if (shown.get(k) === n) continue;
+          shown.set(k, n);
+          els.get(k)?.style.setProperty("--n", n);
+        }
         if (t >= end) return finish();
         raf = requestAnimationFrame(tick);
       };
@@ -127,7 +133,7 @@ export default function Terminal() {
         <div className="absolute inset-x-0 text-center text-[11px] text-[#F6F6F1]/70">damian@colombo: ~</div>
       </div>
 
-      <div data-layout="columns" className="hidden px-6 py-6 md:block md:px-8 md:py-7">
+      <div data-layout="columns" className="hidden px-8 py-7 lg:block">
         <Command p="c:p" k="c:cmd">ls tools/</Command>
         <div className="grid grid-cols-4 gap-x-6">
           {TOOLS.map(({ dir, items }, c) => (
@@ -146,7 +152,7 @@ export default function Terminal() {
         <EndPrompt k="c:end" />
       </div>
 
-      <div data-layout="folders" className="px-4 py-5 md:hidden">
+      <div data-layout="folders" className="px-4 py-5 md:px-8 md:py-7 lg:hidden">
         {TOOLS.map(({ dir, items }, c) => (
           <div key={dir} className="mb-3">
             <Command p={`f:p:${c}`} k={`f:cmd:${c}`}>{`ls tools/${dir}`}</Command>

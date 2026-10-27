@@ -75,7 +75,7 @@ test.describe("desktop", () => {
     expect(await allVisible(page)).toBe(true);
   });
 
-  test("resized across md mid-typing, it shows finished", async ({ page }) => {
+  test("resized across lg mid-typing, it shows finished", async ({ page }) => {
     await page.goto("/");
     await hydrated(page);
     await toTerminal(page, 0.5);
@@ -146,3 +146,31 @@ for (const theme of ["light", "dark"]) {
     }
   });
 }
+
+// Four columns need about 950 px; narrower screens list folder by folder.
+test("the terminal never overlaps its columns or clips text", async ({ page, isMobile }) => {
+  test.skip(isMobile);
+  await page.emulateMedia({ reducedMotion: "reduce" }); // finished at once
+  for (const [width, layout] of [[800, "folders"], [1000, "folders"], [1024, "columns"], [1280, "columns"]]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const r = await page.evaluate(() => {
+      const panel = document.querySelector("[data-terminal]").getBoundingClientRect();
+      const layout = [...document.querySelectorAll("[data-terminal] [data-layout]")].find((l) => l.offsetParent !== null);
+      const cols = [...layout.querySelectorAll("ul")].map((u) => u.getBoundingClientRect());
+      const overlaps = [];
+      layout.querySelectorAll("[data-k]").forEach((el) => {
+        const b = el.getBoundingClientRect();
+        if (b.right > panel.right + 0.5 || el.scrollWidth > el.clientWidth + 0.5) overlaps.push(el.textContent);
+        // an item in a column must end before the next column starts
+        if (!el.closest("ul")) return;
+        cols.forEach((c) => {
+          if (c.left > b.left + 1 && b.right > c.left + 0.5) overlaps.push(`${el.textContent} → column at ${c.left}`);
+        });
+      });
+      return { layout: layout.dataset.layout, overlaps };
+    });
+    expect(r.layout, `${width}px`).toBe(layout);
+    expect(r.overlaps, `${width}px`).toEqual([]);
+  }
+});
