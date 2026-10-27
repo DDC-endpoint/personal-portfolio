@@ -12,7 +12,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 2**: Projects (diagonal skeleton showcase) | **Done and merged into `v3` locally (2026-10-27).** It was built per [`plan-phase-2.md`](plan-phase-2.md), reviewed, and every review finding is fixed. Damian approved the screenshots. Tests are green, and Lighthouse is at parity with `main`. |
 | **Phase 3**: Timeline, Lens (gallery) and Contact | **Done and merged into `v3` locally (2026-10-27).** Damian approved [`plan-phase-3.md`](plan-phase-3.md) unchanged. It was built test-first, reviewed by a fresh reviewer, and every finding is fixed (see "What Phase 3 built"); Damian's gate fixes are in `decisions.md` → "Phase 3 gate fixes". Tests are green, and Lighthouse is at parity with `main`. |
 | **Timeline circuit** (replaces the running stitch) | **Done and merged into `v3` locally (2026-10-27)** from `v3-timeline-circuit`, on Damian's go-ahead after the prototype. See `decisions.md` → "Timeline circuit". |
-| Phase 4: copy refresh, Leadership rows, Skills terminal, `/services`, page transition | Not started. |
+| Phase 4: copy refresh, Leadership rows, Skills terminal, `/services` | **Planned (2026-10-27), waiting for Damian's approval.** See [`plan-phase-4.md`](plan-phase-4.md). |
+| Phase 5: page transition (Home ↔ `/services`) | Not started. Split out of Phase 4 at Damian's request. |
 
 ### The next step: plan Phase 4
 
@@ -20,7 +21,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
    - At the gate Damian settled the dark-mode Contact card: it keeps the light-mode electric (#2563EB) in both themes, so its text passes AA (about 4.8:1). It's the one exception to the tokens-only rule.
    - Fixed from his first look (see `decisions.md` → "Phase 3 gate fixes"): the needle sat slightly off the thread, the custom cursor hid behind the open viewer, the Lens develop is now tied to scroll (it was timed, and buggy scrolling in and out), the dot print now registers exactly with the photo at every display scaling, and a hydration error that a browser extension caused is gone.
 2. **The Timeline circuit is merged into `v3`** (2026-10-27): the running stitch became a circuit with a pinned year counter (`decisions.md` → "Timeline circuit").
-3. **Phase 4 next:** copy refresh for the remaining sections, Leadership rows, Skills terminal, `/services`, page transition. Write `plan-phase-4.md` for Damian's approval, then build it on `v3-phase-4`. One question to settle in the plan: `/services` "How it works" was to reuse the Timeline's stitch, which is gone. After it, `v3` → `main`; see "Before `v3` merges to `main`".
+3. **Phase 4 is planned, waiting for Damian's approval:** [`plan-phase-4.md`](plan-phase-4.md) covers the Home copy refresh, Leadership rows, the Skills terminal and `/services`. On approval, build it on `v3-phase-4` (native inline execution, one fresh reviewer at the end). The page transition moved to **Phase 5**, after it (`decisions.md` → "Phase 4 planning"). After it, `v3` → `main`; see "Before `v3` merges to `main`".
 4. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
 
 ## Before `v3` merges to `main`
@@ -220,6 +221,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **done**; read its status note for where the build departed from it.
+- [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`). **Planned**, waiting for Damian's approval.
 - [`research-reels.md`](research-reels.md): notes on the six Instagram reels and the ASCII reference video that shaped V3.
 - [`spike/`](spike/): throwaway prototypes and helper scripts. These are reference only, not production code; see [`spike/README.md`](spike/README.md).
   - `portrait-spike.html`: the portrait on its own, with controls.

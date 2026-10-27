@@ -204,6 +204,23 @@ Damian asked what could replace the running stitch. Five candidates were prototy
 - **Builder's calls:** the trace's lit layer is revealed by CSS from `--d`, as the stitch was, and only the head is moved by JS. The pads, tracks and labels are HTML inside each entry, lit by default and kept dark only under `js:motion-safe:`. The counter is decorative (`aria-hidden`), since the list carries every year and title.
 - **Open for Phase 4:** `design.md` has `/services` "How it works" reusing the Timeline's running-stitch thread. With the stitch gone, that needs Damian's call: reuse the circuit there, or something simpler.
 
+## Phase 4 planning (2026-10-27)
+
+Phase 4 is planned in [`plan-phase-4.md`](plan-phase-4.md). Damian's answers while planning:
+
+- **"How it works" gets a mini circuit (Damian).** Its four steps sit in one column on the Timeline's circuit, with pads that light as you scroll and flowing current. This settles the open question in "Timeline circuit": the running stitch it was going to reuse is gone.
+- **The page transition is its own phase (Damian).** It moves both pages to client-side navigation, so it touches routing, Lenis, the IntroStamp curtain and the hero portrait. It ships as Phase 5, after Phase 4, with its own review and gate.
+- **The Skills terminal on phones types one folder at a time (Damian):** `ls tools/code/`, then `design/` and so on, stacked down the panel, at full size with no sideways scroll.
+- **Résumé takes the optional fix (Damian):** "Education, coursework and current pursuits, on a single page."
+- **Builder's calls in the plan, for Damian to confirm:**
+  - The terminal's accent is `#60A5FA`, because neither electric token passes AA on navy.
+  - The panel is navy in light mode and dark paper with a rule border in dark mode.
+  - The terminal types once per load.
+  - Leadership keeps today's rules.
+  - The step numbers stay.
+  - The recent-work cards activate like Projects.
+  - `/services` metadata and Offer JSON-LD stay as they are, while the FAQ JSON-LD is built from the visible FAQ.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.
