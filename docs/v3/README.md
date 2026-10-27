@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (end of 2026-10-27: Phases 1–4, the Timeline circuit and SEO/GEO merged; Phase 5 next)
+## Where we are (end of 2026-10-27: Phases 1–4, the Timeline circuit and SEO/GEO merged; Phase 5 approved, not started)
 
 | Track | State |
 |---|---|
@@ -14,16 +14,21 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Timeline circuit** (replaces the running stitch) | **Done and merged into `v3` locally (2026-10-27)** from `v3-timeline-circuit`, on Damian's go-ahead after the prototype. See `decisions.md` → "Timeline circuit". |
 | **Phase 4**: copy refresh, Leadership rows, Skills terminal, `/services` | **Done and merged into `v3` locally (2026-10-27)** as `24b16d7`. Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. His gate changes (pinning, Recent work rows, prices, full-width stack) are in `decisions.md` → "Phase 4 build and review" and "Gate changes". See "What Phase 4 built". |
 | SEO and GEO upgrade (Phase 4 Task 11) | **Done and merged with Phase 4 (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
-| Phase 5: page transition (every page) | **Planned (2026-10-27), waiting for Damian's approval.** See [`plan-phase-5.md`](plan-phase-5.md): a top-down glyph sweep of about 1.3 s, chosen from a prototype. |
+| Phase 5: page transition (every page) | **Approved (2026-10-27), not started.** Damian approved [`plan-phase-5.md`](plan-phase-5.md) with every builder's call: a top-down glyph sweep of about 1.3 s, chosen from a prototype. |
 
-### The next step (resume here): Damian approves the Phase 5 plan, then build it
+### The next step (resume here): build Phase 5 from Task 0
 
-**State at hand-off (end of 2026-10-27):** on `v3`, working tree clean. Phase 4 and the SEO/GEO work merged as `24b16d7`; `v3-phase-4` is deleted. Unit tests and e2e pass. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, and the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load").
+**State at hand-off (end of 2026-10-27):** on `v3`, working tree clean. Phase 4 and SEO/GEO merged as `24b16d7`. The Phase 5 plan and prototype are committed (`827688f`) and approved. Nothing of Phase 5 is built yet, and `v3-phase-5` doesn't exist. Unit tests and e2e pass on `v3`. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, and the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load").
 
-1. **Phase 5, the page transition.** [`plan-phase-5.md`](plan-phase-5.md) is written and waits for Damian's approval and its builder's calls. His answers so far are in `decisions.md` → "Phase 5 planning" (top-down sweep, about 1.3 s, every page, Back decodes in only, hero already in place). The prototype is `spike/page-transition.html`. On approval, build it on `v3-phase-5`.
-2. **Then a performance pass (Damian, 2026-10-27: after Phase 5 merges, before `v3` → `main`).** Mobile Lighthouse on `v3` is 2–4 points below `main`, mostly from before Phase 4 (see "Testing"). The target is "no worse than `main`".
-3. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
-4. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+1. **Build Phase 5, the page transition,** per [`plan-phase-5.md`](plan-phase-5.md), starting at Task 0 (`git switch -c v3-phase-5` off `v3`).
+   - **What it is:** a top-down sweep of blue characters covers the page, the next page swaps in underneath (client-side), and the sweep reveals it; about 1.3 s; every link between Home, `/services`, `/privacy` and the 404 page. Back and Forward decode in only. Arriving on Home: no curtain, no portrait wave, no hero float-in.
+   - **Before coding, read:** the plan (Damian's decisions and the confirmed builder's calls), `decisions.md` → "Phase 5 planning", and the prototype `spike/page-transition.html` (`node docs/v3/spike/serve.cjs`, then `http://localhost:3200/page-transition.html`; its drawing code is the starting point for `components/transition/Veil.js`).
+   - **Working rules:** test-first per task, native inline execution, one fresh reviewer over the whole diff at the end, fix minor findings too, then the visual gate with the dev page open for Damian.
+   - **Facts checked while planning:** links between pages are plain `<a href>` (Nav, Hero, About, Footer, ServicesNav, Services, not-found), so one delegated listener catches them all. `shouldPlayIntro()` in `lib/motion.js` is memoized per full load, and IntroStamp's state starts `true`, so without the new soft-navigation flag a client-side arrival on Home would replay the curtain and delay the hero. `cacheComponents` is off (keep it off). `router.push(href, { scroll: false })` and `router.prefetch()` are the Next 16 APIs to use (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-router.md`).
+2. **Damian, outside the repo:** check GA4 → Admin → Data streams → the web stream → Enhanced measurement → Page views → "Page changes based on browser history events" is on, so client-side page changes are counted.
+3. **Then the performance pass (Damian, 2026-10-27: after Phase 5 merges, before `v3` → `main`).** Mobile Lighthouse on `v3` is 2–4 points below `main`, mostly from before Phase 4 (see "Testing"). The target is "no worse than `main`".
+4. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
+5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
 
 **History, for context:**
 - Phase 4 and SEO/GEO merged as `24b16d7`. At its gate Damian read the privacy page, chose editorial rows for Recent work, adopted the researched prices, limited pinning to the Timeline and How it works, and applied the `www` redirect and `server_tokens off` on the server (`decisions.md` → "Gate changes").
@@ -304,7 +309,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **done**; read its status note for where the build departed from it.
-- [`plan-phase-5.md`](plan-phase-5.md): the Phase 5 plan (the page transition). **Planned**, waiting for Damian's approval.
+- [`plan-phase-5.md`](plan-phase-5.md): the Phase 5 plan (the page transition). **Approved 2026-10-27, not started.**
 - [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`, and Task 11, SEO and GEO). **Built**, at the gate; read its status note.
 - [`pricing-2026-10.md`](pricing-2026-10.md): the October 2026 price research behind the `/services` prices, and what to re-check next time.
 - [`seo-geo.md`](seo-geo.md): the SEO and GEO audit summary, Damian's decisions, what we built, what Damian does outside the repo, and the monthly GEO prompt set.

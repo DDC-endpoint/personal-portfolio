@@ -265,7 +265,7 @@ Damian's answers while planning the page transition ([`plan-phase-5.md`](plan-ph
 - **Every page (Damian).** Links between Home, `/services` and `/privacy`, and the 404 page's link home.
 - **Back and Forward decode in only (Damian).** The new page starts covered and the sweep reveals it at the scroll position the visitor left.
 - **The hero is already in place on arrival (Damian).** No curtain, no portrait wave, no float-in: the sweep is the only entrance. Reloads keep the curtain.
-- **Builder's calls** are listed in the plan for him to confirm, notably "See the full portfolio" → `/#work`, the 4 s fallback to a normal page load, focus moving to `<main>`, and GA4's enhanced measurement counting client-side page views.
+- **Damian approved the plan and every builder's call (2026-10-27):** "See the full portfolio" → `/#work`; same-page links smooth-scroll; a slow flicker while covered; a 4 s fallback to a normal page load; focus moves to `<main>` on arrival; the reveal waits up to 0.4 s for Home's portrait; reduced motion and forced colours navigate instantly with no veil; idle prefetch of the other pages; GA4's enhanced measurement counts client-side page views (he checks the setting); `cacheComponents` stays off.
 
 ## Gate changes (2026-10-27)
 
@@ -315,7 +315,7 @@ Damian's changes at the Phase 4 visual gate:
 As of the end of 2026-10-27, Phases 1 to 4, the Timeline circuit and the SEO/GEO upgrade are built and merged into `v3` locally. The page transition is Phase 5, not yet planned. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
 
 - **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26. His later revisions are in "Phase 1 review (2026-10-27)" above; where they conflict with older entries, they win.
-- **Next:** Damian approves [`plan-phase-5.md`](plan-phase-5.md) (the page transition) and its builder's calls, built on `v3-phase-5` (native inline execution, one fresh reviewer at the end) and merged into `v3` locally on his approval. Then the performance pass, then `v3` → `main`.
+- **Next:** build [`plan-phase-5.md`](plan-phase-5.md) (the page transition, approved 2026-10-27) from Task 0, built on `v3-phase-5` (native inline execution, one fresh reviewer at the end) and merged into `v3` locally on his approval. Then the performance pass, then `v3` → `main`.
 - **Superseded:** "Loader frequency" (first visit per session) is replaced by the curtain on every reload. The page transition still covers Home ↔ `/services` navigation, but not reloads.
 - **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.

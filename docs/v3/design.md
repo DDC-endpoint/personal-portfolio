@@ -71,10 +71,12 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 - **Section labels** (`§ 0N — …`) decode in when they enter view. **Serif section titles** keep the existing line-by-line rise (`SplitLines`).
 - **Link hover:** mono buttons (e.g. `SERVICES →`, `Request CV`) briefly scramble and resolve. Links that already have the underline draw (the nav links, "Services & pricing", serif text links) keep only the underline and don't scramble (Damian, 2026-10-27).
 - **Cursor lens:** when the ring grows into the lens, the centre dot disappears (Damian, 2026-10-27).
-- **Page transition (Home ↔ `/services`):** glyph dissolve, about 0.6 s. The outgoing page breaks into blue characters and the incoming page decodes in through the same wave as the hero loader.
-  - It also applies to in-page links between the two pages, such as `/#work`. Reloads get the curtain instead (Damian, 2026-10-27).
-  - Arriving on Home this way never replays the 2.4 s portrait wave: the portrait is already drawn.
-  - Builder's call: client-side navigation with a persistent transition overlay, rather than full reloads with a timed exit.
+- **Page transition (every page; revised by Damian 2026-10-27, see [`plan-phase-5.md`](plan-phase-5.md)):** a top-down glyph sweep of about 1.3 s. A band of blue characters sweeps down and covers the outgoing page, the incoming page swaps in underneath, and the same sweep decodes it in.
+  - It covers every link between Home, `/services`, `/privacy` and the 404 page, including links like `/#work`. Reloads get the curtain instead.
+  - Back and Forward decode in only: the page starts covered and the sweep reveals it where the visitor left it.
+  - Arriving on Home this way never replays the curtain or the 2.4 s portrait wave, and the hero text is already in place.
+  - Client-side navigation with a persistent transition overlay, rather than full reloads with a timed exit.
+  - (Originally "glyph dissolve, about 0.6 s, Home ↔ `/services`"; Damian chose the sweep and the timing from `spike/page-transition.html`.)
 - **Cursor:** the existing ring and dot. Over the hero portrait the ring grows into the lens (see Hero).
 - **Marquee:** removed from the page.
 - **Nav, scroll progress bar and footer** keep their current form, apart from the label and hover upgrades.

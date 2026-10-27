@@ -1,6 +1,6 @@
 # V3 Phase 5 Implementation Plan: the page transition
 
-> **Status: planned (2026-10-27), waiting for Damian's approval.** Built on `v3-phase-5`, merged into `v3` locally on his approval at the visual gate. After it merges: the performance pass, then `v3` → `main`.
+> **Status: approved by Damian (2026-10-27), with every builder's call. Not started: begin at Task 0.** Build on `v3-phase-5`, then merge into `v3` locally on his approval at the visual gate. After it merges: the performance pass, then `v3` → `main`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (native inline execution, as Phases 1–4) to implement this plan task-by-task, test-first, then one fresh reviewer at the end. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -29,7 +29,7 @@
 - **The hero is already in place on arrival.** Arriving on Home by a transition: no curtain, no portrait wave (the finished portrait), and no float-in for the hero text. The sweep is the only entrance.
 - **Reloads keep the curtain** (unchanged from the design).
 
-## Builder's calls for Damian to confirm with this plan
+## Builder's calls (all confirmed by Damian, 2026-10-27)
 
 - **"See the full portfolio" on `/services` goes to `/#work`** (the Projects section), not the top of Home. It says "full portfolio", and the transition lands there directly. The "This portfolio" row in Recent work and the Portfolio button keep going to the top of Home.
 - **Same-page links behave as in-page links.** `/#work` clicked on Home smooth-scrolls (Lenis) instead of transitioning. A link to the page you're already on (for example "Home" in Home's footer) smooth-scrolls to the top.
