@@ -256,6 +256,14 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
 - **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
+## Gate changes (2026-10-27)
+
+Damian's changes at the Phase 4 visual gate:
+
+- **Prices follow the October 2026 research (Damian: "use the suggestions").** Every `/services` price moved, USD now follows one rule (about LKR ÷ 100), and larger builds start from about LKR 250,000. The new starting price (LKR 30,000 / $300) is also in the `/services` meta description, the share card (`public/og-services.jpg`, re-rendered) and its alt text. The research and its reasoning: [`pricing-2026-10.md`](pricing-2026-10.md).
+- **The Skills terminal spans the section's full width (Damian).** The label and heading row stays.
+- **The lab host answers its own `robots.txt` and 404s `/sitemap.xml`** (`proxy.js`), instead of a server change.
+
 ## Phase 1 review (2026-10-27)
 
 - **No scramble on underlined links (Damian).** The nav links and "Services & pricing" already have the underline draw, so they don't also get the ASCII scramble. Only mono buttons scramble.

@@ -25,15 +25,15 @@ test("service descriptions", () => {
   ]);
 });
 
-test("titles, prices, turnarounds and includes are unchanged", () => {
+test("titles, prices, turnarounds and includes (prices from the October 2026 research)", () => {
   expect(SERVICES.map(({ n, title, fromLKR, fromUSD, turnaround, includes }) => [n, title, fromLKR, fromUSD, turnaround, includes])).toEqual([
-    ["01", "Web design & development", "LKR 18,000", "$150", "~2–3 days", ["Custom responsive design", "Fast, hand-built code", "Basic on-page SEO"]],
-    ["02", "Business & portfolio sites", "LKR 40,000", "$500", "~1 week", ["Up to ~5 pages", "Contact form & socials", "SEO + analytics setup"]],
-    ["03", "Booking & scheduling sites", "LKR 65,000", "$800", "1–2 weeks", ["Calendar / booking flow", "Payment gateway integration", "Email confirmations"]],
-    ["04", "Redesigns & speed fixes", "LKR 25,000", "$200", "1–3 days", ["Performance & speed tuning", "Visual refresh", "Mobile & accessibility fixes"]],
-    ["05", "SEO & AI visibility audit", "LKR 50,000", "$299", "2–4 days", ["On-page & technical SEO", "GEO / AI answer visibility score", "Priority recommendations report"]],
-    ["06", "SEO & GEO implementation", "LKR 65,000", "$400", "1–2 weeks", ["Technical & on-page fixes", "Schema & structured data", "AI snippet optimisation"]],
-    ["07", "Ongoing SEO & GEO retainer", "LKR 48,000", "$225", "Monthly", ["Monthly SEO health checks", "GEO monitoring & updates", "Monthly performance report"]],
+    ["01", "Web design & development", "LKR 30,000", "$300", "~2–3 days", ["Custom responsive design", "Fast, hand-built code", "Basic on-page SEO"]],
+    ["02", "Business & portfolio sites", "LKR 60,000", "$600", "~1 week", ["Up to ~5 pages", "Contact form & socials", "SEO + analytics setup"]],
+    ["03", "Booking & scheduling sites", "LKR 120,000", "$1,200", "1–2 weeks", ["Calendar / booking flow", "Payment gateway integration", "Email confirmations"]],
+    ["04", "Redesigns & speed fixes", "LKR 30,000", "$300", "1–3 days", ["Performance & speed tuning", "Visual refresh", "Mobile & accessibility fixes"]],
+    ["05", "SEO & AI visibility audit", "LKR 40,000", "$400", "2–4 days", ["On-page & technical SEO", "GEO / AI answer visibility score", "Priority recommendations report"]],
+    ["06", "SEO & GEO implementation", "LKR 75,000", "$750", "1–2 weeks", ["Technical & on-page fixes", "Schema & structured data", "AI snippet optimisation"]],
+    ["07", "Ongoing SEO & GEO retainer", "LKR 45,000", "$400", "Monthly", ["Monthly SEO health checks", "GEO monitoring & updates", "Monthly performance report"]],
   ]);
 });
 
@@ -48,7 +48,7 @@ test("Spades is a client design that hasn't launched", () => {
 
 test("pricing note and start text", () => {
   expect(PRICING_NOTE).toBe(
-    "All figures are starting points; the final quote depends on scope. Larger, fully custom builds start from around LKR 150,000. Domain and hosting are billed separately, at cost."
+    "All figures are starting points; the final quote depends on scope. Larger, fully custom builds start from around LKR 250,000. Domain and hosting are billed separately, at cost."
   );
   expect(START_TEXT).toBe(
     "Tell me what you have in mind and I’ll come back with a scope, a fixed starting price and a timeline, usually within a day. No obligation."

@@ -12,11 +12,11 @@ import { SHARE } from "@/lib/shareImages";
 // (docs/v3/seo-geo.md). The price leads the description.
 export const metadata = {
   title: "Web Design Services in Colombo | DDC Web Services",
-  description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
+  description: "Websites in Sri Lanka from LKR 30,000 (intl from $300): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
   alternates: { canonical: "/services" },
   openGraph: {
     title: "Web Design Services in Colombo | DDC Web Services",
-    description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
+    description: "Websites in Sri Lanka from LKR 30,000 (intl from $300): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
     type: "website",
     url: "/services",
     siteName: "DDC Web Services",
@@ -25,7 +25,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Web Design Services in Colombo | DDC Web Services",
-    description: "Websites in Sri Lanka from LKR 18,000 (intl from $150): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
+    description: "Websites in Sri Lanka from LKR 30,000 (intl from $300): business sites, booking systems, redesigns and SEO audits by DDC Web Services, Damian De Cruz’s freelance studio in Colombo.",
     images: [SHARE.services.url],
   },
 };

@@ -41,7 +41,7 @@ test.describe("server HTML", () => {
     for (const o of service.hasOfferCatalog.itemListElement) {
       expect(text).toContain(o.itemOffered.name);
       for (const p of o.priceSpecification) {
-        const shown = p.priceCurrency === "LKR" ? `LKR ${p.minPrice.toLocaleString("en-US")}` : `$${p.minPrice}`;
+        const shown = p.priceCurrency === "LKR" ? `LKR ${p.minPrice.toLocaleString("en-US")}` : `$${p.minPrice.toLocaleString("en-US")}`;
         expect(text, shown).toContain(shown);
       }
     }
@@ -68,7 +68,7 @@ test.describe("metadata", () => {
     await page.goto("/services");
     await expect(page).toHaveTitle("Web Design Services in Colombo | DDC Web Services");
     const d = await meta(page, 'meta[name="description"]');
-    expect(d.startsWith("Websites in Sri Lanka from LKR 18,000")).toBe(true);
+    expect(d.startsWith("Websites in Sri Lanka from LKR 30,000 (intl from $300)")).toBe(true);
     expect(await meta(page, 'link[rel="canonical"]', "href")).toBe("https://damiandc.com/services");
     expect(await meta(page, 'meta[property="og:url"]')).toBe("https://damiandc.com/services");
     expect(await meta(page, 'meta[property="og:site_name"]')).toBe("DDC Web Services");
@@ -159,7 +159,7 @@ test.describe("footer and privacy", () => {
 test.describe("share images", () => {
   test.skip(({ isMobile }) => isMobile, "markup is the same on both projects");
   const HOME = ["/og.jpg", "Damian De Cruz, creative technologist and freelance web designer in Colombo, Sri Lanka"];
-  const SERVICES = ["/og-services.jpg", "DDC Web Services by Damian De Cruz: clean, fast websites built in days, from LKR 18,000"];
+  const SERVICES = ["/og-services.jpg", "DDC Web Services by Damian De Cruz: clean, fast websites built in days, from LKR 30,000"];
   for (const [path, [file, alt]] of [["/", HOME], ["/services", SERVICES], ["/privacy", HOME]]) {
     test(`${path} shares ${file}`, async ({ page, request }) => {
       await page.goto(path);

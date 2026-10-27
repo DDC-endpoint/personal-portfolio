@@ -155,13 +155,14 @@ Both pages were 100/100/100/100 on a11y/BP/SEO/Agentic but **performance** sat a
 - Standalone route with its own metadata, canonical, OG, Twitter, `OfferCatalog` JSON-LD, and `FAQPage` JSON-LD
 - 6 sections: Intro (unnumbered) · `§ 01 — What I do` · `§ 02 — How it works` · `§ 03 — Recent work` · `§ 04 — FAQ` · `§ 05 — Start a project`
 - **7 services** with LKR/USD pricing and turnarounds:
-  - § 01 Web design & development — from LKR 18,000 / $150, ~2–3 days
-  - § 02 Business & portfolio sites — from LKR 40,000 / $500, ~1 week
-  - § 03 Booking & scheduling sites — from LKR 65,000 / $800, 1–2 weeks
-  - § 04 Redesigns & speed fixes — from LKR 25,000 / $200, 1–3 days
-  - § 05 SEO & AI visibility audit — from LKR 50,000 / $299, 2–4 days
-  - § 06 SEO & GEO implementation — from LKR 65,000 / $400, 1–2 weeks *(final price quoted from audit scope)*
-  - § 07 Ongoing SEO & GEO retainer — from LKR 48,000 / $225/mo, monthly
+  - § 01 Web design & development — from LKR 30,000 / $300, ~2–3 days
+  - § 02 Business & portfolio sites — from LKR 60,000 / $600, ~1 week
+  - § 03 Booking & scheduling sites — from LKR 120,000 / $1,200, 1–2 weeks
+  - § 04 Redesigns & speed fixes — from LKR 30,000 / $300, 1–3 days
+  - § 05 SEO & AI visibility audit — from LKR 40,000 / $400, 2–4 days
+  - § 06 SEO & GEO implementation — from LKR 75,000 / $750, 1–2 weeks *(final price quoted from audit scope)*
+  - § 07 Ongoing SEO & GEO retainer — from LKR 45,000 / $400/mo, monthly
+  - Larger custom builds from about LKR 250,000. Prices updated October 2026 from market research (V3 `docs/v3/decisions.md`); on `v3`, not yet live
 - **SEO/GEO service flow:** audit (§05) → implementation (§06, quoted after audit) → retainer (§07, optional ongoing)
 - FAQ section has 7 entries including deposit/cancellation policy
 - `mailto:` links include `?subject=Website%20enquiry` pre-fill in both `Services.jsx` and `Contact.jsx`
