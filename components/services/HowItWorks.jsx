@@ -6,13 +6,17 @@ import { DecodeLabel } from "../Scramble";
 import { useCircuit } from "../circuit/useCircuit";
 import CircuitTrace from "../circuit/CircuitTrace";
 import CircuitPad from "../circuit/CircuitPad";
+import StepCounter from "./StepCounter";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { STEPS } from "@/lib/services";
 
 // /services § 02 How it works: the four steps in one column on the
 // Timeline's circuit (Damian). Pads light as the current reaches them and
 // each step goes from faint to full ink; the big italic step number stays.
-// No year counter here. No JS and reduced motion: the finished circuit.
+// Laid out like the Timeline: the label column spans the section, so the
+// § label and the current step's title (StepCounter) pin beside the steps;
+// phones get the strip under the nav. Only these two sections pin.
+// No JS and reduced motion: the finished circuit.
 export default function HowItWorks() {
   const sectionRef = useRef(null);
   const listRef = useRef(null);
@@ -22,42 +26,45 @@ export default function HowItWorks() {
 
   return (
     <section ref={sectionRef} id="process" className="relative px-6 md:px-10 py-24 md:py-36 border-t border-rule bg-paper">
-      {/* The label column spans both rows, so its label pins for the whole section. */}
-      <div className="grid grid-cols-12 gap-x-6">
-        <div className="col-span-12 mb-6 md:col-span-3 md:row-span-2 md:mb-0">
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-12 md:col-span-3">
           <div className="md:sticky md:top-32">
             <DecodeLabel className="section-label">§ 02 — How it works</DecodeLabel>
+            <StepCounter variant="side" index={litNow - 1} reduce={reduce} />
           </div>
         </div>
-        <div className="col-span-12 mb-12 md:col-span-9 md:col-start-4 md:mb-16">
-          <SplitLines as="h2" className="font-display text-4xl md:text-6xl leading-tight tracking-tight text-ink">
+
+        <div className="col-span-12 md:col-span-9 md:col-start-4">
+          <SplitLines as="h2" className="mb-12 md:mb-16 font-display text-4xl md:text-6xl leading-tight tracking-tight text-ink">
             From idea to live in <span className="italic text-electric">four steps</span>.
           </SplitLines>
-        </div>
 
-        <motion.div
-          ref={listRef}
-          data-circuit-list
-          data-flowing="false"
-          style={{ "--d": drawn }}
-          className="relative col-span-12 md:col-span-9 md:col-start-4"
-        >
-          <CircuitTrace trace={trace} headRef={headRef} />
-          <ol className="flex flex-col gap-12 md:gap-16">
-            {STEPS.map((st, i) => (
-              <li key={st.n} data-milestone data-lit={i < litNow} className="group relative pl-12 md:pl-20">
-                <CircuitPad index={i} />
-                <div className="flex gap-5 transition-opacity duration-500 js:motion-safe:group-data-[lit=false]:opacity-45">
-                  <div className="font-display text-4xl md:text-5xl italic text-electric leading-none">{st.n}</div>
-                  <div>
-                    <h3 className="font-display text-2xl md:text-3xl text-ink">{st.title}</h3>
-                    <p className="mt-2 max-w-md text-base text-ink-soft leading-relaxed">{st.desc}</p>
+          <StepCounter variant="strip" index={litNow - 1} reduce={reduce} />
+
+          <motion.div
+            ref={listRef}
+            data-circuit-list
+            data-flowing="false"
+            style={{ "--d": drawn }}
+            className="relative"
+          >
+            <CircuitTrace trace={trace} headRef={headRef} />
+            <ol className="flex flex-col gap-12 md:gap-16">
+              {STEPS.map((st, i) => (
+                <li key={st.n} data-milestone data-lit={i < litNow} className="group relative pl-12 md:pl-20">
+                  <CircuitPad index={i} />
+                  <div className="flex gap-5 transition-opacity duration-500 js:motion-safe:group-data-[lit=false]:opacity-45">
+                    <div className="font-display text-4xl md:text-5xl italic text-electric leading-none">{st.n}</div>
+                    <div>
+                      <h3 className="font-display text-2xl md:text-3xl text-ink">{st.title}</h3>
+                      <p className="mt-2 max-w-md text-base text-ink-soft leading-relaxed">{st.desc}</p>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </motion.div>
+                </li>
+              ))}
+            </ol>
+          </motion.div>
+        </div>
       </div>
     </section>
   );

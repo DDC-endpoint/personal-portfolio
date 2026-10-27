@@ -9,7 +9,7 @@ export default function About() {
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-3">
           <Reveal>
-            <div className="sticky top-32">
+            <div>
               <DecodeLabel as="h2" className="section-label mb-3">§ 01 — About</DecodeLabel>
               <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
                 Notes on the maker

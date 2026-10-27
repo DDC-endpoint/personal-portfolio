@@ -13,7 +13,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 3**: Timeline, Lens (gallery) and Contact | **Done and merged into `v3` locally (2026-10-27).** Damian approved [`plan-phase-3.md`](plan-phase-3.md) unchanged. It was built test-first, reviewed by a fresh reviewer, and every finding is fixed (see "What Phase 3 built"); Damian's gate fixes are in `decisions.md` → "Phase 3 gate fixes". Tests are green, and Lighthouse is at parity with `main`. |
 | **Timeline circuit** (replaces the running stitch) | **Done and merged into `v3` locally (2026-10-27)** from `v3-timeline-circuit`, on Damian's go-ahead after the prototype. See `decisions.md` → "Timeline circuit". |
 | Phase 4: copy refresh, Leadership rows, Skills terminal, `/services` | **Built on `v3-phase-4` (2026-10-27), waiting at Damian's visual gate.** Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. See "What Phase 4 built". |
-| SEO and GEO upgrade (Phase 4 Task 11) | **Built on `v3-phase-4` (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (nginx `www` redirect, Search Console, profiles, testimonials). |
+| SEO and GEO upgrade (Phase 4 Task 11) | **Built on `v3-phase-4` (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
 | Phase 5: page transition (Home ↔ `/services`) | Not started. Split out of Phase 4 at Damian's request. |
 
 ### The next step (resume here): Damian's visual gate for Phase 4, then merge
@@ -205,7 +205,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - The section labels decode.
   - The mono buttons scramble, with their arrows outside.
   - The FAQ questions are `h3`s.
-- **How it works:** the four steps on the Timeline's circuit (`components/services/HowItWorks.jsx`).
+- **How it works:** the four steps on the Timeline's circuit (`components/services/HowItWorks.jsx`). Its § label and the current step's title pin beside the steps (`StepCounter.jsx`), or in a strip under the nav on phones.
 - **Recent work:** four skeleton browser cards that activate like Projects (`RecentWork.jsx`). Spades is tagged "Client design · not launched".
 - **Start a project:** the growing electric card, shared with Contact (`useGrowCard.js`, `StartCard.jsx`).
 
@@ -238,6 +238,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **Nothing hides without JS.** framer `initial` states are shown by the `html:not(.js)` rule in `globals.css`. A class-based hidden state needs a `nojs:` reset or a `js:` gate. `e2e/seo.spec.js` checks every text with JS off.
 - **Share images are static files in `public/`** (`lib/shareImages.js`). Never add an `opengraph-image` route or file (HANDOFF rule 2).
 - **Structured data states only what the page shows.** Build it from the same modules the page renders (`lib/services.js`, `lib/site.js`).
+- **Only the Timeline and "How it works" pin.** No other § label is sticky (`e2e/services.spec.js` checks). "How it works" pins its label and the current step's title (`StepCounter.jsx`), like the Timeline's year counter.
 - **Typed text is clipped, never removed.** The terminal un-clips spans with `--n`, so screen readers, crawlers and no-JS visitors always get the whole stack.
 
 ## Testing

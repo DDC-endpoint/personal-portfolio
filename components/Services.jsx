@@ -122,9 +122,7 @@ export default function Services() {
       <section id="what-i-do" className="relative px-6 md:px-10 py-24 md:py-36 border-t border-rule">
         <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
           <div className="col-span-12 md:col-span-3">
-            <div className="md:sticky md:top-32">
-              <DecodeLabel className="section-label">§ 01 — What I do</DecodeLabel>
-            </div>
+            <DecodeLabel className="section-label">§ 01 — What I do</DecodeLabel>
           </div>
           <div className="col-span-12 md:col-span-9 md:col-start-4">
             <SplitLines as="h2" className="font-display text-4xl md:text-6xl leading-tight tracking-tight text-ink">
@@ -178,14 +176,11 @@ export default function Services() {
 
       {/* Recent work */}
       <section id="recent" className="relative px-6 md:px-10 py-24 md:py-36 border-t border-rule">
-        {/* The label column spans both rows, so its label pins for the whole section. */}
-        <div className="grid grid-cols-12 gap-x-6">
-          <div className="col-span-12 mb-6 md:col-span-3 md:row-span-2 md:mb-0">
-            <div className="md:sticky md:top-32">
-              <DecodeLabel className="section-label">§ 03 — Recent work</DecodeLabel>
-            </div>
+        <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
+          <div className="col-span-12 md:col-span-3">
+            <DecodeLabel className="section-label">§ 03 — Recent work</DecodeLabel>
           </div>
-          <div className="col-span-12 mb-12 md:col-span-9 md:col-start-4 md:mb-16">
+          <div className="col-span-12 md:col-span-9 md:col-start-4">
             <SplitLines as="h2" className="font-display text-4xl md:text-6xl leading-tight tracking-tight text-ink">
               A few things I&rsquo;ve <span className="italic text-electric">shipped</span>.
             </SplitLines>
@@ -200,7 +195,9 @@ export default function Services() {
               </a>
             </Reveal>
           </div>
+        </div>
 
+        <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-9 md:col-start-4">
             <RecentWork />
           </div>
@@ -209,19 +206,18 @@ export default function Services() {
 
       {/* FAQ */}
       <section id="faq" className="relative px-6 md:px-10 py-24 md:py-36 border-t border-rule bg-paper">
-        {/* The label column spans both rows, so its label pins for the whole section. */}
-        <div className="grid grid-cols-12 gap-x-6">
-          <div className="col-span-12 mb-6 md:col-span-3 md:row-span-2 md:mb-0">
-            <div className="md:sticky md:top-32">
-              <DecodeLabel className="section-label">§ 04 — FAQ</DecodeLabel>
-            </div>
+        <div className="grid grid-cols-12 gap-6 mb-12 md:mb-16">
+          <div className="col-span-12 md:col-span-3">
+            <DecodeLabel className="section-label">§ 04 — FAQ</DecodeLabel>
           </div>
-          <div className="col-span-12 mb-12 md:col-span-9 md:col-start-4 md:mb-16">
+          <div className="col-span-12 md:col-span-9 md:col-start-4">
             <SplitLines as="h2" className="font-display text-4xl md:text-6xl leading-tight tracking-tight text-ink">
               Good questions, <span className="italic text-electric">answered</span>.
             </SplitLines>
           </div>
+        </div>
 
+        <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-9 md:col-start-4">
             {FAQS.map((f, i) => (
               <Reveal key={i} delay={i * 0.04}>
