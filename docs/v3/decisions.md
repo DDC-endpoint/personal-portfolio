@@ -314,6 +314,7 @@ Damian's first look at the gate: "in the initial load and reload there is a flas
   - On phones the viewer's arrows sit at the bottom corners of the screen (Damian: "bottom of the screen"), clear of the photo; from `md` they stay beside it.
   - On phones, while the Timeline's year strip is pinned, its background reaches up behind the transparent header (`::before`, shown on `data-stuck`), so no text shows through there (Damian).
   - The viewer's caption is two lines on every screen (Damian): "FRAME 03 · MAY 2025", small and faint, then the photo's name.
+- **Merged into `v3` and `v3` pushed to `origin` (Damian, 2026-10-28):** "merge to v3 and push to origin". `v3` is not merged to `main`, so the site isn't redeployed.
 
 ## Gate changes (2026-10-27)
 

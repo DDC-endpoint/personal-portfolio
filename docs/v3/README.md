@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (end of 2026-10-27: Phases 1–4, the Timeline circuit and SEO/GEO merged; Phase 5 built, at the visual gate)
+## Where we are (2026-10-28: Phases 1–5, the Timeline circuit and SEO/GEO merged into `v3`, and `v3` pushed to `origin`)
 
 | Track | State |
 |---|---|
@@ -14,17 +14,16 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Timeline circuit** (replaces the running stitch) | **Done and merged into `v3` locally (2026-10-27)** from `v3-timeline-circuit`, on Damian's go-ahead after the prototype. See `decisions.md` → "Timeline circuit". |
 | **Phase 4**: copy refresh, Leadership rows, Skills terminal, `/services` | **Done and merged into `v3` locally (2026-10-27)** as `24b16d7`. Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. His gate changes (pinning, Recent work rows, prices, full-width stack) are in `decisions.md` → "Phase 4 build and review" and "Gate changes". See "What Phase 4 built". |
 | SEO and GEO upgrade (Phase 4 Task 11) | **Done and merged with Phase 4 (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
-| **Phase 5**: page transition (every page) and the first-load reveal | **Built on `v3-phase-5` (2026-10-27), at the visual gate; not merged.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
+| **Phase 5**: page transition (every page) and the first-load reveal | **Done and merged into `v3` (2026-10-28), and `v3` pushed to `origin`.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b) and his gate fixes (`decisions.md` → "Phase 5 gate changes"). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
 
-### The next step (resume here): Phase 5's visual gate
+### The next step (resume here): the performance pass
 
-**State at hand-off (end of 2026-10-27):** Phase 5 is built on `v3-phase-5` (not merged), reviewed by a fresh reviewer, and every finding is fixed, minor ones included. Unit tests (152) and e2e pass. Lighthouse is at parity with `v3` (see "Testing"). `v3` itself is unchanged since `901160d`. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load"), and the transition's sweep-timing test (it retries).
+**State at hand-off (2026-10-28):** Phase 5 (the page transition, the first-load reveal and the gate fixes) is merged into `v3`, and `v3` is pushed to `origin` with its upstream set. `v3` is not merged to `main`, so the live site hasn't changed. Unit tests (157) and e2e pass. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load"), the transition's sweep-timing test (it retries), the hero lens's touch drag and the Projects end-card scramble.
 
-1. **Visual gate:** Damian looks at the transition and the new first load on the dev server (open `http://localhost:3000/`, click between Home, Services and Privacy, try Back). Gate questions: the stamp's ivory box over the glyph field, and `/services`' hero entrance playing under the cover (`decisions.md` → "Phase 5 build and review"). On his approval: `git switch v3 && git merge --no-ff v3-phase-5`, delete the branch, update these docs. No push.
+1. **The performance pass (Damian, 2026-10-27: after Phase 5 merges, before `v3` → `main`).** Mobile Lighthouse on `v3` is a few points below `main`, mostly from before Phase 4 (see "Testing"). The target is "no worse than `main`". Branch it off `v3` (`v3-perf`).
 2. **Damian, outside the repo:** check GA4 → Admin → Data streams → the web stream → Enhanced measurement → Page views → "Page changes based on browser history events" is on, so client-side page changes are counted.
-3. **Then the performance pass (Damian, 2026-10-27: after Phase 5 merges, before `v3` → `main`).** Mobile Lighthouse on `v3` is 2–4 points below `main`, mostly from before Phase 4 (see "Testing"). The target is "no worse than `main`".
-4. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
-5. **`v3` is still local only.** Its upstream is deliberately unset. Push (`git push -u origin v3`) only when Damian asks.
+3. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
+4. **The dev server can slow down over a long session** (hydration went from about 270 ms to 800 ms, and the full e2e run from 4.6 to 9.9 minutes, with timing tests failing). If the suite suddenly turns flaky, restart `next dev` (with Damian's OK) before chasing it.
 
 **History, for context:**
 - Phase 4 and SEO/GEO merged as `24b16d7`. At its gate Damian read the privacy page, chose editorial rows for Recent work, adopted the researched prices, limited pinning to the Timeline and How it works, and applied the `www` redirect and `server_tokens off` on the server (`decisions.md` → "Gate changes").
@@ -339,8 +338,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 ## Repo state at hand-off
 
 - **Branches:**
-  - `v3` is local only, with no upstream. `v3-phase-1` to `v3-phase-4` and `v3-timeline-circuit` are merged and deleted.
-  - `v3-phase-5` (current) holds Phase 5, at the visual gate, not merged. The working tree is clean.
+  - `v3` (current) is pushed to `origin` with its upstream set (Damian, 2026-10-28). `v3-phase-1` to `v3-phase-5` and `v3-timeline-circuit` are merged and deleted. The working tree is clean.
   - Other local branches, `main` and `upgrade/deps`, are untouched by V3.
 - **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another.
 - **Prototype server:** `node docs/v3/spike/serve.cjs` on :3200 (see "Running the prototypes"). It may still be running from the last session.

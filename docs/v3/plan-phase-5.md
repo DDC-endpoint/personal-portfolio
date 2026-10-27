@@ -1,6 +1,6 @@
 # V3 Phase 5 Implementation Plan: the page transition
 
-> **Status: built on `v3-phase-5` (2026-10-27), at the visual gate.** Built per this plan plus Task 4b (Damian's mid-build change: the first load reveals with the sweep). Where the build departed from the plan, and the review fixes, are in `decisions.md` → "Phase 5 build and review" and README → "What Phase 5 built". Merge into `v3` locally on Damian's approval. After it merges: the performance pass, then `v3` → `main`.
+> **Status: done, merged into `v3` (2026-10-28).** Built per this plan plus Task 4b (Damian's mid-build change: the first load reveals with the sweep) and his gate fixes. Where the build departed from the plan, the review fixes and the gate changes are in `decisions.md` → "Phase 5 build and review" and "Phase 5 gate changes", and README → "What Phase 5 built". Next: the performance pass, then `v3` → `main`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (native inline execution, as Phases 1–4) to implement this plan task-by-task, test-first, then one fresh reviewer at the end. Steps use checkbox (`- [ ]`) syntax for tracking.
 
