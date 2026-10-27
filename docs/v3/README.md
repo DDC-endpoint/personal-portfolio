@@ -255,7 +255,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - The other pages are prefetched once the browser is idle.
 
 **The first load (Damian's change during the build):**
-- Every page starts covered, on every load and reload. The "DAMIAN DE CRUZ" stamp resolves over the covered glyph field, then the sweep reveals the page. Home's portrait wave and hero float-in follow, as they did after the curtain.
+- Every page starts covered, on every load and reload. The "DAMIAN DE CRUZ" stamp resolves in a soft ivory halo over the covered glyph field, then the sweep reveals the page. Home's portrait wave and hero float-in follow, as they did after the curtain.
+- **No empty first frame (gate change):** the server HTML already shows a faint electric glow around the name, and its letters shimmer (CSS) until the decode starts. The glyph field then blooms out from the halo's edge (`TIMING.bloom`) instead of popping in, and the reveal waits for the bloom if the veil arrived late.
 - The stamp is still in the server HTML (`.intro-stamp`), so nothing flashes before hydration. If the veil can't draw in time, the stamp wipes upward as the old curtain did. Forced colours always gets that wipe.
 - The intro (stamp and reveal) lets the pointer through, as the curtain did. A page link clicked during the stamp opens under the same cover; one clicked during the reveal opens right after it.
 - A hydration later than 2.5 s skips the veil: the page has been readable for a while, so the stamp just wipes away.
@@ -364,6 +365,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - `footer-mock.html`: the three footer options (Damian chose B).
   - `recent-work-mock.html`: three full-width layouts for Recent work (Damian chose A, editorial rows). Screenshots load from the dev server.
   - `page-transition.html`: the page-transition prototype with three origins, a slow-motion toggle, dark mode and a Back button (Damian chose the top-down sweep at about 1.3 s; it opens set to that).
+  - `intro-stamp.html`: the first-load intro: four shapes for the stamp (Halo, Clearing, Globe, Lens) against today's box, glyphs that pop or bloom, the first-frame glow, a replayable load and Hold cover (Damian chose A · Halo with glow + bloom).
   - `og-cards.html`, `og-cards.cjs`, `og-portrait.png`: the share-card template, its renderer and the exported ASCII portrait.
   - `process-headshot.cjs`, `make-gallery-copies.cjs`, `serve.cjs`: helper scripts.
 

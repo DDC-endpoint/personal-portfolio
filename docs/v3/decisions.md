@@ -295,6 +295,14 @@ Builder's calls during the build (all recorded in the build ledger as rulings):
 
 The fresh review found one Critical issue (a failed load of the veil's code left every page link dead until reload), three Important ones (Back during a transition froze the veil and then hard-loaded the page being left; the per-frame full redraw; the Lighthouse gate not yet run) and seven Minor ones. All are fixed test-first, minor ones included, and one more gap found while fixing (a click during the intro's reveal was dropped). The veil now draws only the cells that change, from a glyph atlas, within a 6 ms budget per frame for optional work, and caps and frees its canvas. Lighthouse ended at parity with `v3` (README → "Testing").
 
+## Phase 5 gate changes (2026-10-28)
+
+Damian's first look at the gate: "in the initial load and reload there is a flash of an empty screen which is a bit odd", and the name stamp should sit in "a faded spherical shape in the middle instead of an overlayed square". The flash was the server HTML's plain ivory screen with frozen letters (about 450 ms on the dev server), then the whole glyph field popping in. From the prototype `spike/intro-stamp.html` (shapes: Halo, Clearing, Globe, Lens), he chose:
+
+- **A · Halo.** The square ivory box becomes a soft ivory halo the glyphs fade into, with the name glowing ivory for contrast (`globals.css` → `.intro-stamp`, radius `--stamp-r` = `stampRadius()`).
+- **Glow + bloom.** Frame one already shows a faint electric glow around the name, which stays under the halo. The glyph field blooms out from the halo's edge over 0.38 s (`TIMING.bloom`, `bloomAt`) instead of popping in. Builder's call: if the veil arrives late, the reveal waits for the bloom to finish (plus 120 ms), so the halo over the glyphs is always seen.
+- **CSS shimmer.** The frozen server-HTML letters flicker (one span per letter, pure CSS) until the decode takes over.
+
 ## Gate changes (2026-10-27)
 
 Damian's changes at the Phase 4 visual gate:
