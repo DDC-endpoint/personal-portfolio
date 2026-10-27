@@ -12,6 +12,8 @@ import Footer from "@/components/Footer";
 import ClientEnhancements from "@/components/ClientEnhancements";
 import ScrollProgress from "@/components/ScrollProgress";
 import IntroStamp from "@/components/IntroStamp";
+import { ldJson } from "@/lib/jsonld";
+import { homeGraph } from "@/lib/structuredData";
 
 export default function Home() {
   return (
@@ -32,6 +34,7 @@ export default function Home() {
         <Contact />
         <Footer />
       </main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(homeGraph()) }} />
     </>
   );
 }

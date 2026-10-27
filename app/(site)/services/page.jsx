@@ -5,6 +5,7 @@ import ClientEnhancements from "@/components/ClientEnhancements";
 import ScrollProgress from "@/components/ScrollProgress";
 import { FAQS, faqJsonLd } from "@/lib/services";
 import { ldJson } from "@/lib/jsonld";
+import { servicesGraph } from "@/lib/structuredData";
 
 export const metadata = {
   title: "Web Design Services in Colombo | Damian De Cruz",
@@ -29,82 +30,12 @@ export const metadata = {
   },
 };
 
-// JSON-LD service catalog — lists the concrete offerings with price ranges so
-// Google can surface them for local "web design / developer" service searches.
-const servicesJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Service",
-  serviceType: "Web Design and Development",
-  provider: {
-    "@type": "Person",
-    name: "Damian De Cruz",
-    url: "https://damiandc.com",
-  },
-  areaServed: { "@type": "Place", name: "Colombo, Sri Lanka" },
-  url: "https://damiandc.com/services",
-  hasOfferCatalog: {
-    "@type": "OfferCatalog",
-    name: "Web Design & Development Services",
-    itemListElement: [
-      {
-        "@type": "Offer",
-        itemOffered: { "@type": "Service", name: "Web design & development" },
-        priceCurrency: "LKR",
-        price: "18000",
-        description: "Custom, responsive single-page and landing websites.",
-      },
-      {
-        "@type": "Offer",
-        itemOffered: { "@type": "Service", name: "Business & portfolio websites" },
-        priceCurrency: "LKR",
-        price: "40000",
-        description: "Multi-page business and portfolio sites with SEO and contact forms.",
-      },
-      {
-        "@type": "Offer",
-        itemOffered: { "@type": "Service", name: "Booking & scheduling websites" },
-        priceCurrency: "LKR",
-        price: "65000",
-        description: "Appointment and reservation sites with payment integration.",
-      },
-      {
-        "@type": "Offer",
-        itemOffered: { "@type": "Service", name: "Website redesigns & speed fixes" },
-        priceCurrency: "LKR",
-        price: "25000",
-        description: "Visual refreshes and performance / Core Web Vitals optimisation.",
-      },
-      {
-        "@type": "Offer",
-        itemOffered: { "@type": "Service", name: "SEO & AI visibility audit" },
-        priceCurrency: "LKR",
-        price: "50000",
-        description: "On-page, technical, and GEO audit — how the site ranks on Google and surfaces in AI answers, with a priority roadmap.",
-      },
-      {
-        "@type": "Offer",
-        itemOffered: { "@type": "Service", name: "SEO & GEO implementation" },
-        priceCurrency: "LKR",
-        price: "65000",
-        description: "Implementation of audit recommendations — technical fixes, schema markup, and AI snippet optimisation.",
-      },
-      {
-        "@type": "Offer",
-        itemOffered: { "@type": "Service", name: "Ongoing SEO & GEO retainer" },
-        priceCurrency: "LKR",
-        price: "48000",
-        description: "Monthly SEO health checks, GEO monitoring, content updates, and a performance report.",
-      },
-    ],
-  },
-};
-
 export default function ServicesPage() {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: ldJson(servicesJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: ldJson(servicesGraph()) }}
       />
       <script
         type="application/ld+json"

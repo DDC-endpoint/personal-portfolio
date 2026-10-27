@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import MotionProvider from "@/components/MotionProvider";
 import { ldJson } from "@/lib/jsonld";
+import { siteGraph } from "@/lib/structuredData";
 
 const GA_ID = "G-PC1HZKKSEC";
 
@@ -50,54 +51,6 @@ export const metadata = {
 // IntroStamp curtain) from no-JS visitors before anything ever renders.
 const themeScript = `(function(){document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
-// JSON-LD Person structured data — helps Google associate this site with
-// the entity "Damian De Cruz" and link verified social profiles.
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Person",
-  name: "Damian De Cruz",
-  url: "https://damiandc.com",
-  jobTitle: "Creative Technologist",
-  affiliation: {
-    "@type": "EducationalOrganization",
-    name: "Informatics Institute of Technology",
-    alternateName: "IIT Sri Lanka",
-    url: "https://www.iit.ac.lk",
-  },
-  alumniOf: {
-    "@type": "EducationalOrganization",
-    name: "University of Westminster",
-    url: "https://www.westminster.ac.uk",
-  },
-  sameAs: [
-    "https://www.linkedin.com/in/damian-de-cruz/",
-    "https://github.com/EnderGuardian25",
-    "https://www.instagram.com/damian._.dc",
-  ],
-};
-
-// JSON-LD Service structured data — tells Google this site offers a bookable
-// web design/development service in Colombo, which helps surface it for
-// local "web designer / developer" service searches.
-const serviceJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Service",
-  serviceType: "Web Design and Development",
-  name: "Freelance Web Design & Development",
-  description:
-    "Custom websites — design, build, and launch. Clean, fast, responsive sites for businesses and creatives, delivered in days, often 2–3.",
-  url: "https://damiandc.com",
-  areaServed: {
-    "@type": "Place",
-    name: "Colombo, Sri Lanka",
-  },
-  provider: {
-    "@type": "Person",
-    name: "Damian De Cruz",
-    url: "https://damiandc.com",
-  },
-};
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${display.variable} ${sans.variable} ${mono.variable}`}>
@@ -122,8 +75,9 @@ export default function RootLayout({ children }) {
         <div className="grain" aria-hidden />
         <div className="top-fade" aria-hidden />
         <MotionProvider>{children}</MotionProvider>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(serviceJsonLd) }} />
+        {/* The site's structured data: the WebSite, Damian and his business
+            (lib/structuredData.js). Pages add their own nodes by @id. */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(siteGraph()) }} />
       </body>
     </html>
   );
