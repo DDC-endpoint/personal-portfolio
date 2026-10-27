@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { EASE, shouldPlayIntro } from "@/lib/motion";
+import { EASE, isSoftNavigation, shouldPlayIntro } from "@/lib/motion";
 
 // Every-reload intro: the name + coordinates resolve out of glitch characters
 // (same visual language as GlitchField), then the ivory curtain wipes upward
@@ -40,8 +40,10 @@ const seeded = (
 const INITIAL = LINES.map((l) => scramble(l, 0, seeded));
 
 export default function IntroStamp() {
-  // true at SSR: the curtain is part of the server HTML.
-  const [active, setActive] = useState(true);
+  // true at SSR: the curtain is part of the server HTML. A page transition
+  // arriving on Home mounts this client-side with the flag set, so the
+  // curtain never appears (a first load reads false and matches the server).
+  const [active, setActive] = useState(() => !isSoftNavigation());
   const [display, setDisplay] = useState(INITIAL);
 
   useEffect(() => {

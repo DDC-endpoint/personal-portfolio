@@ -4,17 +4,22 @@ import { useRef } from "react";
 import EagerReveal from "./EagerReveal";
 import HeroPortrait from "./HeroPortrait";
 import { ScrambleText } from "./Scramble";
-import { EASE, INTRO_OFFSET, shouldPlayIntro } from "@/lib/motion";
+import { EASE, INTRO_OFFSET, isSoftNavigation, shouldPlayIntro } from "@/lib/motion";
 
 const SERVICES_BUTTON =
   "items-center gap-2 bg-electric text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300 group";
+
+// Arrived by a page transition (Phase 5): every entrance starts at its final
+// state, since the sweep is the only entrance. Hero only mounts client-side
+// in that case, so reading the flag in render can't break hydration.
+const enter = (from) => (isSoftNavigation() ? false : from);
 
 function Word({ children, delay = 0 }) {
   // No overflow-hidden here — clipping is handled at the line-div level so
   // italic glyph overhang is never cut on either side.
   return (
     <motion.span
-      initial={{ y: "110%" }}
+      initial={enter({ y: "110%" })}
       animate={{ y: 0 }}
       transition={{ duration: 1, ease: EASE, delay }}
       className="inline-block"
@@ -53,14 +58,14 @@ export default function Hero() {
         style={{ opacity: metaOpacity }}
         className="absolute top-28 left-6 md:left-10 section-label"
       >
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: at(1.15), duration: 0.8 }}>
+        <motion.div initial={enter({ opacity: 0 })} animate={{ opacity: 1 }} transition={{ delay: at(1.15), duration: 0.8 }}>
           <div>N 6.9271° / E 79.8612°</div>
           <div className="mt-1 text-ink-faint">Colombo · Sri Lanka</div>
         </motion.div>
       </motion.div>
       <div className="absolute top-28 right-6 md:right-10 flex flex-col items-end gap-4 z-10">
         <motion.div style={{ opacity: metaOpacity }} className="section-label text-right">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: at(1.15), duration: 0.8 }}>
+          <motion.div initial={enter({ opacity: 0 })} animate={{ opacity: 1 }} transition={{ delay: at(1.15), duration: 0.8 }}>
             <div>(001)</div>
             <div className="mt-1 text-ink-faint">Index / Landing</div>
           </motion.div>
@@ -70,7 +75,7 @@ export default function Hero() {
         <motion.a
           href="/services"
           data-hover
-          initial={{ opacity: 0, y: 8 }}
+          initial={enter({ opacity: 0, y: 8 })}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: at(1.3), duration: 0.6, ease: EASE }}
           className={`hidden md:inline-flex ${SERVICES_BUTTON}`}

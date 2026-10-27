@@ -1,4 +1,4 @@
-import { shouldPlayIntro, resetIntroDecision } from "@/lib/motion";
+import { shouldPlayIntro, resetIntroDecision, markSoftNavigation, isSoftNavigation } from "@/lib/motion";
 
 function stubWindow({ reduced = false } = {}) {
   globalThis.window = { matchMedia: (q) => ({ matches: reduced && q.includes("reduce") }) };
@@ -30,4 +30,28 @@ test("SSR is undecided", () => {
   expect(shouldPlayIntro()).toBe(false);
   stubWindow();
   expect(shouldPlayIntro()).toBe(true);
+});
+
+describe("soft navigation (arrived by a page transition)", () => {
+  test("after markSoftNavigation() the intro never plays", () => {
+    stubWindow();
+    expect(shouldPlayIntro()).toBe(true);
+    markSoftNavigation();
+    expect(isSoftNavigation()).toBe(true);
+    expect(shouldPlayIntro()).toBe(false);
+  });
+
+  test("a fresh load isn't a soft navigation", () => {
+    stubWindow();
+    expect(isSoftNavigation()).toBe(false);
+    expect(shouldPlayIntro()).toBe(true);
+  });
+
+  test("resetIntroDecision() clears both (a reload)", () => {
+    stubWindow();
+    markSoftNavigation();
+    resetIntroDecision();
+    expect(isSoftNavigation()).toBe(false);
+    expect(shouldPlayIntro()).toBe(true);
+  });
 });

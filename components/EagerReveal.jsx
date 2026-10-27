@@ -1,7 +1,7 @@
 "use client";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
-import { EASE } from "@/lib/motion";
+import { EASE, isSoftNavigation } from "@/lib/motion";
 
 // Above-the-fold entrance that never hides content from the first paint: the
 // server HTML renders children fully visible — so the text paints (and LCP is
@@ -35,6 +35,8 @@ export default function EagerReveal({
 
   useEffect(() => {
     if (reduced || !replay) return;
+    // Arrived by a page transition: the sweep is the only entrance.
+    if (isSoftNavigation()) return;
     // Slow connection: by the time JS arrives the content has been on screen
     // for seconds — blinking it away to replay an entrance reads as a glitch,
     // so the entrance only plays when hydration is prompt.
