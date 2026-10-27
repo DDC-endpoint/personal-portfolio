@@ -181,7 +181,7 @@ export default function PageTransitions() {
       .then((veil) => {
         if (!live || introRef.current.ended) return;
         canvasRef.current.dataset.intro = "";
-        veil.coverNow();
+        veil.coverNow({ gradual: true });
         introRef.current.veil = veil;
         setIntro({ active: true, glyphs: true });
       })

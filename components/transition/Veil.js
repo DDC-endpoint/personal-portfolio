@@ -23,6 +23,10 @@ const GLYPHS = NOISE + RAMP; // the atlas: noise first, then the ramp
 const FLICKER = 1 / 200; // share of covered cells that change glyph per frame
 const STEPS = 8; // a front cell's fade is drawn in this many steps
 const FLIP = 0.3; // chance per frame that a front cell's noise glyph changes
+// Optional drawing (front cells that are already drawn, the gradual fill)
+// stops for the frame after this many ms, so a frame never blocks the main
+// thread for long on a slow phone, even while other animations share it.
+const BUDGET_MS = 6;
 
 // What each cell last drew, so a frame only touches the cells that change:
 // BLANK, SETTLED, or FRONT + its fade step (1 + 0..STEPS).
@@ -34,6 +38,7 @@ export function createVeil(canvas) {
   let jit = new Float32Array(0); // per-cell randomness, fixed for one run
   let at = new Float32Array(0); // per-cell arrival time in the running phase
   let drawn = new Uint8Array(0);
+  let filled = 0; // cells whose covered glyph is drawn (a gradual fill runs up to all)
   let atlas = null;
   let colour = { ivory: "#F6F6F1", electric: "#2563EB" };
   let raf = 0;
@@ -109,6 +114,12 @@ export function createVeil(canvas) {
     ctx.drawImage(atlas, glyph * cw * scale, 0, cw * scale, ch * scale, x, y, cw, ch);
   }
 
+  // A glyph alone, on a cell already filled with ivory.
+  function glyph(i, g, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(atlas, g * cw * scale, 0, cw * scale, ch * scale, (i % cols) * cw, ((i / cols) | 0) * ch, cw, ch);
+  }
+
   function blank(i) {
     ctx.clearRect((i % cols) * cw, ((i / cols) | 0) * ch, cw, ch);
   }
@@ -116,15 +127,24 @@ export function createVeil(canvas) {
   // One frame of a phase at time t (s into it): only the cells that change.
   // The hot loop: cellAt() (lib/pageTransition.js) inlined, with no
   // allocation per cell. k < 0: not reached; 0..1: at the front; > 1: passed.
+  // Cells that settle, clear or reach the front are always drawn; redrawing a
+  // front cell already drawn (its fade or glyph) waits for spare time.
   function frame(phase, t) {
     const cover = phase === "cover";
     const front = TIMING.front;
+    const t0 = performance.now();
+    let optional = 0;
+    let spare = true;
     for (let i = 0; i < drawn.length; i++) {
       const k = (t - at[i]) / front;
       const atFront = cover ? k >= 0 && k < 1 : k >= 0 && k <= 1;
       if (atFront) {
         const step = FRONT + Math.min(STEPS, (k * STEPS) | 0);
-        if (step === drawn[i] && Math.random() > FLIP) continue;
+        if (drawn[i] >= FRONT) {
+          if (step === drawn[i] && Math.random() > FLIP) continue;
+          if ((++optional & 31) === 0) spare = performance.now() - t0 < BUDGET_MS;
+          if (!spare) continue;
+        }
         const q = (step - FRONT) / STEPS; // the fade, in steps
         if (cover) cell(i, Math.min(1, q * 1.6), noise(), 1);
         else cell(i, 1 - q, noise(), 1 - q * 0.6);
@@ -140,19 +160,38 @@ export function createVeil(canvas) {
     ctx.globalAlpha = 1;
   }
 
-  function fill() {
-    ctx.clearRect(0, 0, W, H);
-    for (let i = 0; i < drawn.length; i++) {
-      cell(i, 1, ramp(i), dim(i));
-      drawn[i] = SETTLED;
+  // Cover everything: ivory at once, then the covered glyphs. `gradual` draws
+  // the glyphs a few rows per frame within the budget (the flicker loop does
+  // it); otherwise all at once.
+  function fill(gradual = false) {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = colour.ivory;
+    ctx.fillRect(0, 0, W, H);
+    drawn.fill(SETTLED);
+    filled = 0;
+    if (!gradual) fillRows(Infinity);
+  }
+
+  function fillRows(budget) {
+    const t0 = performance.now();
+    while (filled < drawn.length && performance.now() - t0 < budget) {
+      const end = Math.min(drawn.length, filled + cols);
+      for (let i = filled; i < end; i++) glyph(i, ramp(i), dim(i));
+      filled = end;
     }
     ctx.globalAlpha = 1;
   }
 
-  // While covered: a few cells change glyph each frame, until the next call.
+  // While covered: finish a gradual fill, then a few cells change glyph each
+  // frame, until the next call.
   function flicker() {
     const step = () => {
       const n = drawn.length;
+      if (filled < n) {
+        fillRows(BUDGET_MS);
+        raf = requestAnimationFrame(step);
+        return;
+      }
       const count = Math.max(1, Math.round(n * FLICKER));
       for (let c = 0; c < count; c++) {
         const i = (Math.random() * n) | 0;
@@ -221,12 +260,14 @@ export function createVeil(canvas) {
       flicker();
     },
     // Fully covered at once (Back and Forward: the browser has already
-    // switched pages, so there's nothing to sweep over).
-    async coverNow() {
+    // switched pages, so there's nothing to sweep over). `gradual`: the
+    // glyphs arrive over a few frames (the intro, where the stamp already
+    // covers the page), so drawing them is never one long task.
+    async coverNow({ gradual = false } = {}) {
       ++gen;
       stop();
       prepare();
-      fill();
+      fill(gradual);
       setState("covered");
       flicker();
     },
