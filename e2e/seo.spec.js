@@ -95,3 +95,31 @@ test.describe("metadata", () => {
     expect(res.headers()["x-powered-by"]).toBeUndefined();
   });
 });
+
+test.describe("snippet hygiene and alt text", () => {
+  test.use({ javaScriptEnabled: false });
+  test.skip(({ isMobile }) => isMobile, "markup is the same on both projects");
+
+  test("Home: every image has alt text", async ({ page }) => {
+    await page.goto("/");
+    const imgs = page.locator("main img");
+    expect(await imgs.count()).toBeGreaterThan(10);
+    const empty = await imgs.evaluateAll((els) => els.filter((el) => !el.getAttribute("alt")?.trim()).map((el) => el.getAttribute("src")));
+    expect(empty).toEqual([]);
+  });
+
+  test("decorative text can't become a snippet", async ({ page }) => {
+    await page.goto("/");
+    // the scrambled curtain, the ASCII mini portrait, the year counter, "loading…"
+    await expect(page.locator(".intro-stamp")).toHaveAttribute("data-nosnippet", "");
+    await expect(page.locator('[data-card="0"] [data-nosnippet] svg')).toHaveCount(1);
+    for (const c of await page.locator("[data-counter]").all()) await expect(c).toHaveAttribute("data-nosnippet", "");
+    const loading = page.locator("[data-card]", { hasText: "loading…" }).locator("[data-nosnippet]", { hasText: "loading…" });
+    expect(await loading.count()).toBeGreaterThan(0);
+  });
+
+  test("the name in the H1 is spelt as the entity", async ({ page }) => {
+    await page.goto("/");
+    expect((await page.locator("h1").textContent()).replace(/\s+/g, " ")).toContain("De Cruz");
+  });
+});

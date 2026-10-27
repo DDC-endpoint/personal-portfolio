@@ -66,7 +66,7 @@ export default function YearCounter({ index, reduce, variant }) {
   }, [caption, index, reduce]);
 
   return (
-    <div data-counter={variant} data-value={index < 0 ? "" : year} aria-hidden className={look.root}>
+    <div data-counter={variant} data-value={index < 0 ? "" : year} aria-hidden data-nosnippet="" className={look.root}>
       <div
         className={`flex font-display leading-none text-ink transition-opacity duration-500 ${look.digits} ${
           index < 0 ? "opacity-25" : ""

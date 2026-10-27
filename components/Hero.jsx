@@ -104,7 +104,7 @@ export default function Hero() {
           </div>
           <div className="overflow-hidden pb-[0.04em] flex flex-wrap items-end gap-x-[0.04em] -mt-2 md:-mt-4">
             <Word delay={at(0.4)}>
-              <span className="italic font-display text-electric">de&nbsp;</span>
+              <span className="italic font-display text-electric">De&nbsp;</span>
             </Word>
             <Word delay={at(0.4)}>Cruz.</Word>
           </div>

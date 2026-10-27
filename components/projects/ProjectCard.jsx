@@ -37,12 +37,15 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, li
   const body = (
     <>
       <BrowserFrame domain={p.domain}>
-        <Skeleton />
+        {/* the skeletons hold decorative text (the ASCII mini portrait) */}
+        <div data-nosnippet="" className="contents">
+          <Skeleton />
+        </div>
         {live && (
           <img
             ref={imgRef}
             src={p.shot}
-            alt=""
+            alt={`${p.title} website, home page`}
             width={1440}
             height={900}
             loading="lazy"
@@ -67,7 +70,7 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, li
               </span>
             ))
           ) : (
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-electric">
+            <span data-nosnippet="" className="font-mono text-[10px] uppercase tracking-[0.2em] text-electric">
               <span ref={loadingRef} aria-hidden="true">
                 {LOADING}
               </span>
