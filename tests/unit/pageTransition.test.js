@@ -14,8 +14,8 @@ describe("timings", () => {
   test("the fallback is 4 s", () => {
     expect(FALLBACK_MS).toBe(4000);
   });
-  test("the pages are Home, /services and /privacy", () => {
-    expect(PAGES).toEqual(["/", "/services", "/privacy"]);
+  test("the pages are Home, /portfolio, /services and /privacy", () => {
+    expect(PAGES).toEqual(["/", "/portfolio", "/services", "/privacy"]);
   });
 });
 

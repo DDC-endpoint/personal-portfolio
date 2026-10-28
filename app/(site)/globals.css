@@ -19,6 +19,7 @@
   --color-sky: rgb(var(--c-sky));
   --color-mist: rgb(var(--c-mist));
   --color-rule: rgb(var(--c-rule));
+  --color-live: rgb(var(--c-live));
   --color-lab-bg: rgb(var(--lab-bg));
   --color-lab-panel: rgb(var(--lab-panel));
   --color-lab-line: rgb(var(--lab-line));
@@ -70,6 +71,7 @@
     --c-sky: 219 234 254; /* #DBEAFE  atmospheric glow       */
     --c-mist: 238 244 253; /* #EEF4FD  soft surface glow      */
     --c-rule: 217 222 230; /* #D9DEE6  hairline rules/borders */
+    --c-live: 34 197 94; /* #22C55E  /portfolio's live-site dot, both themes */
     /* #60A5FA  the Skills terminal's accent, in both themes. A named
        exception: neither electric token passes AA on the navy panel. */
     --c-term-accent: 96 165 250;
@@ -243,6 +245,45 @@ main[tabindex="-1"]:focus-visible { outline: none; }
   [data-cursor] { animation: term-blink 1.06s steps(1) infinite; }
 }
 @keyframes term-blink { 50% { opacity: 0; } }
+
+/* /portfolio (Phase 6). Each card rises as its row enters (WorkCard sets
+   data-in and --in-delay); only with JS and motion allowed, with a failsafe
+   in case scripts never run. */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-work-card]:not([data-in]) { opacity: 0; transform: translateY(44px); animation: work-failsafe 0.4s ease 5s forwards; }
+  [data-work-card][data-in] { transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 1s cubic-bezier(0.22, 1, 0.36, 1); transition-delay: var(--in-delay, 0ms); }
+}
+@keyframes work-failsafe { to { opacity: 1; transform: none; } }
+/* List view: the frame is a bare thumbnail, with no window bar or shadow. */
+[data-work][data-view="list"] [data-chrome] { display: none; }
+[data-work][data-view="list"] [data-frame] > div { box-shadow: none; }
+
+/* The address bar's caret blinks while the domain types, then twice more,
+   and goes. Reduced motion and no JS: no caret. */
+.addr-caret { animation: caret-blink 1s steps(1) infinite; }
+.addr-caret[data-done] { animation: caret-blink 1s steps(1) 2 forwards; }
+@keyframes caret-blink { 50%, 100% { opacity: 0; } }
+
+/* A live site's dot breathes, an upcoming card's skeleton lays itself out
+   (5.2 s), both only on screen ([data-onscreen], set by WorkCard). */
+.live-dot { animation: live-breathe 2.6s ease-in-out infinite paused; }
+.build-bar { transform-origin: left center; animation: build-lay 5.2s cubic-bezier(0.22, 1, 0.36, 1) infinite paused; animation-delay: calc(var(--k) * 0.16s); }
+[data-onscreen="true"] .live-dot,
+[data-onscreen="true"] .build-bar { animation-play-state: running; }
+@keyframes live-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--c-live) / 0.45); opacity: 1; }
+  50% { box-shadow: 0 0 0 4px rgb(var(--c-live) / 0); opacity: 0.7; }
+}
+@keyframes build-lay {
+  0% { transform: scaleX(0); opacity: 1; }
+  16%, 70% { transform: scaleX(1); opacity: 1; }
+  82%, 100% { transform: scaleX(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .addr-caret { display: none; }
+  .live-dot, .build-bar { animation: none; }
+}
+html:not(.js) .addr-caret { display: none; }
 
 /* No JS: framer-motion server-renders every entrance's start state as an
    inline style (opacity:0, or the hero name's translateY below its line

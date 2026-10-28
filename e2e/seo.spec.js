@@ -110,12 +110,14 @@ test.describe("snippet hygiene and alt text", () => {
 
   test("decorative text can't become a snippet", async ({ page }) => {
     await page.goto("/");
-    // the scrambled curtain, the ASCII mini portrait, the year counter, "loading…"
+    // the scrambled curtain, the skeletons' decorative text, the year counter
     await expect(page.locator(".intro-stamp")).toHaveAttribute("data-nosnippet", "");
-    await expect(page.locator('[data-card="0"] [data-nosnippet] svg')).toHaveCount(1);
+    await expect(page.locator('[data-card="0"] [data-nosnippet]')).toHaveCount(1);
     for (const c of await page.locator("[data-counter]").all()) await expect(c).toHaveAttribute("data-nosnippet", "");
-    const loading = page.locator("[data-card]", { hasText: "loading…" }).locator("[data-nosnippet]", { hasText: "loading…" });
-    expect(await loading.count()).toBeGreaterThan(0);
+    // /portfolio's upcoming cards: "loading…"
+    await page.goto("/portfolio");
+    const loading = page.locator("[data-build] [data-nosnippet]", { hasText: "loading…" });
+    await expect(loading).toHaveCount(2);
   });
 
   test("the name in the H1 is spelt as the entity", async ({ page }) => {
