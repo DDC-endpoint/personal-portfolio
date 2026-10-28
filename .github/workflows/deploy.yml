@@ -1,0 +1,74 @@
+# Checks every PR into main; deploys every push to main (a merged PR is a push).
+#
+# The deploy job SSHes to the VPS with a key that authorized_keys restricts to
+# `command="~/deploy.sh"`, so the key can only trigger a deploy. Nothing about
+# the server lives in this repo (it is public); it all comes from secrets:
+#   DEPLOY_HOST         the VPS hostname or IP
+#   DEPLOY_USER         the SSH user that owns ~/deploy.sh
+#   DEPLOY_SSH_KEY      the private half of the deploy-only key
+#   DEPLOY_KNOWN_HOSTS  the line(s) from `ssh-keyscan -t ed25519 <host>`
+name: Check and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    # One deploy at a time; a newer push waits rather than cancelling a build
+    # that is halfway through on the server.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Run deploy.sh on the VPS
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST"
+
+      - name: Smoke-check the live site
+        run: |
+          check() {
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$1")
+              [ "$code" = "$2" ] && { echo "$1 -> $code"; return 0; }
+              sleep 10
+            done
+            echo "::error::$1 returned $code, expected $2"; return 1
+          }
+          check https://damiandc.com/ 200
+          check https://damiandc.com/services 200
+          check https://damiandc.com/portfolio 200
+          check https://lab.damiandc.com/ 200
+          check https://damiandc.com/no-such-page 404

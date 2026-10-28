@@ -9,6 +9,8 @@ import { NextResponse } from "next/server";
 //   lab host   /lab/<x>      -> served as-is              (back-compat for old links)
 //   main host  /lab, /lab/<x> -> 404 (the lab lives only on the subdomain; no
 //                                redirect since nothing has been shared)
+//   main host  /404, /_not-found -> the styled 404 (Next reserves both and would
+//                                otherwise serve its built-in page at them)
 // The matcher excludes /api, /_next, and anything with a file extension, so
 // public/ assets like /lab/photo-1.webp, robots.txt, and icons are served
 // untouched on both hosts, apart from two files the matcher adds back:
@@ -40,7 +42,8 @@ export function proxy(request) {
   if (!isLabHost(host)) {
     // The lab lives only on the subdomain — hide the /lab tree on the main
     // host by rewriting to a path that has no route, yielding the 404 page.
-    if (onLabPath) {
+    // /404 and /_not-found take the same route to reach the styled page.
+    if (onLabPath || pathname === "/404" || pathname === "/_not-found") {
       const url = request.nextUrl.clone();
       url.pathname = "/_lab-not-here";
       return NextResponse.rewrite(url, { status: 404 });

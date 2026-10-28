@@ -22,6 +22,14 @@ test("the 404 shows the board above the message, and the link home", async ({ pa
   expect(errors.filter((e) => !/404|Failed to load resource|Encountered a script tag/.test(e))).toEqual([]);
 });
 
+// Next reserves /404 and serves its built-in page there; proxy.js sends it
+// to the styled one instead.
+test("/404 itself is the styled 404", async ({ page }) => {
+  const res = await page.goto("/404");
+  expect(res.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Nothing here." })).toBeVisible();
+});
+
 test("hovering lifts the tile under the pointer, and it holds", async ({ page, isMobile }) => {
   test.skip(isMobile, "phones tap instead");
   await page.goto("/no-such-page");

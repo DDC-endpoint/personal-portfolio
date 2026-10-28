@@ -406,7 +406,7 @@ proxy.js                — Next proxy/middleware: routes lab.damiandc.com → /
 ---
 
 ## Server Info
-- **Deploy:** SSH into VPS → run `~/deploy.sh` (lives on server, NOT in repo)
+- **Deploy:** automatic. `.github/workflows/deploy.yml` runs `npm test` + `npm run build` on every PR into `main`, and on every push to `main` also SSHes in with a deploy-only key (`command="~/deploy.sh"` in `authorized_keys`) and smoke-checks the live URLs. Server details come only from the `DEPLOY_*` repo secrets. **The deploy runs `git reset --hard origin/main` in the live checkout (`~/projects/damiandc-website` on the VPS), so never keep uncommitted work there.** Manual fallback: SSH into VPS → run `~/deploy.sh` (lives on server, NOT in repo)
 - **PM2 process name:** `damiandc-website`
 - **deploy.sh does:** `git pull origin main → rm -rf .next → npm install → npm run build → pm2 restart damiandc-website`
 - **sharp note:** `sharp` is in `dependencies` — `npm install` (not `--production`) must run, which `deploy.sh` already does correctly
