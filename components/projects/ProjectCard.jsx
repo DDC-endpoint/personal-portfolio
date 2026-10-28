@@ -1,5 +1,5 @@
 "use client";
-import { useId, useRef } from "react";
+import { memo, useId, useRef } from "react";
 import BrowserFrame from "./BrowserFrame";
 import { SKELETONS } from "./skeletons";
 import { useCardDecode } from "./useCardDecode";
@@ -12,7 +12,9 @@ import { useCardDecode } from "./useCardDecode";
 // those). Reduced motion shows the screenshot (over the skeleton, which shows
 // through if the image fails) and the reveal row outright (CSS only).
 
-export default function ProjectCard({ project: p, index, active, onFocusCard, style, className = "" }) {
+// Memoised: the strip re-renders when its centred card changes, and only the
+// two cards whose `active` flips need to.
+export default memo(function ProjectCard({ project: p, index, active, onFocusCard, style, className = "" }) {
   const rootRef = useRef(null);
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
@@ -78,4 +80,4 @@ export default function ProjectCard({ project: p, index, active, onFocusCard, st
       {body}
     </a>
   );
-}
+});

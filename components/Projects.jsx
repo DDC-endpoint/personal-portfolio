@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import { DecodeLabel } from "./Scramble";
@@ -73,7 +73,16 @@ export default function Projects() {
   const keyboard = useRef(false);
   const raf = useRef(0);
   const [layout, setLayout] = useState(null);
-  const [active, setActive] = useState(null);
+  const [active, setActiveState] = useState(null);
+  // The frame loop asks every frame; React hears only when the centred card
+  // actually changes (and then re-renders just the two cards involved:
+  // ProjectCard is memoised and its props are stable).
+  const activeRef = useRef(null);
+  const setActive = useCallback((i) => {
+    if (activeRef.current === i) return;
+    activeRef.current = i;
+    setActiveState(i);
+  }, []);
 
   const items = () => [...(stripRef.current?.children ?? [])];
 
@@ -220,11 +229,17 @@ export default function Projects() {
     schedule();
   };
 
-  const at = (i) => {
-    if (!layout) return { className: STACK_ITEM };
-    const { left, top } = cardPosition(i, layout);
-    return { style: { position: "absolute", left, top, width: layout.cardW } };
-  };
+  // Each card's place, stable between renders (so the memoised cards skip).
+  const places = useMemo(
+    () =>
+      Array.from({ length: COUNT }, (_, i) => {
+        if (!layout) return { className: STACK_ITEM };
+        const { left, top } = cardPosition(i, layout);
+        return { style: { position: "absolute", left, top, width: layout.cardW } };
+      }),
+    [layout]
+  );
+  const onEndFocus = useCallback(() => scrollStripTo(END), [scrollStripTo]);
 
   return (
     <section id="work" className="relative border-t border-rule">
@@ -267,9 +282,9 @@ export default function Projects() {
             className={layout ? "absolute left-0 top-0" : "flex flex-col gap-16 px-4 pb-32 md:gap-24 md:px-10 md:pb-44"}
           >
             {CARDS.map((p, i) => (
-              <ProjectCard key={p.slug} project={p} index={i} active={active === i} onFocusCard={onFocusCard} {...at(i)} />
+              <ProjectCard key={p.slug} project={p} index={i} active={active === i} onFocusCard={onFocusCard} {...places[i]} />
             ))}
-            <EndCard onFocus={() => scrollStripTo(END)} {...at(END)} />
+            <EndCard onFocus={onEndFocus} {...places[END]} />
           </div>
         </div>
       </div>
