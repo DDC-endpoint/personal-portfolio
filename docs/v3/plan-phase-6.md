@@ -102,7 +102,7 @@
 
 ### Task 0: branch and spikes
 - [x] `v3-portfolio` cut from `v3`; spikes in `docs/v3/spike/`, decisions in `decisions.md`.
-- [ ] Commit the spikes and docs (`proj/` stays gitignored).
+- [x] Commit the spikes and docs (`proj/` stays gitignored): `c10f405`, `53f6f9c`, and the hand-off commit. **Resume at Task 1.**
 
 ### Task 1: project data (`lib/projects.js`)
 - `PROJECTS` in Damian's newest-first order, each with `cats` (`client` / `concept` / `personal`; upcoming ones also carry `upcoming`).

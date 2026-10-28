@@ -19,7 +19,33 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 ### The next step (resume here): Phase 6, then the performance pass
 
-**Phase 6 (2026-10-28):** Damian asked for "a few minor changes before the perf pass", which became Phase 6. He approved [`plan-phase-6.md`](plan-phase-6.md) and all its builder's calls; build it on `v3-portfolio`, then stop at his visual gate. The performance pass below follows it.
+**State at hand-off (2026-10-28, end of the planning session):** Phase 6 is fully designed and its plan approved, but **the build has not started** (Damian stopped the session before it). Nothing in `app/`, `components/`, `lib/` or the tests has changed.
+
+- **Branch:** `v3-portfolio`, cut from `v3` at `14ce453`. Its commits so far are docs and spikes only: `c10f405` (plan, decisions, spikes), `53f6f9c` (approval) and the hand-off commit after it. Not pushed.
+- **The plan:** [`plan-phase-6.md`](plan-phase-6.md), approved with all ten builder's calls. Start at **Task 1** (Task 0 is done). Build test-first, task by task (native inline execution), then one fresh reviewer for the whole branch, then **stop at Damian's visual gate**: he chose not to merge into `v3` before he has seen it.
+- **Every decision and why:** [`decisions.md`](decisions.md) → "Phase 6 planning". It records what was compared and not chosen, and two reversals:
+  - the edge light went from off to on;
+  - Home's hero now rises and the portrait waves on every arrival, replacing Phase 5's "already in place".
+- **What it should look like:** the approved spikes, which the build should match. Set up `proj/` first (`spike/README.md`), then `node docs/v3/spike/serve.cjs`:
+  - `http://localhost:3200/home-curation.html`
+  - `http://localhost:3200/portfolio-page.html`
+  - `http://localhost:3200/loader-curtain.html` (the "Damian's" preset)
+- **The dev server isn't running.** Start `npm run dev` before the e2e runs and screenshots. Playwright's `webServer` reuses it, or starts one.
+- **Where the spike values live:**
+  - The strip's depth of field: the `DOF` and `frame()` code in `spike/home-curation.html`.
+  - The curtain: `drawPanels`, `T()` and `PRESETS.chosen` in `spike/loader-curtain.html`.
+  - The loader count rules: the `seq.tick` code in `spike/loader-curtain.html`.
+  - The portfolio preview timing: `preview()` in `spike/portfolio-page.html`.
+  - The plan quotes the numbers, but the spikes are the reference when in doubt.
+
+**Phase 6 in one paragraph:**
+- **Pages:** four in one nav (Home, Portfolio, Services, Privacy; the logo reads "DDC / Damian De Cruz"), with the hero's SERVICES button and `/services`' Portfolio button gone.
+- **Home § 04:** a carousel of five curated sites with depth of field.
+- **`/portfolio` (new):** every project in a grid with filters, a Grid | List morph, a scroll-through preview, address-bar typing, a live pulse and the upcoming build loop.
+- **First load:** a morph loader (blob, count, the name) on a five-panel curtain.
+- **Page changes:** the same curtain replaces the glyph sweep.
+- **404:** the Isometric Board.
+- **Next:** the performance pass follows Phase 6.
 
 #### The performance pass (after Phase 6)
 
@@ -385,6 +411,10 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - Visual questions get a live prototype in the browser. For an open-ended "what could we do?", build several options in one switchable spike page (like `spike/timeline-rails.html`) and let him pick and combine.
   - Before showing anything, verify it yourself with headless screenshots.
   - **Check alignment at 100% and 150% display scaling,** not only 2×. His screen isn't 200%, and the Phase 3 dot-print offset only showed below it.
+  - **Mock before planning (Phase 6).** For motion work he asks to see a mock first and tunes it with controls. Give every spike a preset that holds his picks so far (for example, "Damian's" in `loader-curtain.html`), and record each answer in `decisions.md` as it comes.
+  - **A screenshot of a spike's controls is his settings.** Compare it with what's recorded and confirm any difference in one question (Phase 6: the edge light).
+  - **He invokes `/webdev` and `/impeccable` to push designs further.** Offer named, product-specific ideas he can pick from a list rather than generic polish.
+  - **Mocks use real assets where they exist** (the screenshots, the portrait, the hand-traced skeletons rendered from `skeletons.jsx`), so what he approves is what gets built.
 - **Approval can include the merge.** For the Timeline circuit he approved the prototype with "merge to v3", so it was built test-first, verified, merged and reported, with no separate gate. Without such an instruction, phases still stop at a visual gate.
 - **References are narrow.** A shared reference targets one element only; don't restyle anything else from it.
 - **Keep the site's existing style:** light-blue palette, Instrument Serif, JetBrains Mono, Manrope. He rejects anything that "feels AI coded".
