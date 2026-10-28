@@ -2,7 +2,9 @@ import { DEMOS } from "@/lib/lab";
 import LabGrid from "@/components/lab/LabGrid";
 
 export const metadata = {
-  title: "Lab — Damian De Cruz",
+  // absolute: the lab index is "Lab", so the layout's "%s · Lab" template
+  // would say it twice.
+  title: { absolute: "Lab — Damian De Cruz" },
 };
 
 export default function LabPage() {

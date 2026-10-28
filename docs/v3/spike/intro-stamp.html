@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intro stamp prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Phase 5 gate spike: the first-load intro. Damian (2026-10-27): the stamp's
+     square ivory box should become a faded spherical shape, and the first
+     load shouldn't flash an empty screen. Shapes to compare around the name,
+     and two ways for the glyph field to arrive. Tokens from globals.css. */
+  :root { --ivory:#F6F6F1; --ink:#0B1F3A; --ink-soft:#16315A; --ink-faint:#5A6B82; --electric:#2563EB; --mist:#E3ECFB; --ivory-rgb:246,246,241; --electric-rgb:37,99,235; }
+  .dark { --ivory:#0B1F3A; --ink:#F6F6F1; --ink-soft:#A2B4D0; --ink-faint:#8EA1C0; --electric:#3B82F6; --mist:#16315A; --ivory-rgb:11,31,58; --electric-rgb:59,130,246; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body { background:var(--ivory); color:var(--ink); font-family:Manrope,sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden; }
+  .mono { font:400 11px 'JetBrains Mono',monospace; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); }
+
+  /* A stand-in Home behind the cover */
+  #page { position:absolute; inset:0; padding:32px 40px; display:flex; flex-direction:column; }
+  #page nav { display:flex; justify-content:space-between; }
+  #page .hero { flex:1; display:grid; grid-template-columns:7fr 5fr; align-items:end; padding-bottom:48px; }
+  #page h1 { font:400 13vw/0.82 'Instrument Serif',serif; letter-spacing:-.02em; text-transform:uppercase; }
+  #page h1 i { color:var(--electric); }
+  #page .lede { max-width:30em; margin-top:28px; font-size:17px; line-height:1.6; color:var(--ink-soft); }
+  #page .portrait { justify-self:end; width:min(34vw,420px); aspect-ratio:4/5; background:radial-gradient(ellipse 30% 26% at 50% 36%, var(--electric) 0 60%, transparent 62%), radial-gradient(ellipse 48% 30% at 50% 100%, var(--electric) 0 70%, transparent 72%), var(--mist); opacity:.55; -webkit-mask:repeating-linear-gradient(0deg,#000 0 3px,transparent 3px 5px); mask:repeating-linear-gradient(0deg,#000 0 3px,transparent 3px 5px); }
+
+  /* The server-HTML cover: ivory, the shape's first-paint form, the stamp. */
+  #cover { position:fixed; inset:0; z-index:40; background:var(--ivory); transition:background-color .2s; }
+  #cover.glyphs { background:transparent; }
+  canvas#veil { position:fixed; inset:0; width:100%; height:100%; z-index:45; pointer-events:none; }
+  #stamp { position:fixed; inset:0; z-index:50; display:grid; place-items:center; pointer-events:none; transition:opacity .2s; }
+  #stamp.gone { opacity:0; }
+  #stamp .box { text-align:center; font-family:'JetBrains Mono',monospace; text-transform:uppercase; padding:16px 24px; }
+  #stamp .n { font-weight:400; font-size:15px; letter-spacing:.3em; color:var(--ink); }
+  #stamp .c { margin-top:12px; font-size:11px; letter-spacing:.24em; color:var(--ink-faint); }
+  /* "Box" (today): the square ivory backing */
+  body[data-shape="box"] #stamp .box { background:var(--ivory); }
+  /* Every other shape: the name carries a soft ivory glow instead of a box */
+  body:not([data-shape="box"]) #stamp .n, body:not([data-shape="box"]) #stamp .c { text-shadow:0 0 6px var(--ivory), 0 0 12px var(--ivory), 0 0 18px var(--ivory); }
+
+  /* First paint (before any script): a faint electric glow already marks the
+     circle, so the first frame isn't an empty ivory page. */
+  #glow { position:fixed; inset:0; z-index:41; pointer-events:none; transition:opacity .3s; background:radial-gradient(circle at 50% 50%, rgba(var(--electric-rgb),.10) 0, rgba(var(--electric-rgb),.05) calc(var(--r) * .7), transparent var(--r)); }
+  body[data-first="plain"] #glow, body[data-shape="box"] #glow { opacity:0; }
+
+  .ctl { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); display:flex; flex-wrap:wrap; justify-content:center; gap:6px; z-index:60; background:#0B1F3A; padding:6px; border-radius:22px; max-width:calc(100vw - 32px); }
+  .ctl button { font:500 10px 'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; border:0; border-radius:999px; padding:8px 12px; background:transparent; color:#F6F6F1; cursor:pointer; }
+  .ctl button[aria-pressed="true"] { background:#F6F6F1; color:#0B1F3A; }
+  .ctl .sep { width:1px; background:#2A3F63; margin:4px 2px; }
+  .hint { position:fixed; top:14px; left:50%; transform:translateX(-50%); font:400 11px 'JetBrains Mono',monospace; color:var(--ink-faint); z-index:60; white-space:nowrap; background:var(--ivory); padding:4px 10px; border-radius:999px; }
+</style>
+</head>
+<body data-shape="halo" data-arrive="bloom" data-first="glow">
+<section id="page">
+  <nav><span class="mono"><span style="opacity:.5">DDC</span> / Portfolio ’26</span><span class="mono">About · Work · Timeline · Contact</span></nav>
+  <div class="hero">
+    <div>
+      <div class="mono" style="margin-bottom:24px">Creative technologist · Freelance web designer</div>
+      <h1>Damian<br><i>De</i> Cruz.</h1>
+      <p class="lede">In my second year of BSc (Hons) Computer Science at the Informatics Institute of Technology.</p>
+    </div>
+    <div class="portrait"></div>
+  </div>
+</section>
+<div id="cover"></div>
+<div id="glow"></div>
+<canvas id="veil" aria-hidden="true"></canvas>
+<div id="stamp"><div class="box"><div class="n" id="n">DAMIAN DE CRUZ</div><div class="c" id="c">N 6.9271° / E 79.8612°</div></div></div>
+
+<div class="hint" id="hint">Pick a shape, then Replay load. "Hold cover" keeps it covered to look closely.</div>
+<div class="ctl">
+  <button data-shape="box">Box (today)</button>
+  <button data-shape="halo" aria-pressed="true">A · Halo</button>
+  <button data-shape="clearing">B · Clearing</button>
+  <button data-shape="globe">C · Globe</button>
+  <button data-shape="lens">D · Lens</button>
+  <span class="sep"></span>
+  <button data-arrive="pop">Glyphs pop (today)</button>
+  <button data-arrive="bloom" aria-pressed="true">Glyphs bloom out</button>
+  <button data-first="glow" aria-pressed="true">First frame glow</button>
+  <span class="sep"></span>
+  <button data-delay>JS at 450 ms</button>
+  <button data-replay>Replay load</button>
+  <button data-hold aria-pressed="true">Hold cover</button>
+  <button data-dark>Dark</button>
+</div>
+
+<script>
+  // ---- Constants copied from the build (lib/pageTransition.js, Veil.js) ----
+  const NOISE = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#$%&@*+=<>/\\";
+  const RAMP = ".·:;-=+*#%@";
+  const REVEAL = 0.64, FRONT = 0.18, JITTER = 0.1;
+  const RESOLVE_MS = 650, HOLD_MS = 250; // the stamp's resolve and hold (IntroStamp)
+  const BLOOM = 0.38; // s: the glyph field grows out from the circle
+
+  const cv = document.getElementById("veil"), ctx = cv.getContext("2d");
+  const cover = document.getElementById("cover"), stamp = document.getElementById("stamp");
+  const nameEl = document.getElementById("n"), coordEl = document.getElementById("c");
+  let W, H, dpr, cw, ch, cols, rows, jit, R, cx, cy, col;
+  let shape = "halo", arrive = "bloom", hold = true, delay = 450;
+  let raf = 0, run = 0;
+
+  function layout() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const font = W < 768 ? 11 : 13;
+    ctx.font = `700 ${font}px 'JetBrains Mono',monospace`;
+    ctx.textBaseline = "top";
+    cw = Math.ceil(ctx.measureText("M").width); ch = Math.ceil(font * 1.35);
+    cols = Math.ceil(W / cw); rows = Math.ceil(H / ch);
+    jit = Float32Array.from({ length: cols * rows }, () => Math.random());
+    R = Math.max(150, Math.min(W, H) * 0.24); // the circle's radius
+    cx = W / 2; cy = H / 2;
+    document.body.style.setProperty("--r", R * 1.25 + "px");
+  }
+  const colours = () => {
+    const s = getComputedStyle(document.documentElement);
+    const rgb = s.getPropertyValue("--ivory-rgb").trim();
+    return { ivory: s.getPropertyValue("--ivory").trim(), electric: s.getPropertyValue("--electric").trim(), clear: `rgba(${rgb},0)`, ivoryA: (a) => `rgba(${rgb},${a})` };
+  };
+
+  // How far a cell's centre is from the middle, in circle radii.
+  const radius = (x, y) => Math.hypot((x + 0.5) * cw - cx, (y + 0.5) * ch - cy) / R;
+  const smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+  // ---- The globe: a lit ASCII sphere, turning, with Colombo on it ----------
+  const LIGHT = (() => { const v = [-0.45, -0.55, 0.7]; const m = Math.hypot(...v); return v.map((c) => c / m); })();
+  function globeCell(x, y, time) {
+    const px = ((x + 0.5) * cw - cx) / R, py = ((y + 0.5) * ch - cy) / R;
+    const rr = px * px + py * py;
+    if (rr >= 1) return null;
+    const nz = Math.sqrt(1 - rr);
+    const b = Math.max(0, px * LIGHT[0] + py * LIGHT[1] + nz * LIGHT[2]);
+    const lon = Math.atan2(px, nz) + time * 0.35, lat = Math.asin(-py);
+    const grid = Math.abs(Math.sin(lon * 6)) < 0.12 || Math.abs(Math.sin(lat * 6)) < 0.1; // 30° lines
+    // Colombo: 6.93° N, 79.86° E, turning past the front.
+    const cLon = (79.86 * Math.PI) / 180, cLat = (6.93 * Math.PI) / 180;
+    const dLon = Math.atan2(Math.sin(lon - cLon - Math.PI / 2), Math.cos(lon - cLon - Math.PI / 2));
+    const pin = Math.abs(dLon) < 0.09 && Math.abs(lat - cLat) < 0.09 && nz > 0.3;
+    const r = Math.sqrt(rr);
+    if (r > 0.94) return { g: RAMP[8 + ((x + y) % 3)], a: 0.85, edge: 0 }; // the rim
+    const shade = 1 - b; // ink on ivory: the shadow side carries the dense glyphs
+    const g = pin ? "@" : grid ? "+" : RAMP[Math.min(RAMP.length - 1, (shade * shade * RAMP.length * 1.1) | 0)];
+    return { g, a: pin ? 1 : grid ? 0.3 + 0.4 * shade : 0.12 + 0.7 * shade * shade, edge: 0 };
+  }
+
+  // ---- One covered frame, for the chosen shape. `grown` (0..1): how far the
+  // bloom has spread (1 = everywhere). `clear(i)`: true for cells the reveal
+  // has already passed. -------------------------------------------------------
+  function draw(time, grown, clear) {
+    ctx.clearRect(0, 0, W, H);
+    const maxR = Math.hypot(cx, cy) / R;
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      if (clear && clear(i, x, y)) continue;
+      const r = radius(x, y);
+      // Bloom: a cell appears once the spread passes its distance (+ jitter).
+      if (grown < 1 && r / maxR > grown - jit[i] * 0.12) {
+        // Not reached yet: plain ivory, as the server-HTML cover is.
+        ctx.globalAlpha = 1; ctx.fillStyle = col.ivory; ctx.fillRect(x * cw, y * ch, cw, ch);
+        continue;
+      }
+      let g = RAMP[(jit[i] * RAMP.length) | 0], a = 0.35 + 0.4 * jit[i], bg = 1;
+      if (shape === "clearing") {
+        // Glyphs thin out and lighten toward the middle: no overlay at all.
+        const k = smooth(0.35, 1.1, r);
+        if (jit[i] > k * 1.15) { bg = 1; g = " "; } else g = RAMP[Math.min(RAMP.length - 1, (jit[i] * RAMP.length * (0.35 + 0.65 * k)) | 0)];
+        a *= 0.25 + 0.75 * k;
+      } else if (shape === "globe") {
+        const s = globeCell(x, y, time);
+        if (s) { g = s.g; a = s.a; }
+        else if (r < 1.12) g = " "; // a clear gap sets the globe apart
+        else a *= 0.45 + 0.4 * smooth(1.12, 1.7, r); // the field dims around it
+      } else if (shape === "lens") {
+        if (r < 1) {
+          // Magnified glyphs: sample the field from a compressed position.
+          const m = 0.55 + 0.45 * r * r;
+          const sx = Math.round(cx / cw + (x - cx / cw) * m), sy = Math.round(cy / ch + (y - cy / ch) * m);
+          const j = Math.min(jit.length - 1, Math.max(0, sy * cols + sx));
+          g = RAMP[(jit[j] * RAMP.length) | 0];
+          a = (0.12 + 0.3 * jit[j]) * (0.4 + 0.6 * r);
+        }
+      }
+      ctx.globalAlpha = bg; ctx.fillStyle = col.ivory; ctx.fillRect(x * cw, y * ch, cw, ch);
+      if (g !== " ") { ctx.globalAlpha = a; ctx.fillStyle = col.electric; ctx.fillText(g, x * cw, y * ch + 1); }
+    }
+    ctx.globalAlpha = 1;
+    // Shape overlays drawn over the glyphs.
+    if (shape === "halo") {
+      const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.15);
+      gr.addColorStop(0, col.ivory); gr.addColorStop(0.45, col.ivory); gr.addColorStop(0.75, col.ivoryA(0.6)); gr.addColorStop(1, col.clear);
+      ctx.fillStyle = gr; ctx.fillRect(cx - R * 1.2, cy - R * 1.2, R * 2.4, R * 2.4);
+    } else if (shape === "lens") {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.strokeStyle = col.electric; ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.stroke();
+      const gr = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, 0, cx, cy, R);
+      gr.addColorStop(0, col.ivoryA(0.85)); gr.addColorStop(0.6, col.ivoryA(0.55)); gr.addColorStop(1, col.ivoryA(0.15));
+      ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ---- The stamp's text scramble (IntroStamp) ------------------------------
+  const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&@*+=<>/";
+  const LINES = ["DAMIAN DE CRUZ", "N 6.9271° / E 79.8612°"];
+  const scramble = (l, p) => [...l].map((c, i) => (i < l.length * p || c === " " ? c : CHARS[(Math.random() * CHARS.length) | 0])).join("");
+
+  // ---- Replay a first load -------------------------------------------------
+  // 0 → `delay`: first paint only (the server HTML: ivory, glow, frozen stamp).
+  // delay: "hydration": the glyph field arrives (pop or bloom) and the name
+  // resolves. Then the stamp fades and the sweep reveals the page (unless
+  // Hold cover is on).
+  function replay() {
+    const my = ++run;
+    cancelAnimationFrame(raf);
+    layout(); col = colours();
+    ctx.clearRect(0, 0, W, H);
+    cover.classList.remove("glyphs"); cover.style.display = "";
+    stamp.classList.remove("gone");
+    const frozen = LINES.map((l) => scramble(l, 0));
+    nameEl.textContent = frozen[0]; coordEl.textContent = frozen[1];
+    document.getElementById("glow").style.opacity = "";
+    const t0 = performance.now();
+    let hydratedAt = null, revealAt = null;
+    const sweepAt = (x, y) => (y / rows) * 0.85 + (x / cols) * 0.05;
+    const step = (now) => {
+      if (my !== run) return;
+      const ms = now - t0;
+      if (ms >= delay && hydratedAt === null) { hydratedAt = now; cover.classList.add("glyphs"); }
+      if (hydratedAt !== null) {
+        const h = now - hydratedAt;
+        const p = Math.min(1, h / RESOLVE_MS);
+        nameEl.textContent = scramble(LINES[0], p); coordEl.textContent = scramble(LINES[1], p);
+        const grown = arrive === "pop" ? 1 : Math.min(1, h / 1000 / BLOOM);
+        if (h >= RESOLVE_MS + HOLD_MS && !hold && revealAt === null) { revealAt = now; stamp.classList.add("gone"); document.getElementById("glow").style.opacity = "0"; }
+        if (revealAt !== null) {
+          const t = (now - revealAt) / 1000;
+          if (t >= REVEAL) { ctx.clearRect(0, 0, W, H); cover.style.display = "none"; return; }
+          const span = REVEAL - FRONT - JITTER;
+          draw(now / 1000, 1, (i, x, y) => t > sweepAt(x, y) * span + jit[i] * JITTER + FRONT * 0.5);
+        } else draw(now / 1000, grown);
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+  }
+
+  // ---- Controls ------------------------------------------------------------
+  const group = (attr, set) => document.querySelectorAll(`[data-${attr}]`).forEach((b) => {
+    if (b.dataset[attr] === "" ) return;
+    b.addEventListener("click", () => {
+      document.querySelectorAll(`[data-${attr}]`).forEach((x) => x.setAttribute("aria-pressed", x === b));
+      document.body.dataset[attr] = b.dataset[attr]; set(b.dataset[attr]); replay();
+    });
+  });
+  group("shape", (v) => (shape = v));
+  group("arrive", (v) => (arrive = v));
+  document.querySelector("[data-first]").addEventListener("click", (e) => {
+    const on = document.body.dataset.first !== "glow";
+    document.body.dataset.first = on ? "glow" : "plain"; e.target.setAttribute("aria-pressed", on); replay();
+  });
+  document.querySelector("[data-delay]").addEventListener("click", (e) => {
+    delay = delay === 450 ? 150 : 450; e.target.textContent = `JS at ${delay} ms`; replay();
+  });
+  document.querySelector("[data-replay]").addEventListener("click", replay);
+  document.querySelector("[data-hold]").addEventListener("click", (e) => {
+    hold = !hold; e.target.setAttribute("aria-pressed", hold); replay();
+  });
+  document.querySelector("[data-dark]").addEventListener("click", (e) => {
+    const on = document.documentElement.classList.toggle("dark"); e.target.setAttribute("aria-pressed", on); replay();
+  });
+  // Deep links for screenshots: ?shape=globe&hold=0&dark=1
+  const q = new URLSearchParams(location.search);
+  if (q.get("dark") === "1") document.documentElement.classList.add("dark");
+  if (q.get("hold") === "0") { hold = false; document.querySelector("[data-hold]").setAttribute("aria-pressed", false); }
+  if (q.get("shape")) document.querySelector(`[data-shape="${q.get("shape")}"]`)?.click();
+  addEventListener("resize", replay);
+  document.fonts.ready.then(replay);
+</script>
+</body>
+</html>

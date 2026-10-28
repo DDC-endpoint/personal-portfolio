@@ -1,230 +1,290 @@
 "use client";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
-import GlitchField from "./GlitchField";
-import { EASE } from "@/lib/motion";
+import { DecodeLabel } from "./Scramble";
+import ProjectCard from "./projects/ProjectCard";
+import EndCard from "./projects/EndCard";
+import { homeStrip } from "@/lib/projects";
+import {
+  STRIP,
+  stripLayout,
+  cardPosition,
+  stripOffset,
+  focusAt,
+  progressForCard,
+  depthAt,
+  stackDepth,
+  smoothStep,
+  nearestToCentre,
+} from "@/lib/strip";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
-const projects = [
-  {
-    n: "01",
-    title: "This Portfolio",
-    year: "2026",
-    blurb:
-      "The site you're reading now — built with Next.js, Tailwind, and Framer Motion as a living journal of my work.",
-    tags: ["Next.js", "Framer Motion", "Design"],
-    href: "#top",
-    status: "live",
-  },
-  {
-    n: "02",
-    title: "Personal Dashboard",
-    year: "2026",
-    blurb:
-      "A self-updating homepage — RSS aggregation, reading queue, and a dashboard I open every morning.",
-    tags: ["HTML/CSS/JS", "Static Site", "GitHub Pages"],
-    href: "https://enderguardian25.github.io/personal-dashboard/",
-    status: "live",
-  },
-  {
-    n: "03",
-    title: "Spades Solutions",
-    year: "2026",
-    blurb:
-      "Website for a growing solutions company — a sharp, professional presence built to convert.",
-    tags: ["Client Work", "Business", "Design"],
-    href: "https://enderguardian25.github.io/spades-solutions/index.html",
-    status: "live",
-  },
-  {
-    n: "04",
-    title: "Aloys Travels",
-    year: "2026",
-    blurb:
-      "Web presence for a travel company — clean booking flows and an inviting design that sells the journey.",
-    tags: ["Client Work", "Travel", "Design"],
-    href: "https://aloys-travels.pages.dev/",
-    status: "live",
-  },
-  {
-    n: "05",
-    title: "Danella De Cruz",
-    year: "2026",
-    blurb:
-      "Portfolio and booking site for a Colombo cover artist — a clean, expressive stage for her music, story, and performance schedule.",
-    tags: ["Next.js", "Client Work", "Music"],
-    href: "https://danelladc.com",
-    status: "live",
-  },
-  {
-    n: "06",
-    title: "Kahatagaha Graphite",
-    year: "2026",
-    blurb:
-      "Two home-page concepts for a Sri Lankan crystalline graphite producer — one dark and technical, one light and editorial, drawn from the same content and eleven material grades.",
-    tags: ["HTML/CSS/JS", "Concept", "Design"],
-    href: "https://enderguardian25.github.io/kgll-website/",
-    status: "live",
-  },
-  {
-    n: "07",
-    title: "Coursework Archive",
-    year: "2026 →",
-    blurb:
-      "A growing index of university coursework, write-ups, and small lab projects.",
-    tags: ["Archive", "Writing"],
-    href: "#",
-    status: "soon",
-  },
-];
+// § 04 Selected Work (docs/v3/plan-phase-6.md → Task 3): Damian's five and
+// the end card, as a carousel.
+//
+// Desktop (≥ md, motion allowed): the track is 4 screens tall and its
+// viewport is sticky, so the section pins for 3 screens of scroll while the
+// strip glides along a 12° path through the screen centre, one card centred
+// at a time (lib/strip.js). The displayed progress eases after the scroll
+// progress, and every frame writes each card's depth of field (scale,
+// opacity, blur, saturation) to its style. Below md the cards stack, and the
+// ones away from the centre of the screen dim and shrink (no blur). Under
+// reduced motion and without JS the cards are a plain list. The pin itself is
+// CSS (js:motion-safe:md:, the `js` class set pre-paint by the layout's
+// inline script), so the server HTML is right for everyone; only the card
+// positions need JS. Heights are in svh, so mobile browser toolbars showing
+// and hiding never re-lay it out.
+//
+// One card is active at a time, and only it decodes: the centred card (within
+// half a step of the centre on desktop, the one nearest the middle of the
+// screen on phones). A Tab press hands control to focus: the focused card is
+// brought to the centre, so the two agree. The pointer never picks the card
+// (Damian, Phase 6). Only keyboard focus scrolls the strip, so a click (whose
+// mousedown also focuses the card) never moves the card out from under the
+// pointer. The viewport is overflow: clip, not hidden, so the browser's own
+// focus scrolling can never shift it sideways.
 
-function Card({ p, i }) {
-  const isSoon = p.status === "soon";
-  const isExternal = !isSoon && p.href.startsWith("http");
+const CARDS = homeStrip();
+const COUNT = CARDS.length + 1; // + the end card
+const END = CARDS.length;
+const WIDE = "(min-width: 768px)";
+// The track: one screen of sticky viewport plus PIN_SCREENS of scroll.
+const TRACK_STYLE = { "--pin-track": `${(1 + STRIP.PIN_SCREENS) * 100}svh` };
+const STACK_ITEM = "w-[86%] even:ml-auto md:w-full md:max-w-3xl md:ml-[25%] md:even:ml-[25%]";
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
 
-  // Live cards are links; "soon" cards render as a non-interactive, dimmed div.
-  const Wrapper = isSoon ? motion.div : motion.a;
-  // Both card types share a staggered scroll entrance; the stagger is capped
-  // so below-the-fold cards (which trigger on their own scroll entry) don't
-  // inherit long queued delays. Soon cards must LAND at 0.75 — the inline
-  // opacity framer writes would otherwise override the opacity-75 class and
-  // un-dim them.
-  const entrance = {
-    initial: { opacity: 0, y: 24 },
-    whileInView: { opacity: isSoon ? 0.75 : 1, y: 0 },
-    viewport: { once: true, margin: "-60px" },
-    transition: { duration: 0.9, ease: EASE, delay: Math.min(i, 2) * 0.08 },
-  };
-  const wrapperProps = isSoon
-    ? { ...entrance, className: "relative overflow-hidden block border-t border-rule py-10 md:py-14 first:border-t-0 opacity-75 cursor-default select-none" }
-    : {
-        ...entrance,
-        href: p.href,
-        target: isExternal ? "_blank" : undefined,
-        rel: isExternal ? "noopener noreferrer" : undefined,
-        "data-hover": true,
-        className: "group relative overflow-hidden block border-t border-rule py-10 md:py-14 first:border-t-0",
-      };
-
-  return (
-    <Wrapper {...wrapperProps}>
-      {isSoon && (
-        <GlitchField className="absolute inset-0 text-ink-soft" />
-      )}
-      {!isSoon && (
-        // Hover fill: mist sweeps up from the bottom edge. Transform-only —
-        // scale, not background transition — so the theme-flicker rule is safe.
-        <span
-          aria-hidden
-          className="absolute inset-0 bg-mist origin-bottom scale-y-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-y-100"
-        />
-      )}
-      <div className="relative z-10 grid grid-cols-12 gap-6 items-start">
-        <div className="col-span-12 md:col-span-1">
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">
-            ({p.n})
-          </span>
-        </div>
-
-        <div className="col-span-12 md:col-span-6">
-          <h3
-            className={`font-display text-5xl md:text-7xl leading-[0.9] tracking-tight text-ink ${
-              isSoon ? "" : "transition-colors duration-500 group-hover:text-electric"
-            }`}
-          >
-            {p.title}
-            {isSoon && (
-              <sup className="ml-3 align-top font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft not-italic">
-                soon
-              </sup>
-            )}
-          </h3>
-          <p className="mt-5 md:mt-7 max-w-md text-base md:text-lg leading-relaxed text-ink-soft">
-            {p.blurb}
-          </p>
-        </div>
-
-        <div className="col-span-12 md:col-span-3 md:col-start-8 flex flex-wrap gap-2">
-          {p.tags.map((t) => (
-            <span
-              key={t}
-              className="font-mono text-[10px] uppercase tracking-[0.15em] px-3 py-1.5 border border-rule rounded-full text-ink-soft"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-
-        <div className="col-span-12 md:col-span-2 md:text-right">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">
-            {p.year}
-          </div>
-          <div className="mt-2 flex md:justify-end items-center gap-2">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isSoon ? "bg-ink-soft/30" : "bg-electric animate-pulse"
-              }`}
-            />
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-soft">
-              {isSoon ? "in sketch" : "live"}
-            </span>
-          </div>
-          {!isSoon && (
-            <div className="mt-4 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink group-hover:text-electric transition">
-              {isExternal ? "Visit" : "You're here"}&nbsp;
-              {/* Arrow redraws itself on hover: stroke-dashoffset 1 → 0 over the
-                  path, plus a small nudge so motion still reads in forced-colors. */}
-              <svg
-                aria-hidden="true"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="inline-block transition-transform duration-500 group-hover:translate-x-0.5"
-              >
-                <path
-                  d={isExternal ? "M3 11 L11 3 M4.5 3 H11 V9.5" : "M7 12 V2 M3 6 L7 2 L11 6"}
-                  pathLength="1"
-                  className="[stroke-dasharray:1] [stroke-dashoffset:1] group-hover:[stroke-dashoffset:0] [@media(hover:none)]:[stroke-dashoffset:0] transition-[stroke-dashoffset] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
-      </div>
-    </Wrapper>
-  );
-}
+// Clears what the frame loop wrote, when the mode changes.
+const clearStyles = (el) => {
+  for (const k of ["transform", "opacity", "filter", "zIndex"]) el.style[k] = "";
+};
 
 export default function Projects() {
-  return (
-    <section id="work" className="relative px-6 md:px-10 py-32 md:py-44 border-t border-rule">
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 md:col-span-3">
-          <div className="md:sticky md:top-32">
-            <div className="section-label">§ 04 — Selected Work</div>
-          </div>
-        </div>
+  const trackRef = useRef(null);
+  const stripRef = useRef(null);
+  const viewportRef = useRef(null);
+  const reduced = useReducedMotion();
+  const mode = useRef(null); // "strip" | "stack" | null (the plain list)
+  const layoutRef = useRef(null);
+  const shown = useRef(null); // the displayed progress, eased after the scroll's
+  const lastFrame = useRef(0);
+  const wasOnScreen = useRef(true); // the last frame's: skip writes while it stays off
+  const focused = useRef(null);
+  const keyboard = useRef(false);
+  const raf = useRef(0);
+  const [layout, setLayout] = useState(null);
+  const [active, setActiveState] = useState(null);
+  // The frame loop asks every frame; React hears only when the centred card
+  // actually changes (and then re-renders just the two cards involved:
+  // ProjectCard is memoised and its props are stable).
+  const activeRef = useRef(null);
+  const setActive = useCallback((i) => {
+    if (activeRef.current === i) return;
+    activeRef.current = i;
+    setActiveState(i);
+  }, []);
 
+  const items = () => [...(stripRef.current?.children ?? [])];
+
+  const frame = useCallback((now) => {
+    raf.current = 0;
+    const strip = stripRef.current, track = trackRef.current;
+    if (!strip || !track) return;
+    const vh = window.innerHeight;
+    const t = track.getBoundingClientRect();
+    const onScreen = t.bottom > 0 && t.top < vh;
+    const stillOff = !onScreen && !wasOnScreen.current;
+    wasOnScreen.current = onScreen;
+    if (stillOff && mode.current) return;
+
+    if (mode.current === "strip") {
+      const L = layoutRef.current;
+      const target = clamp01(-t.top / (t.height - vh));
+      const dt = lastFrame.current ? Math.min(now - lastFrame.current, 100) : 16.7;
+      const prev = shown.current;
+      shown.current = prev === null || !onScreen ? target : smoothStep(prev, target, dt);
+      const moving = shown.current !== target;
+      lastFrame.current = moving ? now : 0;
+      const f = focusAt(shown.current, COUNT);
+      const o = stripOffset(f, L);
+      strip.style.transform = `translate3d(${o.x}px, ${o.y}px, 0)`;
+      items().forEach((el, i) => {
+        const d = Math.abs(i - f);
+        const z = depthAt(d);
+        el.style.transform = z.scale === 1 ? "" : `scale(${z.scale})`;
+        el.style.opacity = z.opacity === 1 ? "" : String(z.opacity);
+        el.style.filter = z.blur > 0.05 ? `blur(${+z.blur.toFixed(2)}px) saturate(${+z.saturate.toFixed(2)})` : "";
+        el.style.zIndex = String(100 - Math.round(d * 10));
+      });
+      strip.dataset.settled = String(!moving);
+      const nearest = Math.round(f);
+      setActive(onScreen && Math.abs(nearest - f) < 0.5 && nearest < END ? nearest : null);
+      if (moving) raf.current = requestAnimationFrame(frame);
+      return;
+    }
+
+    if (mode.current === "stack") {
+      const els = items();
+      const centres = els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2;
+      });
+      els.forEach((el, i) => {
+        const z = stackDepth(Math.abs(centres[i] - vh / 2) / vh);
+        el.style.transform = `scale(${z.scale})`;
+        el.style.opacity = String(z.opacity);
+      });
+      if (keyboard.current) return setActive(focused.current);
+      const i = onScreen ? nearestToCentre(centres, vh) : -1;
+      // The end card is a candidate too: when it is nearest, no project card is.
+      setActive(i < 0 || i === END ? null : i);
+    }
+  }, []);
+
+  const schedule = useCallback(() => {
+    if (!raf.current) raf.current = requestAnimationFrame(frame);
+  }, [frame]);
+
+  // Mode and layout: the strip on wide screens with motion allowed, the stack
+  // below md, the plain list under reduced motion.
+  useEffect(() => {
+    const wide = window.matchMedia(WIDE);
+    const measure = () => {
+      const next = reduced ? null : wide.matches ? "strip" : "stack";
+      if (next !== mode.current) {
+        items().forEach(clearStyles);
+        if (stripRef.current) {
+          stripRef.current.style.transform = "";
+          delete stripRef.current.dataset.settled;
+        }
+      }
+      mode.current = next;
+      const L =
+        next === "strip"
+          ? stripLayout({ vw: document.documentElement.clientWidth, vh: viewportRef.current?.clientHeight || window.innerHeight })
+          : null;
+      layoutRef.current = L;
+      setLayout(L);
+      shown.current = null; // snap after a resize
+      if (!next) setActive(null);
+      schedule();
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    wide.addEventListener("change", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      wide.removeEventListener("change", measure);
+    };
+  }, [reduced, schedule]);
+
+  // Scroll drives the frames; a Tab press hands control to focus until the
+  // pointer is next used.
+  useEffect(() => {
+    const onPointerDown = () => {
+      keyboard.current = false;
+      schedule();
+    };
+    const onKey = (e) => {
+      if (e.key === "Tab") keyboard.current = true;
+    };
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true, capture: true });
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      window.removeEventListener("keydown", onKey, { capture: true });
+      cancelAnimationFrame(raf.current);
+      raf.current = 0;
+    };
+  }, [schedule]);
+
+  // In the strip, brings item i (a card, or the end card) to the centre when
+  // it was reached by keyboard. A frame later, so it lands after the
+  // browser's own scroll to the newly focused element.
+  const scrollStripTo = useCallback((i) => {
+    if (mode.current !== "strip" || !keyboard.current) return;
+    requestAnimationFrame(() => {
+      const track = trackRef.current;
+      if (!track) return;
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      const p = progressForCard(i, COUNT);
+      window.scrollTo({ top: top + p * (track.offsetHeight - window.innerHeight), behavior: "instant" });
+    });
+  }, []);
+
+  const onFocusCard = useCallback(
+    (i) => {
+      focused.current = i;
+      scrollStripTo(i);
+      schedule();
+    },
+    [scrollStripTo, schedule]
+  );
+
+  const onBlur = (e) => {
+    if (e.relatedTarget?.closest?.("[data-card]")) return; // the next card's focus takes over
+    focused.current = null;
+    schedule();
+  };
+
+  // Each card's place, stable between renders (so the memoised cards skip).
+  const places = useMemo(
+    () =>
+      Array.from({ length: COUNT }, (_, i) => {
+        if (!layout) return { className: STACK_ITEM };
+        const { left, top } = cardPosition(i, layout);
+        return { style: { position: "absolute", left, top, width: layout.cardW } };
+      }),
+    [layout]
+  );
+  const onEndFocus = useCallback(() => scrollStripTo(END), [scrollStripTo]);
+
+  return (
+    <section id="work" className="relative border-t border-rule">
+      <div className="grid grid-cols-12 gap-6 px-6 pt-32 md:px-10 md:pt-44">
+        <div className="col-span-12 md:col-span-3">
+          <DecodeLabel className="section-label">§ 04 — Selected Work</DecodeLabel>
+        </div>
         <div className="col-span-12 md:col-span-9 md:col-start-4">
           <SplitLines as="h2" className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight text-ink">
             A small but <span className="italic text-electric">growing</span> shelf.
           </SplitLines>
           <Reveal delay={0.1}>
-            <p className="mt-6 max-w-xl text-base md:text-lg text-ink-soft">
-              Six projects out in the world. One more in motion. This shelf will keep growing
-              year over year — bookmark it.
-            </p>
+            <div className="mt-6 flex flex-wrap items-baseline gap-x-7 gap-y-3">
+              <p className="max-w-xl text-base md:text-lg text-ink-soft">
+                Five favourites from a growing shelf. The rest, and what&rsquo;s on the way, is on the portfolio page.
+              </p>
+              <a
+                href="/portfolio"
+                data-hover
+                className="group inline-flex items-center gap-2 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.2em] text-electric link-line"
+              >
+                All work
+                <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+              </a>
+            </div>
           </Reveal>
+        </div>
+      </div>
 
-          <div className="mt-16 md:mt-24">
-            {projects.map((p, i) => (
-              <Card key={p.n} p={p} i={i} />
+      <div ref={trackRef} data-strip-track style={TRACK_STYLE} className="relative mt-16 md:mt-24 js:motion-safe:md:h-(--pin-track)">
+        <div
+          ref={viewportRef}
+          data-strip-viewport
+          className="js:motion-safe:md:sticky js:motion-safe:md:top-0 js:motion-safe:md:h-svh js:motion-safe:md:overflow-clip"
+        >
+          <div
+            ref={stripRef}
+            data-strip
+            onBlur={onBlur}
+            className={layout ? "absolute left-0 top-0" : "flex flex-col gap-16 px-4 pb-32 md:gap-24 md:px-10 md:pb-44"}
+          >
+            {CARDS.map((p, i) => (
+              <ProjectCard key={p.slug} project={p} index={i} active={active === i} onFocusCard={onFocusCard} {...places[i]} />
             ))}
+            <EndCard onFocus={onEndFocus} {...places[END]} />
           </div>
         </div>
       </div>

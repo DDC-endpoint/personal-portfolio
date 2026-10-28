@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V3 spike · Lens gallery</title>
+<!-- Layout mockup only. Needs EXIF-free web copies in ./gal/f01.jpg … f10.jpg (f-number = file order in design.md → Lens table); gal/ is gitignored. -->
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --ivory:#F6F6F1; --ink:#0B1F3A; --ink-soft:#16315A; --ink-faint:#5A6B82; --electric:#2563EB; --rule:#D9DEE6; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--ivory); color:var(--ink); font-family:Manrope,sans-serif; }
+  section { padding:8rem 40px 10rem; border-top:1px solid var(--rule); }
+  .label { font:500 11px 'JetBrains Mono',monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft); }
+  .head { display:grid; grid-template-columns:repeat(12,1fr); gap:24px; margin-bottom:6rem; }
+  .head .label { grid-column:1/span 3; }
+  .head > div { grid-column:4/span 9; }
+  h2 { font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(3rem,6vw,4.5rem); line-height:.95; letter-spacing:-.01em; }
+  h2 i { color:var(--electric); }
+  .intro { margin-top:1.5rem; max-width:36rem; font-size:1.1rem; color:var(--ink-soft); }
+  /* compact bento: 6 columns of small 3:4 tiles, two 2x2 hero tiles, a text tile */
+  .wrap { container-type:inline-size; }
+  .grid { --g:16px; display:grid; grid-template-columns:repeat(6,1fr); gap:var(--g);
+          grid-auto-rows:calc((100cqw - 5 * var(--g)) / 6 * 4 / 3); }
+  /* frame: hairline border + ivory mat; the photo sits inset inside it */
+  figure { position:relative; margin:0; border:1px solid var(--rule); background:var(--ivory); padding:8px; }
+  .ph { position:relative; width:100%; height:100%; overflow:hidden; }
+  .ph img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  /* highlighter: an electric line traces the frame clockwise from the top-left on hover */
+  .hl { position:absolute; inset:-1px; width:calc(100% + 2px); height:calc(100% + 2px); pointer-events:none; overflow:visible; }
+  .hl rect { fill:none; stroke:var(--electric); stroke-width:1.5; vector-effect:non-scaling-stroke;
+             stroke-dasharray:1 1; stroke-dashoffset:1; transition:stroke-dashoffset .6s cubic-bezier(.65,0,.35,1); }
+  figure:hover .hl rect, figure:focus-visible .hl rect, figure.tapped .hl rect { stroke-dashoffset:0; }
+  figcaption { position:absolute; inset:auto 0 0 0; padding:2.2rem .7rem .6rem; display:flex; justify-content:space-between; align-items:end; gap:.5rem;
+               font:400 9px 'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; color:#F6F6F1; line-height:1.4;
+               background:linear-gradient(to top, rgba(11,31,58,.72), rgba(11,31,58,0)); }
+  figcaption b { display:block; font-weight:500; opacity:.75; }
+  @media (hover: hover) and (min-width: 761px) {
+    figcaption { opacity:0; transform:translateY(10px); transition:opacity .45s, transform .45s cubic-bezier(.22,1,.36,1); }
+    figure:hover figcaption { opacity:1; transform:none; }
+  }
+  .big { grid-column:span 2; grid-row:span 2; } .big figcaption { font-size:10px; padding:3rem .9rem .8rem; }
+  .big { padding:10px; }
+  .p01 { grid-area:1 / 1 / 3 / 3; } .p02 { grid-area:1 / 3; } .p03 { grid-area:1 / 4; } .p04 { grid-area:1 / 5 / 3 / 7; }
+  .p05 { grid-area:2 / 3; } .p06 { grid-area:2 / 4; }
+  .p07 { grid-area:3 / 1; } .p08 { grid-area:3 / 2; } .p09 { grid-area:3 / 3; } .p10 { grid-area:3 / 4; }
+  .note { grid-area:3 / 5 / 4 / 7; border:1px solid var(--rule); padding:1.2rem; display:flex; flex-direction:column; justify-content:space-between; }
+  .note .count { font-family:'Instrument Serif',serif; font-size:2.4rem; line-height:1; }
+  .note .count i { color:var(--electric); }
+  .note a { font-family:'Instrument Serif',serif; font-style:italic; font-size:1.6rem; color:var(--ink); text-decoration:none; }
+  .note p { font:400 9px 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); line-height:1.6; }
+  .foot { margin-top:6rem; display:flex; justify-content:space-between; align-items:end; }
+  .foot a { font-family:'Instrument Serif',serif; font-style:italic; font-size:2.25rem; color:var(--ink); text-decoration:none; }
+  @media (max-width: 760px) {
+    section { padding:5rem 20px; } .head { display:block; margin-bottom:3rem; } .head .label { margin-bottom:1rem; }
+    .grid { --g:10px; grid-template-columns:repeat(2,1fr); grid-auto-rows:calc((100cqw - var(--g)) / 2 * 4 / 3); }
+    .grid > * { grid-area:auto !important; }
+    .grid > .big { grid-column:span 2 !important; grid-row:span 2 !important; }
+    .grid > .note { grid-column:span 2 !important; grid-row:span 1 !important; }
+    /* phones: captions move into the mat under the photo, so nothing overlaps an image */
+    .grid { grid-auto-rows:auto; }
+    .grid > .big { grid-row:span 1 !important; }
+    .ph { height:auto; overflow:visible; }
+    .ph img { position:static; aspect-ratio:3/4; height:auto; }
+    figcaption { position:static; background:none; color:var(--ink-faint); padding:.55rem 0 .1rem; font-size:8.5px; }
+    figcaption b { color:var(--ink-soft); opacity:1; }
+    .big figcaption { padding:.6rem 0 .1rem; font-size:9px; }
+    .hl rect { transition-duration:.35s; }
+    .foot { flex-direction:column; align-items:flex-start; gap:1rem; }
+  }
+</style>
+</head>
+<body>
+<section>
+  <div class="head">
+    <div class="label">§ 07 — Lens</div>
+    <div>
+      <h2>Off-duty, <i>through glass</i>.</h2>
+      <p class="intro">Shot on a Nothing Phone (3a) Pro: light, geometry and the occasional accident. The feed is private; this is the cut I share.</p>
+    </div>
+  </div>
+  <div class="wrap"><div class="grid" id="grid"></div></div>
+</section>
+<script>
+// placement order (reading order of the grid); big = 2x2 tile
+const photos = [
+  ['f01', 'Sigiriya, from Pidurangala', 'May 2026', 1], ['f02', 'Small tenant', 'Apr 2026'], ['f03', 'Architecture at nightfall', 'May 2025'],
+  ['f10', 'Storm light', 'Sep 2026', 1], ['f05', 'Pink in the green', 'Jan 2026'], ['f04', 'Thalpe, low tide', 'Sep 2025'],
+  ['f07', 'A dahlia after dark, Nuwara Eliya', 'Jan 2026'], ['f06', 'Above the mist, Sigiriya', 'Jan 2026'],
+  ['f09', 'Colombo skyline, blue hour', 'Oct 2025'], ['f08', 'Getting lost up Ella Rock', 'Jan 2026'],
+];
+document.getElementById('grid').innerHTML = photos.map(([file, cap, when, big], i) => {
+  const n = String(i + 1).padStart(2, '0');
+  return `<figure class="p${n}${big ? ' big' : ''}" tabindex="0"><div class="ph"><img src="gal/${file}.jpg" alt="${cap}" loading="lazy"><figcaption><span><b>Frame ${n}</b>${cap}</span><span>${when}</span></figcaption></div><svg class="hl" aria-hidden="true"><rect x="0" y="0" width="100%" height="100%" pathLength="1"/></svg></figure>`;
+}).join('') + `<div class="note"><div class="count">10 <i>frames</i></div><div><p>2025 – 2026 · Sri Lanka<br>Private account. Request access for the full feed.</p><a href="#">@nothing._.ddc ↗</a></div></div>`;
+// touch: quick trace, then (in production) open the viewer
+document.querySelectorAll('figure').forEach((f) => f.addEventListener('click', () => { f.classList.add('tapped'); setTimeout(() => f.classList.remove('tapped'), 900); }));
+</script>
+</body>
+</html>

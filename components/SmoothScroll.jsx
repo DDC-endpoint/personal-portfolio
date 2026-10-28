@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import Lenis from "lenis";
+import { getLenis, setLenis } from "@/lib/lenis";
 
 export default function SmoothScroll() {
   useEffect(() => {
@@ -12,6 +13,8 @@ export default function SmoothScroll() {
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
     });
+    // Shared with the page transition, for links to the page you're on.
+    setLenis(lenis);
 
     // Lenis only smooths wheel events by default — anchor link clicks (#about,
     // #work, etc.) bypass it and cause an instant native browser jump. We
@@ -20,7 +23,7 @@ export default function SmoothScroll() {
     //
     // Uses a single delegated listener on `document` rather than attaching to a
     // one-time snapshot of anchors. This catches every in-page anchor — including
-    // links rendered after mount (e.g. the ServicesNav links and the mobile-menu
+    // links rendered after mount (e.g. the mobile-menu
     // overlays, which are conditionally rendered) — so all pages behave alike.
     function handleAnchorClick(e) {
       const anchor = e.target.closest?.('a[href^="#"]');
@@ -54,6 +57,7 @@ export default function SmoothScroll() {
 
     return () => {
       document.removeEventListener("click", handleAnchorClick);
+      if (getLenis() === lenis) setLenis(null);
       lenis.destroy();
     };
   }, []);

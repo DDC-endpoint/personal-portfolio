@@ -1,5 +1,7 @@
 # DDC Portfolio — Session Handoff
-> Generated: 2026-06-06 | Updated: 2026-07-18 | Branch: `main`
+> Generated: 2026-06-06 | Updated: 2026-10-27 | Branch: `main` (+ V3 in progress on `v3`)
+
+> **V3 is in progress on the local `v3` branch.** Everything below describes `main` unless a line says "V3". The V3 record (design, decisions, plans, status) lives in `docs/v3/`; start with `docs/v3/README.md`. V3 Phase 1 is **merged into `v3`** (2026-10-27; `v3` is local only, not pushed). It removed `Marquee.jsx` and added the ASCII hero portrait (its wave plays as the kept `IntroStamp` curtain lifts) and the cursor lens — see *V3 Phase 1* below. **Next: Phase 2 (Projects)** — see `docs/v3/README.md` → "The next step".
 
 ---
 
@@ -153,13 +155,14 @@ Both pages were 100/100/100/100 on a11y/BP/SEO/Agentic but **performance** sat a
 - Standalone route with its own metadata, canonical, OG, Twitter, `OfferCatalog` JSON-LD, and `FAQPage` JSON-LD
 - 6 sections: Intro (unnumbered) · `§ 01 — What I do` · `§ 02 — How it works` · `§ 03 — Recent work` · `§ 04 — FAQ` · `§ 05 — Start a project`
 - **7 services** with LKR/USD pricing and turnarounds:
-  - § 01 Web design & development — from LKR 18,000 / $150, ~2–3 days
-  - § 02 Business & portfolio sites — from LKR 40,000 / $500, ~1 week
-  - § 03 Booking & scheduling sites — from LKR 65,000 / $800, 1–2 weeks
-  - § 04 Redesigns & speed fixes — from LKR 25,000 / $200, 1–3 days
-  - § 05 SEO & AI visibility audit — from LKR 50,000 / $299, 2–4 days
-  - § 06 SEO & GEO implementation — from LKR 65,000 / $400, 1–2 weeks *(final price quoted from audit scope)*
-  - § 07 Ongoing SEO & GEO retainer — from LKR 48,000 / $225/mo, monthly
+  - § 01 Web design & development — from LKR 30,000 / $300, ~2–3 days
+  - § 02 Business & portfolio sites — from LKR 60,000 / $600, ~1 week
+  - § 03 Booking & scheduling sites — from LKR 120,000 / $1,200, 1–2 weeks
+  - § 04 Redesigns & speed fixes — from LKR 30,000 / $300, 1–3 days
+  - § 05 SEO & AI visibility audit — from LKR 40,000 / $400, 2–4 days
+  - § 06 SEO & GEO implementation — from LKR 75,000 / $750, 1–2 weeks *(final price quoted from audit scope)*
+  - § 07 Ongoing SEO & GEO retainer — from LKR 45,000 / $400/mo, monthly
+  - Larger custom builds from about LKR 250,000. Prices updated October 2026 from market research (V3 `docs/v3/decisions.md`); on `v3`, not yet live
 - **SEO/GEO service flow:** audit (§05) → implementation (§06, quoted after audit) → retainer (§07, optional ongoing)
 - FAQ section has 7 entries including deposit/cancellation policy
 - `mailto:` links include `?subject=Website%20enquiry` pre-fill in both `Services.jsx` and `Contact.jsx`
@@ -182,7 +185,7 @@ Both pages were 100/100/100/100 on a11y/BP/SEO/Agentic but **performance** sat a
 - Delegation (not a one-time `querySelectorAll` snapshot) means it catches links rendered *after* mount too — the `ServicesNav` links and both navs' conditionally-rendered mobile-menu overlays now smooth-scroll on every page
 - Without this, native anchor jumps bypass Lenis and `whileInView` triggers all at once
 
-### Interactive Marquee (`Marquee.jsx`)
+### Interactive Marquee (`Marquee.jsx`) — removed in V3 Phase 1 (kept here as history)
 - The italic ribbon between homepage sections ("Creative Technologist ✦ Code ✦ …") — **JS-driven `requestAnimationFrame` loop**, NOT a CSS keyframe (the old `@keyframes marquee` / `.marquee-track` rule was removed from `globals.css`)
 - **Auto-scrolls** leftward at the same speed as before (`baseline = -single / LOOP_SECONDS`, `LOOP_SECONDS = 38`; `single = track.scrollWidth / 2` since two copies are rendered)
 - **Grab-to-drag:** pointerdown grabs it, pointermove moves the offset 1:1 with the cursor, a smoothed throw velocity is captured
@@ -289,6 +292,18 @@ All tokens are CSS-variable-backed (`rgb(var(--c-*) / <alpha-value>)`) so `/opac
 
 ---
 
+## V3 Phase 1 (merged into `v3`, 2026-10-27)
+
+Plan: `docs/v3/plan-phase-1.md`; spec: `docs/v3/design.md` + `docs/v3/hero-portrait.md`.
+- **Hero portrait:** `public/hero/portrait.webp` (800×1000, EXIF-free) comes from `npm run process-portrait "<headshot.png>"`. The original headshot stays outside the repo. The canvas samples it with `createImageBitmap` (off the main thread). Don't switch back to `drawImage` + `getImageData` on the full image: that readback was a ~65 ms task on a throttled phone.
+- **Loader:** `IntroStamp` stays (every load of Home). As it lifts (`INTRO_OFFSET`), the portrait plays a 2.4 s wave from the face and the hero text floats in as before. Its states are exposed as `data-state` on `[data-portrait]`: `loading → wave → static`, `skipped` (late) or `error`.
+- **Lens:** over the portrait, the cursor ring (`.cursor-ring.is-lens`, 240 px) grows into a lens over the full-colour photo. On touch, dragging moves a canvas-drawn lens.
+- **Decode language:** the 8 § labels on Home decode on entry. Mono buttons (the hero SERVICES buttons, "Request CV") scramble on hover and focus. Underlined links (nav, "Services & pricing") don't (Damian). `/services` gets these in Phase 4.
+- **Lighthouse (prod builds, devtools throttling):** at parity with `main`. Desktop scores 100, and mobile is 79–81 with LCP about 2.1 s on both.
+- **Fixed on `v3`, still live on `main`:** under reduced motion, components that branched markup on framer's `useReducedMotion()` (`SplitLines`, `Parallax`, `Timeline`, `ScrollProgress`) failed hydration (React #418), and the rebuild reset the theme to light. They now use `lib/useReducedMotion.js`, a hydration-safe hook. Any new component that changes its markup for reduced motion must use it too. The fix reaches the live site when `v3` merges to `main` (see `docs/v3/README.md` → "Before `v3` merges to `main`").
+
+---
+
 ## Key Files
 
 ```
@@ -320,6 +335,9 @@ lib/
   lab.js                — CATEGORIES + ALL_DEMOS (authored wave order) → exported DEMOS (category-grouped),
                           SECTIONS (index grouping/counts), labHref()/LAB_INDEX_HREF (clean URL shape),
                           LAB_PHOTOS (shared captioned photo set), getDemo, demoIndex
+  decode.js             — (V3) noise set, scrambleText (pure, unit-tested)
+  portrait.js           — (V3) every hero-portrait number: field build, density, shade, fade, wave, scan (pure, unit-tested)
+  cursor.js             — (V3) the cursor ring's eased position, shared with the portrait lens
 
 components/
   lab/
@@ -339,7 +357,7 @@ components/
   MotionProvider.jsx    — <MotionConfig reducedMotion="user"> wrapper
   ClientEnhancements.jsx— lazy-loads Cursor + SmoothScroll (ssr:false)
   SmoothScroll.jsx      — Lenis init + delegated anchor click interception on document (lenis.scrollTo, offset -80)
-  Hero.jsx              — oversized name, kicker, scroll parallax, desktop corner Services button
+  Hero.jsx              — oversized name, kicker, scroll parallax, desktop corner Services button; (V3) portrait stage + mobile Services button
   About.jsx             — bio, "What I build" + "How I work" + Services link
   Services.jsx          — full /services page content (6 sections, pricing, hero corner Portfolio button, WhatsApp + email CTAs)
   Leadership.jsx        — prefect/interact roles
@@ -350,12 +368,12 @@ components/
   Timeline.jsx          — chronological milestones
   Resume.jsx            — CV download (id="resume")
   Lens.jsx              — phone photography gallery
-  Marquee.jsx           — interactive ribbon: JS rAF auto-scroll + grab-to-drag with momentum/settle
   Contact.jsx           — email + socials (data from lib/site.js)
   Footer.jsx            — v:03 / Always evolving
 
   SplitLines.jsx        — masked line reveals for headings (fonts.ready + offsetTop grouping; sr-only a11y text)
-  IntroStamp.jsx        — every-reload decrypt intro overlay (z-65, pointer-events-none, reduced-motion skipped)
+  HeroPortrait.jsx      — (V3) canvas ASCII portrait: field/rest render, loader wave as the curtain lifts, idle scan + flicker, cursor lens
+  Scramble.jsx          — (V3) DecodeLabel (§ labels decode on entry) + ScrambleText (link/button hover/focus scramble)
   ScrollProgress.jsx    — 2px electric top progress bar (z-55, both pages)
   Parallax.jsx          — scroll drift for NON-TEXT accents only (Lens photos, hello. watermark)
 
@@ -519,10 +537,10 @@ A 1:1 (2160×2160 at 2×) services poster lives at `posts/DDC-Services-Poster.pn
 
 ## Critical Design Rules — DO NOT RE-BREAK
 1. **Italic name clipping** — `overflow-hidden` on LINE-LEVEL divs (`pb-[0.04em]`), never on word spans
-2. **OG image** — static `public/og.jpg` only. No dynamic `/opengraph-image` route — causes 502 on nginx+PM2
+2. **OG images** — static files in `public/` only: `public/og.jpg` (Home, `/privacy`) and `public/og-services.jpg`, wired through `lib/shareImages.js` (V3). No `opengraph-image` route or file in `app/` — a dynamic one caused 502 on nginx+PM2
 3. **"Available · 2026"** — `<Availability />` component, never `<a>`, on both desktop and mobile
 4. **Mobile hamburger X** — y offset exactly `6` (not 7); lines use `gap-[5px]`
-5. **Footer** — `text-right` at all sizes, not just mobile
+5. **Footer** — option B (V3, Damian): three columns (© + trading name · tagline + Home/Services/Privacy links · version) read left, centre, right on desktop and are all centred on phones. Supersedes the old `text-right` at all sizes
 6. **No stats strip** in Leadership (removed by user)
 7. **No scroll parallax** on project titles (removed by user)
 8. **Theme transition flicker** — global `color` transition removed from `*`; only `background-color` + `border-color` on `*`, and `color` on `body` only
@@ -530,14 +548,14 @@ A 1:1 (2160×2160 at 2×) services poster lives at `posts/DDC-Services-Poster.pn
 10. **Services not in `NAV_LINKS`** — it's a route, not an anchor; adding it breaks the smooth-scroll feel and clutters the nav; surface via in-page links instead
 11. **Dark mode Services button** — `dark:bg-ink dark:text-ivory` (NOT `dark:bg-ivory` — ivory is navy in dark mode, ink is white)
 12. **Lenis anchors** — `SmoothScroll.jsx` uses ONE delegated `click` listener on `document` (`e.target.closest('a[href^="#"]')`), NOT a `querySelectorAll` snapshot. Keep it delegated — a snapshot misses links rendered after mount (ServicesNav, mobile overlays), causing native jumps that make `whileInView` animations misfire
-13. **Marquee is JS-driven** — `Marquee.jsx` runs its own rAF loop for grab-to-drag + momentum. Do NOT revert it to a CSS `@keyframes marquee` / `.marquee-track` animation (that removes the drag interaction). The transform is set inline every frame; don't add a competing CSS `animation` or `transition: transform` to the track
+13. **(Removed in V3 Phase 1 — `Marquee.jsx` is gone; don't reintroduce a marquee, it read as AI-template.)** Was: **Marquee is JS-driven** — `Marquee.jsx` runs its own rAF loop for grab-to-drag + momentum. Do NOT revert it to a CSS `@keyframes marquee` / `.marquee-track` animation (that removes the drag interaction). The transform is set inline every frame; don't add a competing CSS `animation` or `transition: transform` to the track
 14. **GlitchField is a `<canvas>`** — never render its glyphs as DOM text. DOM text would (a) be read aloud as gibberish by screen readers and (b) fail the colour-contrast audit at the intended faint opacity. Keep it `aria-hidden`, canvas-drawn, and keep the `IntersectionObserver` + `visibilitychange` gating so the two fields don't animate off-screen
 15. **No parallax/drift on TEXT, no magnetic buttons** — user removed heading parallax twice ("letters lag when scrolling up") and the magnetic CTA pull ("reduces the professional effect"; `Magnetic.jsx` deleted). `Parallax.jsx` is only for non-text accents (Lens photos, `hello.` watermark). Card titles also must not slide on hover (removed) — colour change + card sweep only. Button hovers = colour fill + arrow nudge, nothing positional
 16. **SplitLines mask allowance is `pb-[0.14em] -mb-[0.14em]`** — shrinking it clips italic descenders (the *growing* g). Its screen-reader text is an `sr-only` span, NOT `aria-label` (invalid on `<p>`, fails Lighthouse `aria-prohibited-attr`)
 17. **Soon-card entrances animate to `opacity: 0.75`** — framer writes inline opacity; animating to 1 would override the `opacity-75` class and un-dim them
-18. **Motion constants come from `lib/motion.js`** — `EASE`, `VIEWPORT`, `SPRING`, `INTRO_OFFSET`, `shouldPlayIntro()`. Hero and IntroStamp must share the same memoized `shouldPlayIntro()` decision; don't give either its own check
-19. **IntroStamp plays every reload** (user preference — not session-gated). Keep it `pointer-events-none` + `aria-hidden` + reduced-motion-skipped so it can never trap clicks or tank a11y
-20. **Above-fold content must paint in the SSR HTML** (perf pass 2026-07-18) — never wrap top-of-page content in `Reveal`/framer `initial={{opacity:0}}`; use `EagerReveal` (see *Performance Pass* section). Don't refactor EagerReveal into a conditional tag swap (remount re-registers LCP late), don't give the LCP paragraphs (`replay={false}`) their entrance back, and keep IntroStamp SSR-rendered with its three CSS gates (reduced-motion, `html:not(.js)`, 5s failsafe) in globals.css
+18. **Motion constants come from `lib/motion.js`** — `EASE`, `VIEWPORT`, `SPRING`, `INTRO_OFFSET`, `shouldPlayIntro()`. Hero, IntroStamp and (V3) HeroPortrait must share the same memoized `shouldPlayIntro()` decision; don't give any of them its own check
+19. **IntroStamp plays every reload** (user preference — not session-gated; reconfirmed for V3 on 2026-10-27, with the portrait wave starting as it lifts). Keep it `pointer-events-none` + `aria-hidden` + reduced-motion-skipped so it can never trap clicks or tank a11y
+20. **Above-fold content must paint in the SSR HTML** (perf pass 2026-07-18) — never wrap top-of-page content in `Reveal`/framer `initial={{opacity:0}}`; use `EagerReveal` (see *Performance Pass* section). Don't refactor EagerReveal into a conditional tag swap (remount re-registers LCP late), don't give the LCP paragraphs (`replay={false}`) their entrance back (V3: the hero lede stays static — Damian chose LCP over the spec's blur fade), and keep IntroStamp SSR-rendered with its three CSS gates (reduced-motion, `html:not(.js)`, 5s failsafe) in globals.css
 
 ---
 
@@ -549,6 +567,8 @@ npm.cmd run dev
 # http://localhost:3000 (or 3001 if 3000 is in use)
 ```
 > Use `npm.cmd` not `npm` — PowerShell execution policy blocks the .ps1 shim
+
+> **Tests (V3):** `npm test` runs Vitest over the pure `lib/` modules (`tests/unit/`). `npm run e2e` runs Playwright (`e2e/`, desktop 1440×900 + mobile 390×844) against `next dev` on :3000 — it reuses a running dev server or starts one. First-visit loader tests retry: on a cold dev build the 2.5 s slow-load gate can legitimately skip the wave.
 
 > **Never run `npm run build` while `next dev` is running** — they share the `.next` folder; production manifests will clobber dev manifests, causing CSS 404s. If this happens: stop dev server → `rm -rf .next` → restart dev server.
 

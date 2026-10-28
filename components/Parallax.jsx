@@ -1,5 +1,6 @@
 "use client";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useRef } from "react";
 
 // Subtle scroll-linked drift: the child travels from +distance to -distance

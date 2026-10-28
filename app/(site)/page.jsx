@@ -1,6 +1,5 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
-import Marquee from "@/components/Marquee";
 import About from "@/components/About";
 import Leadership from "@/components/Leadership";
 import Skills from "@/components/Skills";
@@ -12,18 +11,30 @@ import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import ClientEnhancements from "@/components/ClientEnhancements";
 import ScrollProgress from "@/components/ScrollProgress";
-import IntroStamp from "@/components/IntroStamp";
+import { ldJson } from "@/lib/jsonld";
+import { homeGraph } from "@/lib/structuredData";
+import { SHARE } from "@/lib/shareImages";
+
+export const metadata = {
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Damian De Cruz — Freelance Web Designer & Developer",
+    description: "Freelance web designer and developer in Colombo, Sri Lanka. Custom, fast websites for businesses and creatives, often live in 2–3 days. See work and prices.",
+    type: "website",
+    url: "/",
+    siteName: "Damian De Cruz",
+    images: [SHARE.home],
+  },
+};
 
 export default function Home() {
   return (
     <>
-      <IntroStamp />
       <ClientEnhancements />
       <ScrollProgress />
       <Nav />
       <main className="relative">
         <Hero />
-        <Marquee />
         <About />
         <Leadership />
         <Skills />
@@ -34,6 +45,7 @@ export default function Home() {
         <Contact />
         <Footer />
       </main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(homeGraph()) }} />
     </>
   );
 }

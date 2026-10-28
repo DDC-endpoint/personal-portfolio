@@ -1,7 +1,8 @@
 "use client";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "react";
-import { EASE, VIEWPORT } from "@/lib/motion";
+import { EASE, VIEWPORT, isRevealed, onReveal } from "@/lib/motion";
 
 // Masked line reveal for headings: the rendered text is measured into real
 // wrapped lines, then each line rises from behind an overflow-hidden mask.
@@ -100,6 +101,9 @@ export default function SplitLines({
 
   const canSplit = !reduce && !failed && words !== null;
   const inView = useInView(containerRef, { once: true, margin: VIEWPORT.margin });
+  // A heading in view on arrival rises as the curtain clears (lib/motion.js).
+  const [revealed, setRevealed] = useState(isRevealed);
+  useEffect(() => onReveal(() => setRevealed(true)), []);
 
   // Measure real line breaks: wait for the display font, then one batched
   // read of every word's offsetTop, grouped into lines.
@@ -180,7 +184,7 @@ export default function SplitLines({
   }
 
   const played = hasPlayedRef.current;
-  const show = inView && lines !== null;
+  const show = inView && revealed && lines !== null;
 
   return (
     <Tag ref={containerRef} className={className}>
@@ -192,7 +196,7 @@ export default function SplitLines({
         {lines === null ? (
           <span
             ref={measureRef}
-            className={`block ${played ? "" : "opacity-0"}`}
+            className={`block ${played ? "" : "opacity-0 nojs:opacity-100"}`}
           >
             {words.map((w, i) => (
               <WordSpan key={i} word={w} />

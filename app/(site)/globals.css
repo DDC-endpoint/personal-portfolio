@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
+/* Set pre-paint by the inline script in (site)/layout.jsx when JS runs. */
+@custom-variant js (&:is(.js *));
+/* The opposite: no JS ran. For class-based start states that must not hide
+   content from no-JS visitors (e.g. nojs:opacity-100). */
+@custom-variant nojs (&:is(html:not(.js) *));
+/* md+ with a real hover: the Lens captions hide at rest only here. */
+@custom-variant can-hover (@media (hover: hover) and (min-width: 48rem));
 
 @theme {
   --color-ivory: rgb(var(--c-ivory));
@@ -12,6 +19,7 @@
   --color-sky: rgb(var(--c-sky));
   --color-mist: rgb(var(--c-mist));
   --color-rule: rgb(var(--c-rule));
+  --color-live: rgb(var(--c-live));
   --color-lab-bg: rgb(var(--lab-bg));
   --color-lab-panel: rgb(var(--lab-panel));
   --color-lab-line: rgb(var(--lab-line));
@@ -63,6 +71,10 @@
     --c-sky: 219 234 254; /* #DBEAFE  atmospheric glow       */
     --c-mist: 238 244 253; /* #EEF4FD  soft surface glow      */
     --c-rule: 217 222 230; /* #D9DEE6  hairline rules/borders */
+    --c-live: 34 197 94; /* #22C55E  /portfolio's live-site dot, both themes */
+    /* #60A5FA  the Skills terminal's accent, in both themes. A named
+       exception: neither electric token passes AA on the navy panel. */
+    --c-term-accent: 96 165 250;
 
     /* legacy aliases */
     --bg: rgb(var(--c-ivory));
@@ -116,6 +128,12 @@
   outline-offset: 3px;
   border-radius: 2px;
 }
+/* On the electric cards (Contact, /services "Start a project") an electric
+   ring would vanish: it takes the card's text colour instead (ivory, which is
+   the ink token in dark mode), and the pill buttons keep their shape. */
+[data-electric-card] :focus-visible { outline-color: rgb(var(--c-ivory)); }
+.dark [data-electric-card] :focus-visible { outline-color: rgb(var(--c-ink)); }
+[data-electric-card] .rounded-full:focus-visible { border-radius: 9999px; }
 
 /* Grain overlay */
 .grain {
@@ -130,20 +148,58 @@
 /* On navy, multiply hides the grain — screen it back in, a touch stronger. */
 .dark .grain { mix-blend-mode: screen; opacity: 0.07; }
 
-/* Intro curtain (IntroStamp) — SSR'd so it covers the very first paint.
-   Hidden for reduced-motion visitors (the intro never plays for them) and
-   for no-JS visitors (nothing would ever remove the curtain). The `js`
-   class is set by the pre-paint inline script in (site)/layout.jsx. */
-@media (prefers-reduced-motion: reduce) {
-  .intro-stamp { display: none !important; }
+/* The first load: the curtain is in the server HTML covering the page
+   (data-curtain="intro"), with the morph loader on its middle panel, so the
+   first paint is never a blank page. Hidden for visitors it must never reach:
+   reduced motion and forced colours (no curtain, no loader) and no JS
+   (nothing would ever lift it; the curtain is nojs:hidden). Failsafe: if
+   hydration never happens (a chunk fails to load), it dissolves on its own;
+   normally the engine takes over long before 5 s. */
+.curtain[data-curtain="intro"] { pointer-events: none; animation: curtain-failsafe 0.4s ease 5s forwards; }
+.curtain[data-curtain="intro"] .curtain-panel { transform: none; }
+/* The seams' resting shadow from the first paint, as the engine draws it
+   (lib/curtain.js → shadow), so it doesn't pop on when scripts arrive. */
+.curtain[data-curtain="intro"] [data-drop] { filter: drop-shadow(0 0 14px rgb(var(--c-ink) / 0.1)); }
+.dark .curtain[data-curtain="intro"] [data-drop] { filter: drop-shadow(0 0 14px rgb(0 0 0 / 0.38)); }
+@keyframes curtain-failsafe { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
+  .curtain[data-curtain="intro"] { display: none; }
 }
-html:not(.js) .intro-stamp { display: none !important; }
-/* Failsafe: if hydration never happens (a chunk fails to load), the curtain
-   dissolves on its own — normally React unmounts it long before 5s. */
-@keyframes intro-stamp-failsafe {
-  to { opacity: 0; visibility: hidden; }
+/* A short load (later loads in the session, lib/loader.js → loadKind): only
+   the name resolves. The pre-paint script sets .ddc-seen from the same
+   session flag, so the blob never flashes on a reload. */
+html.ddc-seen .morph-loader [data-orb],
+.morph-loader[data-kind="short"] [data-orb] { display: none; }
+/* The count's digits are fixed-width, so the number never jitters. */
+.ml-d { display: inline-block; width: 0.5em; text-align: center; }
+
+/* The page-change curtain (components/transition/): five panels (three
+   below md), each a little wider than its share so no seam shows between
+   them. Invisible while idle, so it never paints over the page; while it
+   runs it takes every click, so nothing lands on the page underneath. */
+.curtain-panel { position: absolute; top: -15vh; height: 130vh; width: calc(20% + 1px); transform: translate3d(0, 130vh, 0); will-change: transform; }
+.curtain-panel[data-panel="1"] { left: 20%; }
+.curtain-panel[data-panel="2"] { left: 40%; }
+.curtain-panel[data-panel="3"] { left: 60%; }
+.curtain-panel[data-panel="4"] { left: 80%; }
+@media (max-width: 767px) {
+  .curtain-panel { width: calc(100% / 3 + 1px); }
+  .curtain-panel[data-panel="0"], .curtain-panel[data-panel="4"] { display: none; }
+  .curtain-panel[data-panel="1"] { left: 0; }
+  .curtain-panel[data-panel="2"] { left: calc(100% / 3); }
+  .curtain-panel[data-panel="3"] { left: calc(200% / 3); }
 }
-.intro-stamp { animation: intro-stamp-failsafe 0.4s ease 5s forwards; }
+.curtain[data-curtain="idle"] { visibility: hidden; }
+.curtain:not([data-curtain="idle"]):not([data-curtain="intro"]):not([data-intro]) { pointer-events: auto; }
+/* The label's dot shows only with a destination. */
+[data-label]:empty + span { display: none; }
+/* The first-load intro (data-curtain="intro", then data-intro while the
+   engine runs it) lets the pointer through, so a hover under a resting
+   mouse works the moment the page shows. Links between pages still wait
+   (the controller is busy). */
+/* After a page change, focus moves to <main> so Tab starts at the top of the
+   new page; it isn't a control, so it never shows a focus ring. */
+main[tabindex="-1"]:focus-visible { outline: none; }
 
 /* Top fade scrim — content fades out before colliding with the nav */
 .top-fade {
@@ -161,10 +217,75 @@ html:not(.js) .intro-stamp { display: none !important; }
   );
 }
 
-/* Vertical rule */
-.rule-v { background: linear-gradient(to bottom, transparent 0%, rgb(var(--c-rule)) 12%, rgb(var(--c-rule)) 88%, transparent 100%); }
+/* Timeline circuit: bright dashes flow along the lit trace, even at rest,
+   but only while the section is on screen (Timeline sets data-flowing).
+   Reduced motion: no moving current. */
+.circuit-flow { stroke-dasharray: 2 14; animation: circuit-flow 0.5s linear infinite paused; }
+[data-flowing="true"] .circuit-flow { animation-play-state: running; }
+@keyframes circuit-flow { to { stroke-dashoffset: -16; } }
+@media (prefers-reduced-motion: reduce) { .circuit-flow { display: none; } }
 
-/* Marquee — JS-driven (see components/Marquee.jsx); auto-scroll + grab-to-drag */
+/* Skills terminal: every string is in the server HTML and "types" by
+   un-clipping, one character (1ch of the mono face) at a time, from the
+   --n the Terminal writes. Only with JS and motion allowed, and only until
+   the panel is done; no-JS and reduced motion see it fully typed. */
+.term-t { display: inline-block; vertical-align: top; white-space: pre; overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-term="idle"] .term-t,
+  .js [data-term="typing"] .term-t { width: calc(var(--n, 0) * 1ch); }
+  .js [data-term="idle"] [data-cursor],
+  .js [data-term="typing"] [data-cursor] { visibility: hidden; }
+  [data-cursor] { animation: term-blink 1.06s steps(1) infinite; }
+}
+@keyframes term-blink { 50% { opacity: 0; } }
+
+/* /portfolio (Phase 6). Each card rises as its row enters (WorkCard sets
+   data-in and --in-delay); only with JS and motion allowed, with a failsafe
+   in case scripts never run. */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-work-card]:not([data-in]) { opacity: 0; transform: translateY(44px); }
+  /* Only until hydration: afterwards each card rises when its row enters. */
+  .js [data-work][data-ready="false"] [data-work-card]:not([data-in]) { animation: work-failsafe 0.4s ease 5s forwards; }
+  [data-work-card][data-in] { transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 1s cubic-bezier(0.22, 1, 0.36, 1); transition-delay: var(--in-delay, 0ms); }
+}
+@keyframes work-failsafe { to { opacity: 1; transform: none; } }
+/* List view: the frame is a bare thumbnail, with no window bar or shadow. */
+[data-work][data-view="list"] [data-chrome] { display: none; }
+[data-work][data-view="list"] [data-frame] > div { box-shadow: none; }
+
+/* The address bar's caret blinks while the domain types, then twice more,
+   and goes. Reduced motion and no JS: no caret. */
+.addr-caret { animation: caret-blink 1s steps(1) infinite; }
+.addr-caret[data-done] { animation: caret-blink 1s steps(1) 2 forwards; }
+@keyframes caret-blink { 50%, 100% { opacity: 0; } }
+
+/* A live site's dot breathes, an upcoming card's skeleton lays itself out
+   (5.2 s), both only on screen ([data-onscreen], set by WorkCard). */
+.live-dot { animation: live-breathe 2.6s ease-in-out infinite paused; }
+.build-bar { transform-origin: left center; animation: build-lay 5.2s cubic-bezier(0.22, 1, 0.36, 1) infinite paused; animation-delay: calc(var(--k) * 0.16s); }
+[data-onscreen="true"] .live-dot,
+[data-onscreen="true"] .build-bar { animation-play-state: running; }
+@keyframes live-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--c-live) / 0.45); opacity: 1; }
+  50% { box-shadow: 0 0 0 4px rgb(var(--c-live) / 0); opacity: 0.7; }
+}
+@keyframes build-lay {
+  0% { transform: scaleX(0); opacity: 1; }
+  16%, 70% { transform: scaleX(1); opacity: 1; }
+  82%, 100% { transform: scaleX(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .addr-caret { display: none; }
+  .live-dot, .build-bar { animation: none; }
+}
+html:not(.js) .addr-caret { display: none; }
+
+/* No JS: framer-motion server-renders every entrance's start state as an
+   inline style (opacity:0, or the hero name's translateY below its line
+   mask) that only its own JS would animate away, so without JS that content
+   would never show. Show it. */
+html:not(.js) [style*="opacity:0"],
+html:not(.js) [style*="transform:translateY"] { opacity: 1 !important; transform: none !important; }
 
 /* Hero blob */
 @keyframes float-slow {
@@ -186,7 +307,8 @@ html:not(.js) .intro-stamp { display: none !important; }
   html.js-cursor a,
   html.js-cursor button,
   html.js-cursor [data-hover],
-  html.js-cursor [role="button"] {
+  html.js-cursor [role="button"],
+  html.js-cursor summary {
     cursor: none !important;
   }
 }
@@ -198,20 +320,28 @@ html:not(.js) .intro-stamp { display: none !important; }
   html.js-cursor a,
   html.js-cursor button,
   html.js-cursor [data-hover],
-  html.js-cursor [role="button"] {
+  html.js-cursor [role="button"],
+  html.js-cursor summary {
     cursor: auto !important;
   }
 }
 
+/* The cursor sits above every layer, the Lens viewer (z-100) included: the
+   native cursor is hidden, so anything over it hides the pointer. The one
+   exception is the page curtain (z-120): the cursor stays behind it while it
+   covers (Damian). */
 .cursor-dot, .cursor-ring {
   position: fixed; top: 0; left: 0;
-  pointer-events: none; z-index: 70;
+  pointer-events: none; z-index: 110;
   border-radius: 9999px;
   transform: translate(-50%, -50%);
   mix-blend-mode: difference;
 }
-.cursor-dot  { width: 6px; height: 6px; background: #F6F6F1; }
+.cursor-dot  { width: 6px; height: 6px; background: #F6F6F1; transition: opacity .2s; }
+.cursor-dot.is-hidden { opacity: 0; }
 .cursor-ring { width: 36px; height: 36px; border: 1px solid #F6F6F1; transition: width .25s, height .25s, opacity .25s; }
+/* Over the hero portrait the ring becomes the lens's thin electric rim */
+.cursor-ring.is-lens { border-color: rgb(var(--c-electric) / .5); mix-blend-mode: normal; }
 
 @media (max-width: 768px) {
   .cursor-dot, .cursor-ring { display: none; }
@@ -236,6 +366,31 @@ html:not(.js) .intro-stamp { display: none !important; }
 }
 .link-line:hover { background-size: 100% 1px; }
 
+/* The nav's underline: a pseudo-element, not .link-line's background,
+   because Chromium floors a background's tile size to whole CSS pixels (the
+   line came up to a pixel short or long of the word). Its ends sit on the
+   ink, not the letter cells:
+   --trail: the letter-spacing, which the browser also adds after the last
+   letter.
+   --bear: the glyphs' side bearing, the blank inside each cell (JetBrains
+   Mono capitals: 0.03-0.1em). */
+.nav-line { position: relative; }
+.nav-line::after {
+  content: "";
+  position: absolute;
+  left: var(--bear, 0px);
+  right: calc(var(--trail, 0px) + var(--bear, 0px));
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-line:hover::after,
+/* The current page keeps its underline drawn (Phase 6). */
+.nav-line[aria-current="page"]::after { transform: scaleX(1); }
+
 /* Big number outline */
 .outline-num {
   -webkit-text-stroke: 1px rgb(var(--c-ink));
@@ -244,7 +399,7 @@ html:not(.js) .intro-stamp { display: none !important; }
 
 /* ------------------------------------------------------------------ */
 /*  Reduced motion — honour the OS setting. Neutralises CSS-driven     */
-/*  loops (marquee, blobs, pulse) and the theme cross-fade. Framer     */
+/*  loops (blobs, pulse) and the theme cross-fade. Framer         */
 /*  animations are handled via MotionConfig reducedMotion="user", and  */
 /*  Lenis is skipped in SmoothScroll.jsx.                              */
 /* ------------------------------------------------------------------ */
