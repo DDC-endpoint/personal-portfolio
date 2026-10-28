@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact board placements</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  Phase 6 gate spike (2026-10-28): the 404's Isometric Board on the electric
+  contact cards (Home § 08 Contact, /services § 05 Start a project). Damian's
+  picks so far: ivory glass tiles, motion as on the 404 (hover lifts and holds,
+  idle wave, tap on phones, reduced motion settled). Placement is the open
+  question: A beside the text, B behind it, C a corner accent, D bleeding off
+  the card's edge. Serve with `node docs/v3/spike/serve.cjs`, then open
+  http://localhost:3200/contact-board.html (`?p=A..D`, `&card=start`).
+-->
+<style>
+  :root {
+    --ivory: #F6F6F1; --ink: #0B1F3A; --ink-soft: #16315A; --ink-faint: #5A6B82; --rule: #D9DEE6; --electric: #2563EB;
+    --card: #2563EB; --on: #F6F6F1;
+    --tile: rgba(246, 246, 241, .12); --tile-alt: rgba(246, 246, 241, .2); --tile-line: rgba(246, 246, 241, .38);
+    --edge: rgba(246, 246, 241, .95); --glow: rgba(246, 246, 241, .38); --shade: rgba(11, 31, 58, .5);
+    --ease: cubic-bezier(.22, 1, .36, 1);
+  }
+  :root[data-theme="dark"] { --ivory: #0B1F3A; --ink: #F6F6F1; --ink-soft: #A2B4D0; --ink-faint: #8EA1C0; --rule: #2A3F63; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--ivory); color: var(--ink); font-family: Manrope, system-ui, sans-serif; transition: background .3s, color .3s; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .page { margin: 0 auto; max-width: 100%; transition: max-width .3s; }
+  :root[data-phone="on"] .page { max-width: 390px; border-left: 1px dashed var(--rule); border-right: 1px dashed var(--rule); }
+  section { padding: 96px 40px 120px; border-top: 1px solid var(--rule); }
+  :root[data-phone="on"] section { padding: 72px 24px 96px; }
+  .label { color: var(--ink-faint); }
+
+  /* The card, as on the site (electric in both themes, ivory text) */
+  .card { position: relative; margin-top: 40px; border-radius: 8px; background: var(--card); color: var(--on); overflow: hidden; }
+  .content { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 48px; padding: 56px; pointer-events: none; }
+  .content a, .content button { pointer-events: auto; }
+  :root[data-phone="on"] .content { padding: 28px; gap: 40px; }
+  .row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--on); margin-right: 8px; vertical-align: middle; animation: pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity: .4; } }
+  h2 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: clamp(48px, 7vw, 6rem); line-height: .92; letter-spacing: -.02em; }
+  :root[data-phone="on"] h2 { font-size: 48px; }
+  h2 em { font-style: italic; }
+  .body { margin-top: 28px; max-width: 42rem; font-size: 19px; line-height: 1.6; }
+  :root[data-phone="on"] .body { font-size: 17px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { display: inline-flex; justify-content: space-between; gap: 16px; align-items: center; padding: 16px 24px; border-radius: 999px; font: 12px "JetBrains Mono", monospace; letter-spacing: .12em; text-decoration: none; }
+  .btn.solid { background: var(--on); color: #0B1F3A; }
+  .btn.line { border: 1px solid currentColor; color: var(--on); text-transform: uppercase; font-size: 11px; letter-spacing: .18em; }
+  :root[data-phone="on"] .btn { width: 100%; }
+  .socials { display: flex; gap: 32px; flex-wrap: wrap; border-top: 1px solid rgba(246, 246, 241, .3); padding-top: 24px; }
+  .socials a { color: var(--on); text-decoration: none; }
+
+  /* The board (lib/isoBoard.js maths, ivory glass) */
+  .board { position: absolute; z-index: 1; display: grid; place-items: center; }
+  .persp { perspective: 1100px; }
+  .grid { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: var(--gap); aspect-ratio: 1; width: var(--w); transform: rotateX(54deg) rotateZ(45deg); transform-style: preserve-3d; }
+  .tile { position: relative; transform-style: preserve-3d; }
+  .shade { position: absolute; inset: 0; border-radius: 2px; background: radial-gradient(circle, var(--shade), transparent 72%); opacity: 0; }
+  .face { position: absolute; inset: 0; border-radius: 2px; border: 1px solid var(--tile-line); background: var(--tile); backdrop-filter: blur(2px); will-change: transform; }
+  .tile.alt .face { background: var(--tile-alt); }
+  .edge { position: absolute; inset: 0; border-radius: 2px; opacity: 0; box-shadow: inset 0 0 0 1px var(--edge); background: linear-gradient(135deg, var(--glow), transparent 55%); }
+
+  /* A · beside the text: the card's empty right side */
+  [data-p="A"] .content { padding-right: calc(56px + min(30vw, 380px)); }
+  [data-p="A"] .board { right: 48px; top: 50%; translate: 0 -50%; width: min(30vw, 380px); height: min(28vw, 340px); --w: min(22vw, 270px); --gap: 6px; }
+  :root[data-phone="on"] [data-p="A"] .content { padding-right: 28px; padding-top: 250px; }
+  :root[data-phone="on"] [data-p="A"] .board { right: auto; left: 50%; top: 24px; translate: -50% 0; width: 300px; height: 220px; --w: 200px; --gap: 5px; }
+
+  /* B · behind the text: a big faint board, under everything */
+  [data-p="B"] .board { inset: -10% -6% -10% 30%; opacity: .55; --w: min(52vw, 760px); --gap: 10px; }
+  [data-p="B"] .face { backdrop-filter: none; }
+  :root[data-phone="on"] [data-p="B"] .board { inset: 10% -40% -10% -10%; --w: 460px; --gap: 8px; }
+
+  /* C · a corner accent, bottom right */
+  [data-p="C"] .board { right: 24px; bottom: 18px; width: 220px; height: 170px; --w: 150px; --gap: 4px; }
+  :root[data-phone="on"] [data-p="C"] .board { right: 8px; bottom: 6px; width: 150px; height: 120px; --w: 104px; --gap: 3px; }
+  :root[data-phone="on"] [data-p="C"] .socials { padding-right: 120px; }
+
+  /* D · bleeding off the edge: big, cropped by the card, right side */
+  [data-p="D"] .content { padding-right: 40%; }
+  [data-p="D"] .board { right: -16%; top: 50%; translate: 0 -50%; width: 62%; height: 130%; --w: min(44vw, 640px); --gap: 9px; }
+  :root[data-phone="on"] [data-p="D"] .content { padding-right: 28px; padding-top: 290px; }
+  :root[data-phone="on"] [data-p="D"] .board { right: -30%; top: -40px; translate: 0 0; width: 130%; height: 300px; --w: 330px; --gap: 6px; }
+
+  /* Spike controls */
+  .ui { position: fixed; z-index: 100; right: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px; max-width: 560px; justify-content: flex-end; }
+  .ui button { font: 11px "JetBrains Mono", monospace; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--rule); background: var(--ivory); color: var(--ink); padding: 8px 10px; cursor: pointer; }
+  .ui button[aria-pressed="true"] { background: var(--ink); color: var(--ivory); }
+  .note { position: fixed; z-index: 100; left: 16px; bottom: 16px; max-width: 420px; color: var(--ink-faint); font: 12px/1.5 Manrope, sans-serif; }
+</style>
+</head>
+<body>
+<div class="page">
+  <section id="home-card">
+    <div class="mono label">§ 08 — Contact</div>
+    <div class="card" data-card>
+      <div class="board" aria-hidden="true"></div>
+      <div class="content">
+        <div class="row mono"><span><span class="dot"></span>Available · 2026</span><span>Colombo · 17:35</span></div>
+        <div>
+          <h2>Got something in <em>mind</em>?</h2>
+          <p class="body">Need a website? I design and build them for businesses and creatives, and many go live within a couple of days. Internships, collaborations and good ideas are welcome too. Pick whichever channel suits you.</p>
+        </div>
+        <div class="btns"><a class="btn solid" href="#">hello@damiandc.com <span>→</span></a><a class="btn line" href="#">WhatsApp <span>↗</span></a></div>
+        <div class="socials mono"><a href="#">LinkedIn ↗</a><a href="#">GitHub ↗</a><a href="#">Instagram ↗</a><a href="#">Discord ↗</a></div>
+      </div>
+    </div>
+  </section>
+  <section id="start-card">
+    <div class="mono label">§ 05 — Start a project</div>
+    <div class="card" data-card>
+      <div class="board" aria-hidden="true"></div>
+      <div class="content">
+        <div>
+          <h2>Let’s build <em>your</em> site.</h2>
+          <p class="body">Tell me what you have in mind and I’ll come back with a scope, a fixed starting price and a timeline, usually within a day. No obligation.</p>
+        </div>
+        <div class="btns"><a class="btn solid" href="#" style="text-transform:uppercase;font-size:11px;letter-spacing:.2em">Message on WhatsApp <span>↗</span></a><a class="btn line" href="#">Email me <span>→</span></a></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<p class="note">Damian's picks: ivory glass tiles, motion as the 404 (hover lifts and holds; idle wave; a tap on phones). Pick a placement: A · beside, B · behind, C · corner, D · bleed.</p>
+<div class="ui">
+  <button data-p="A">A · Beside</button><button data-p="B">B · Behind</button><button data-p="C">C · Corner</button><button data-p="D">D · Bleed</button>
+  <button id="phone" aria-pressed="false">Phone</button><button id="theme" aria-pressed="false">Dark</button><button id="reduced" aria-pressed="false">Reduced motion</button>
+</div>
+
+<script>
+// lib/isoBoard.js, as on the 404
+const N = 5, LIFT = 26, SIGMA = 0.85, TAU = 0.14;
+const falloff = (r, c, fx, fy) => Math.exp(-((c + 0.5 - fx) ** 2 + (r + 0.5 - fy) ** 2) / (2 * SIGMA * SIGMA));
+const ambient = (r, c, t) => Math.max(0, 0.1 + 0.14 * Math.sin(t * 0.9 - (r + c) * 0.7));
+const smoothing = (dt) => 1 - Math.exp(-dt / TAU);
+const settled = (r, c) => falloff(r, c, 3.1, 1.6) * 0.9;
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const boards = [...document.querySelectorAll(".board")].map((host) => {
+  host.innerHTML = `<div class="persp"><div class="grid" style="--n:${N}">${Array.from({ length: N * N }, (_, i) => {
+    const r = (i / N) | 0, c = i % N;
+    return `<div class="tile${(r + c) % 2 ? " alt" : ""}" data-r="${r}" data-c="${c}"><span class="shade"></span><div class="face"><span class="edge"></span></div></div>`;
+  }).join("")}</div></div>`;
+  const tiles = [...host.querySelectorAll(".tile")].map((t) => ({ face: t.querySelector(".face"), edge: t.querySelector(".edge"), shade: t.querySelector(".shade"), l: 0 }));
+  const b = { host, tiles, pointer: { on: false, x: 0, y: 0 }, onScreen: true };
+  const grid = host.querySelector(".grid");
+  host.querySelectorAll(".tile").forEach((el) => {
+    const r = +el.dataset.r, c = +el.dataset.c;
+    const aim = (e) => {
+      if (reduced) return;
+      b.pointer = { on: true, x: c + (el.offsetWidth ? clamp01(e.offsetX / el.offsetWidth) : 0.5), y: r + (el.offsetHeight ? clamp01(e.offsetY / el.offsetHeight) : 0.5) };
+    };
+    el.addEventListener("pointerenter", aim); el.addEventListener("pointermove", aim); el.addEventListener("pointerdown", aim);
+  });
+  grid.addEventListener("pointerleave", (e) => { if (e.pointerType !== "touch") b.pointer.on = false; });
+  new IntersectionObserver(([e]) => (b.onScreen = e.isIntersecting)).observe(host);
+  return b;
+});
+// The board sits under the text, so the pointer reaches it only where the
+// text leaves room (the content layer lets the pointer through outside its
+// links and buttons).
+const apply = (t, l) => {
+  t.face.style.transform = `translateZ(${(l * LIFT).toFixed(2)}px)`;
+  t.edge.style.opacity = l.toFixed(3);
+  t.shade.style.opacity = (l * 0.8).toFixed(3);
+  t.shade.style.transform = `scale(${(1 + l * 0.25).toFixed(3)})`;
+};
+let last = performance.now(), time = 0;
+function tick(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
+  const k = smoothing(dt);
+  for (const b of boards) {
+    if (!b.onScreen) continue;
+    b.tiles.forEach((t, i) => {
+      const r = (i / N) | 0, c = i % N;
+      const target = reduced ? settled(r, c) : b.pointer.on ? falloff(r, c, b.pointer.x, b.pointer.y) : ambient(r, c, time);
+      t.l = reduced ? target : t.l + (target - t.l) * k;
+      apply(t, t.l);
+    });
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// Controls
+const q = new URLSearchParams(location.search);
+const setP = (p) => {
+  document.querySelectorAll("[data-card]").forEach((c) => (c.dataset.p = p));
+  document.querySelectorAll(".ui [data-p]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.p === p)));
+};
+document.querySelectorAll(".ui [data-p]").forEach((b) => b.addEventListener("click", () => setP(b.dataset.p)));
+setP(q.get("p") || "A");
+const toggle = (id, attr, on) => {
+  const b = document.getElementById(id);
+  const set = (v) => { document.documentElement.dataset[attr] = v ? (attr === "theme" ? "dark" : "on") : (attr === "theme" ? "light" : "off"); b.setAttribute("aria-pressed", String(v)); };
+  b.addEventListener("click", () => set(b.getAttribute("aria-pressed") !== "true"));
+  set(on);
+};
+toggle("phone", "phone", q.get("phone") === "1");
+toggle("theme", "theme", q.get("dark") === "1");
+document.getElementById("reduced").addEventListener("click", (e) => { reduced = !reduced; e.currentTarget.setAttribute("aria-pressed", String(reduced)); });
+if (q.get("card") === "start") document.getElementById("start-card").scrollIntoView();
+</script>
+</body>
+</html>

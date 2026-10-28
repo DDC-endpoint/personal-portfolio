@@ -262,6 +262,9 @@ Damian's first look at the gate:
 - **The portrait flashed finished, then went back to skeleton for its wave** during the curtain's lift ("flickers off from full colour"). Fixed: until the reveal the portrait is skeleton only (`3b4afe0`).
 - **The current page's underline overhung the word** (his screenshot of PRIVACY): the trailing letter-spacing. The underline is now trimmed by it (`--trail`), on the nav's current page and its hover.
 - **A flicker in the reload curtain:** the seams' resting shadow popped on when scripts took over. The server HTML now paints it from the first frame.
+- **The footer's page links are removed (Damian):** the nav carries the pages; the centre column is the tagline.
+- **The progress bar stuttered while scrolling (Damian):** the strip re-rendered every card each time the centred card changed. It now re-renders only the two cards involved.
+- **The Isometric Board on the electric contact cards (Damian, asked):** Home § 08 Contact and `/services` Start a project. His picks: ivory glass tiles (translucent ivory, ivory edge light, navy shadow), motion as on the 404. Placement: to choose from `spike/contact-board.html` (A beside the text, B behind it, C a corner accent, D bleeding off the card's edge).
 - **A slight frame drop in the first load's lift:** the reveal re-rendered the hero in a frame already busy with the panels and the portrait's wave. The hero's entrance now runs on animation controls, and the loader unmounts when the browser is idle. Measured on a real GPU, the drops at the reveal are gone; an occasional single missed frame remains about 1.1 s in, where the portrait's wave is densest (its cost predates Phase 6): for the performance pass.
 
 ## Phase 6 build (2026-10-28)
