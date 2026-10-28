@@ -183,6 +183,45 @@ test("/services' and /portfolio's headings wait for the lift", async ({ page }) 
 test.describe("every load (timing-dependent)", () => {
   test.describe.configure({ retries: 2 });
 
+  // Until its wave starts, the portrait is skeleton only: never the finished
+  // glyphs, which would flash full and then drop back as the wave begins.
+  test("the portrait never shows finished before its wave, on a reload or a change to Home", async ({ page }) => {
+    const sample = () => {
+      window.__early = 0;
+      window.__waveInk = null;
+      const tick = () => {
+        const p = document.querySelector("[data-portrait]");
+        const cv = p?.querySelector("canvas");
+        if (cv?.width) {
+          const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+          let ink = 0;
+          for (let i = 3; i < d.length; i += 4 * 97) if (d[i] > 20) ink++;
+          if (p.dataset.state === "loading") window.__early = Math.max(window.__early, ink);
+          if (p.dataset.state === "wave" && window.__waveInk === null) window.__waveInk = ink;
+        }
+        if (p?.dataset.state !== "static") requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    const check = async () => {
+      await expect(portrait(page)).toHaveAttribute("data-state", "static", { timeout: 12000 });
+      const { early, waveInk } = await page.evaluate(() => ({ early: window.__early, waveInk: window.__waveInk }));
+      expect(waveInk).not.toBeNull();
+      // The skeleton blocks are faint (alpha ~0.1), so they barely register.
+      expect(early).toBeLessThanOrEqual(waveInk + 20);
+    };
+    await page.addInitScript(sample);
+    await page.goto("/");
+    await gone(page);
+    await page.reload();
+    await check();
+    await page.goto("/services");
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "idle", { timeout: 9000 });
+    await page.evaluate(sample);
+    await page.evaluate(() => document.querySelector('header nav a[href="/"]').click());
+    await check();
+  });
+
   test("the wave starts as the curtain lifts, on a first load and a reload", async ({ page }) => {
     await recordStates(page);
     for (const load of [() => page.goto("/"), () => page.reload()]) {

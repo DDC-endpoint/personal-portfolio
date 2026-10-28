@@ -149,7 +149,8 @@ test.describe("the curtain", () => {
             els.forEach((el, i) => {
               if (first[el.dataset.panel] === undefined && Math.abs(el.getBoundingClientRect().top - at[i]) > 2) first[el.dataset.panel] = performance.now() - t0;
             });
-            if (document.querySelector("[data-curtain]").dataset.curtain !== phase || performance.now() - t0 > 3000) resolve(first);
+            const now = document.querySelector("[data-curtain]").dataset.curtain;
+            if (!phase.includes(now) || performance.now() - t0 > 8000) resolve(first);
             else requestAnimationFrame(tick);
           };
           requestAnimationFrame(tick);
@@ -168,7 +169,7 @@ test.describe("the curtain", () => {
     }));
     await page.evaluate(() => document.querySelector('header nav a[href="/portfolio"]').click());
     await covering;
-    const cover = await startOrder(page, "covering");
+    const cover = await startOrder(page, ["covering"]);
     const ids = isMobile ? ["1", "2", "3"] : ["0", "1", "2", "3", "4"];
     for (const id of ids) expect(cover[id]).toBeDefined();
     // The middle panel moves first; the outer ones last.
@@ -178,11 +179,10 @@ test.describe("the curtain", () => {
       expect(cover["1"]).toBeLessThan(cover["0"]);
       expect(cover["3"]).toBeLessThan(cover["4"]);
     }
-    await expect(curtain(page)).toHaveAttribute("data-curtain", /covered|lifting/, { timeout: 4000 });
+    // Sampled on from full cover, so the first panel to lift is caught moving.
+    const lift = await startOrder(page, ["covered", "lifting"]);
     const at = await page.evaluate(() => window.__atCover);
     expect(at).toEqual({ url: "/services", label: "Portfolio" });
-    await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
-    const lift = await startOrder(page, "lifting");
     expect(lift["2"]).toBeLessThan(lift["1"]);
     expect(lift["2"]).toBeLessThan(lift["3"]);
     await idle(page);

@@ -272,7 +272,10 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     if (!field) return; // no layout yet (e.g. a zero-size stage)
     if (waving) {
       // Before waveStart (curtain still down) every cell is still skeleton.
-      const t = (now - waveStart) / 1000;
+      // Until the reveal, waveStart is Infinity: hold t at the skeleton
+      // phase rather than −∞, where the skeleton's alpha is NaN (ignored by
+      // the canvas) and the finished glyphs would show through.
+      const t = Math.max(-1, (now - waveStart) / 1000);
       if (t >= 0 && !waveStarted) {
         waveStarted = true;
         onWaveStart();
@@ -325,8 +328,12 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
       cancelAnimationFrame(raf);
     }
   }
+  // Before its wave starts, the portrait is skeleton only: the finished
+  // glyphs (the rest canvas) must not flash first.
+  const beforeWave = () => waving && !waveStarted;
+  const drawStill = () => (beforeWave() ? drawWave(-1) : blitRest());
   // Redraw now (theme or size changed); the loop picks up from here.
-  const redraw = () => (running ? drawFrame(performance.now()) : blitRest());
+  const redraw = () => (running ? drawFrame(performance.now()) : drawStill());
 
   // ---- lifecycle ------------------------------------------------------------
   let pending = 0, restTimer = 0;
@@ -366,7 +373,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     waveStart = Math.max(performance.now(), waveAt);
     restTimer = setTimeout(() => {
       buildRest();
-      if (!running) blitRest();
+      if (!running) drawStill();
     }, 0);
     ro.observe(wrapper);
     io.observe(wrapper);
