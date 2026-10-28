@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-28: Phases 1–5 merged into `v3` and pushed; Phase 6 built on `v3-portfolio`, at review)
+## Where we are (2026-10-28: Phases 1–5 merged into `v3` and pushed; Phase 6 built on `v3-portfolio`, at Damian's visual gate)
 
 | Track | State |
 |---|---|
@@ -15,11 +15,11 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 4**: copy refresh, Leadership rows, Skills terminal, `/services` | **Done and merged into `v3` locally (2026-10-27)** as `24b16d7`. Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. His gate changes (pinning, Recent work rows, prices, full-width stack) are in `decisions.md` → "Phase 4 build and review" and "Gate changes". See "What Phase 4 built". |
 | SEO and GEO upgrade (Phase 4 Task 11) | **Done and merged with Phase 4 (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
 | **Phase 5**: page transition (every page) and the first-load reveal | **Done and merged into `v3` (2026-10-28), and `v3` pushed to `origin`.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b) and his gate fixes (`decisions.md` → "Phase 5 gate changes"). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
-| **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Built on `v3-portfolio` (2026-10-28), Tasks 1–10; Task 11 (verify, review, gate) next.** See "What Phase 6 built". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
+| **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Built, reviewed and at Damian's visual gate on `v3-portfolio` (2026-10-28).** Not merged into `v3` (his call: he sees it first). See "What Phase 6 built". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
 
 ### The next step (resume here): Phase 6, then the performance pass
 
-**State (2026-10-28, build session):** Tasks 1–10 of [`plan-phase-6.md`](plan-phase-6.md) are built test-first and committed on `v3-portfolio` (not pushed). Unit tests (204) and the full e2e suite pass. **Next: Task 11**: the Lighthouse comparison against `v3`, the impeccable detector, one fresh reviewer for the whole branch (fix every finding, minors included), then **stop at Damian's visual gate** (he chose not to merge into `v3` before seeing it).
+**State (2026-10-28, end of the build session):** all eleven tasks of [`plan-phase-6.md`](plan-phase-6.md) are done on `v3-portfolio` (not pushed). Unit tests (189) and the full e2e suite pass. A fresh reviewer found five Important and seven Minor issues; all are fixed test-first (commit `7591774`). Lighthouse is in "Testing". **Next: Damian's visual gate**, then (on his word) merge into `v3`, then the performance pass.
 
 - **Branch:** `v3-portfolio`, cut from `v3` at `14ce453`. One commit per task (Tasks 7 and 8 share one: the loader and the entrances share the reveal signal and couldn't land green apart).
 - **Gate questions for Damian** (also in "What Phase 6 built"): the 404 page in dark mode, Kahatagaha's short preview, and the plan's "about 2.7 s" page change (it's 2.25 s by its own parts).
@@ -281,7 +281,10 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 **Rulings during the build (all in `decisions.md` → "Phase 6 build"):** see there.
 
+**Review (Task 11):** five Important findings, all fixed with tests: the intro could lift twice on a late hydration; a hydration after the CSS failsafe covered the readable page again; a change to Home held 400 ms extra (waiting on the portrait's wave instead of its preparation); `/portfolio`'s card failsafe skipped the rise of rows reached after 5 s; `/portfolio`'s first row rose under the curtain. Seven Minor ones, all fixed (pointer-events specificity, stale veil comments, the strip's off-screen frames, the loader's count writes, forced colours spending the full load, hard-coded ink, test gaps). The impeccable detector flagged 10 px tags on `/portfolio` (now 11 px); its other findings are chosen design (the curtain's curved clip-paths, the address caret, the count line) or pre-existing site-wide.
+
 **Gate questions:**
+- **`/portfolio`'s first row** is hidden until the curtain lifts, which costs mobile LCP (61). Keep the rise, or show the first row from the first paint?
 - **The 404 page is always light, and logs a React dev warning about a `<script>`.** Both predate Phase 6 (checked with the board removed): on that route React rebuilds the document client-side, which drops the pre-paint `js`/`dark` classes. Fix now or leave for the perf pass?
 - **Kahatagaha's preview is short** (its landing page is one screen). Keep it, or capture one of its two concept pages instead?
 - **The page change is 2.25 s, not "about 2.7 s".** The plan's parts (cover 0.94 + hold 0.22 + lift 1.09) add to 2.25 s; the build follows the parts (the lab's timing).
@@ -381,6 +384,18 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   Desktop is 100 on both pages for both. Before the frame budget (`BUDGET_MS` in `Veil.js`) and the gradual intro fill, mobile `/` was 74 against 80 (TBT 972 against 618 ms): the intro's one-task fill and the reveal frames shared the portrait wave's frames. The veil's code is its own 2.9 KB chunk, absent from the first-load HTML.
 
   The worktree route: `git worktree add --detach <dir> <branch>`, then `npm ci && npx next build && npx next start -p <port>` in each. Copy any uncommitted `public/` assets in first.
+
+  Phase 6 result (production builds in scratchpad worktrees, `v3` at `14ce453` against `v3-portfolio` at `0f90668`; mobile medians of 5, interleaved; desktop medians of 3):
+
+  | | Mobile | LCP | TBT | Desktop |
+  |---|---|---|---|---|
+  | `v3` `/` | 68 | 4347 ms | 582 ms | 100 |
+  | `v3-portfolio` `/` | 75 | 2218 ms | 784 ms | 98 |
+  | `v3` `/services` | 81 | 2310 ms | 583 ms | 100 |
+  | `v3-portfolio` `/services` | 79 | 2195 ms | 596 ms | 99 |
+  | `v3-portfolio` `/portfolio` | 61 | 5367 ms | 530 ms | 94 |
+
+  `/` and `/services` are at parity within this machine's noise (`v3`'s `/` LCP batch ran unusually slow). Home's TBT is about 200 ms higher (the loader's frames and the strip's frame loop). `/portfolio`'s mobile LCP is the first card's screenshot, which only shows once the curtain lifts and the row rises; its lede was made the static LCP candidate after this run (a re-run is due in the perf pass). Whether the first row should be visible from the first paint is a gate question.
 
 ## Repo state at hand-off
 
