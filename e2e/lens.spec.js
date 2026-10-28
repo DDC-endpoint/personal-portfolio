@@ -41,23 +41,25 @@ test("ring grows into the lens", async ({ page }, info) => {
 
 test("the lens waits for the intro curtain, then opens under a resting pointer", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
-  // Hold the intro curtain down: its code arrives late, so it can't lift
-  // before the test gets the pointer in, however fast the page loads.
-  await blockCurtain(page, { delay: 4000 });
+  // Hold the intro curtain down: its code is released only once the pointer
+  // is in, so it can't lift first, however fast or slow the page loads.
+  let release;
+  await blockCurtain(page, { until: new Promise((r) => (release = r)) });
   await page.goto("/");
   // The curtain lets the pointer through, so enter the portrait under it
   // once the cursor is live.
   const curtain = page.locator("[data-curtain]");
-  await expect(page.locator("html")).toHaveClass(/js-cursor/, { timeout: 8000 });
+  await expect(page.locator("html")).toHaveClass(/js-cursor/, { timeout: 15000 });
   await expect(curtain).toHaveAttribute("data-curtain", "intro");
   const p = await face(page);
   await page.mouse.move(20, 450);
   await page.mouse.move(p.x, p.y, { steps: 5 });
   const ring = page.locator(".cursor-ring");
   await page.waitForTimeout(300);
-  await expect(curtain).not.toHaveAttribute("data-curtain", "idle");
+  await expect(curtain).toHaveAttribute("data-curtain", "intro");
   await expect(ring).not.toHaveClass(/is-lens/);
   // Revealed: the lens opens without the pointer moving.
+  release();
   await expect(ring).toHaveClass(/is-lens/, { timeout: 8000 });
   await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await expect.poll(() => warmAt(page, p), { timeout: 1500 }).toBeGreaterThan(0);

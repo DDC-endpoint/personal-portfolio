@@ -10,13 +10,14 @@ export function trackErrors(page) {
 }
 
 // Aborts (or delays) the curtain's code chunk: the only one naming its "lifting" state.
-export async function blockCurtain(page, { delay } = {}) {
+// `until`: a promise that releases it, for a test that must act while it's held.
+export async function blockCurtain(page, { delay, until } = {}) {
   await page.route("**/_next/static/chunks/**", async (route) => {
     const res = await route.fetch();
     const body = await res.text();
     if (!body.includes('"lifting"')) return route.fulfill({ response: res, body });
-    if (delay === undefined) return route.abort();
-    await new Promise((r) => setTimeout(r, delay));
-    return route.fulfill({ response: res, body });
+    if (delay === undefined && !until) return route.abort();
+    await (until ?? new Promise((r) => setTimeout(r, delay)));
+    return route.fulfill({ response: res, body }).catch(() => {});
   });
 }
