@@ -157,6 +157,10 @@
    normally the engine takes over long before 5 s. */
 .curtain[data-curtain="intro"] { pointer-events: none; animation: curtain-failsafe 0.4s ease 5s forwards; }
 .curtain[data-curtain="intro"] .curtain-panel { transform: none; }
+/* The seams' resting shadow from the first paint, as the engine draws it
+   (lib/curtain.js → shadow), so it doesn't pop on when scripts arrive. */
+.curtain[data-curtain="intro"] [data-drop] { filter: drop-shadow(0 0 14px rgb(var(--c-ink) / 0.1)); }
+.dark .curtain[data-curtain="intro"] [data-drop] { filter: drop-shadow(0 0 14px rgb(0 0 0 / 0.38)); }
 @keyframes curtain-failsafe { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce), (forced-colors: active) {
   .curtain[data-curtain="intro"] { display: none; }
@@ -358,9 +362,12 @@ html:not(.js) [style*="transform:translateY"] { opacity: 1 !important; transform
   background-position: 0 100%;
   transition: background-size 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.link-line:hover { background-size: 100% 1px; }
+/* --trail: the text's letter-spacing, which the browser also adds after the
+   last letter; trimming it ends the underline under that letter instead of
+   past it (the tracked mono nav links set it). */
+.link-line:hover,
 /* The nav's current page keeps its underline drawn (Phase 6). */
-.link-line[aria-current="page"] { background-size: 100% 1px; }
+.link-line[aria-current="page"] { background-size: calc(100% - var(--trail, 0px)) 1px; }
 
 /* Big number outline */
 .outline-num {

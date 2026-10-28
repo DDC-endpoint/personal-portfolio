@@ -91,7 +91,7 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 aria-current={current(l.href)}
-                className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink link-line aria-[current=page]:text-electric"
+                className="font-mono text-[11px] uppercase tracking-[0.18em] [--trail:0.18em] text-ink link-line aria-[current=page]:text-electric"
               >
                 {l.label}
               </a>

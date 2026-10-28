@@ -121,6 +121,18 @@ test("without JS there's no loader", async ({ browser }) => {
   await context.close();
 });
 
+test("the first paint already has the seams' resting shadow (no pop when scripts arrive)", async ({ page }) => {
+  await page.route("**/_next/static/chunks/**", async (route) => {
+    if (route.request().url().endsWith(".css")) return route.continue();
+    await new Promise((r) => setTimeout(r, 4000));
+    return route.continue().catch(() => {});
+  });
+  await page.goto("/services", { waitUntil: "domcontentloaded" });
+  await expect(curtain(page)).toHaveAttribute("data-curtain", "intro");
+  const before = await page.locator('[data-panel="2"] [data-drop]').evaluate((el) => getComputedStyle(el).filter);
+  expect(before).toBe("drop-shadow(rgba(11, 31, 58, 0.1) 0px 0px 14px)");
+});
+
 test("the failsafe hides it if scripts never run", async ({ page }) => {
   await page.route("**/_next/static/chunks/**", async (route) => {
     if (route.request().url().endsWith(".css")) return route.continue();

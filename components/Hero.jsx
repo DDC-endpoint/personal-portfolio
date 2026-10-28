@@ -1,6 +1,6 @@
 "use client";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { motion, useAnimationControls, useScroll, useTransform } from "framer-motion";
+import { createContext, useContext, useEffect, useRef } from "react";
 import EagerReveal from "./EagerReveal";
 import HeroPortrait from "./HeroPortrait";
 import { EASE, onReveal } from "@/lib/motion";
@@ -8,29 +8,26 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 
 // The hero's entrance plays on every arrival on Home (Phase 6: first load,
 // reload or page change), starting as the curtain clears (lib/motion.js →
-// onReveal). Until then the name waits below its line mask.
-const Shown = createContext(false);
+// onReveal). Until then the name waits below its line mask. It runs on
+// animation controls, not state, so the reveal re-renders nothing: that
+// frame is already busy with the lifting curtain and the portrait's wave.
+const Entrance = createContext({ words: null, fades: null });
 
 function Word({ children, delay = 0 }) {
-  const shown = useContext(Shown);
+  const { words } = useContext(Entrance);
   // No overflow-hidden here — clipping is handled at the line-div level so
   // italic glyph overhang is never cut on either side.
   return (
-    <motion.span
-      initial={{ y: "110%" }}
-      animate={shown ? { y: 0 } : { y: "110%" }}
-      transition={shown ? { duration: 1, ease: EASE, delay } : { duration: 0 }}
-      className="inline-block"
-    >
+    <motion.span custom={delay} initial={{ y: "110%" }} animate={words} className="inline-block">
       {children}
     </motion.span>
   );
 }
 
 function Fade({ children, delay }) {
-  const shown = useContext(Shown);
+  const { fades } = useContext(Entrance);
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: shown ? 1 : 0 }} transition={shown ? { delay, duration: 0.8 } : { duration: 0 }}>
+    <motion.div custom={delay} initial={{ opacity: 0 }} animate={fades}>
       {children}
     </motion.div>
   );
@@ -39,9 +36,20 @@ function Fade({ children, delay }) {
 export default function Hero() {
   const ref = useRef(null);
   const reduced = useReducedMotion();
-  const [revealed, setRevealed] = useState(false);
-  useEffect(() => onReveal(() => setRevealed(true)), []);
-  const shown = revealed || reduced;
+  const words = useAnimationControls();
+  const fades = useAnimationControls();
+  const entrance = useRef({ words, fades }).current;
+  useEffect(() => {
+    if (reduced) {
+      words.set({ y: 0 });
+      fades.set({ opacity: 1 });
+      return;
+    }
+    return onReveal(() => {
+      words.start((delay) => ({ y: 0, transition: { duration: 1, ease: EASE, delay } }));
+      fades.start((delay) => ({ opacity: 1, transition: { delay, duration: 0.8 } }));
+    });
+  }, [reduced, words, fades]);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
@@ -49,7 +57,7 @@ export default function Hero() {
   const metaOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
 
   return (
-    <Shown.Provider value={shown}>
+    <Entrance.Provider value={entrance}>
     <section id="top" ref={ref} className="relative min-h-screen w-full overflow-hidden pt-44 md:pt-52">
       {/* atmospheric blue blobs — dimmed in dark mode so the sky orb behind
           the portrait doesn't fight the blue glyphs */}
@@ -133,6 +141,6 @@ export default function Hero() {
 
       </motion.div>
     </section>
-    </Shown.Provider>
+    </Entrance.Provider>
   );
 }

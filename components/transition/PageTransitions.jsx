@@ -146,12 +146,14 @@ export default function PageTransitions() {
   };
 
   // The intro is over: the curtain takes clicks again while it runs, and a
-  // page link clicked during the lift opens now.
+  // page link clicked during the lift opens now. The loader, parked off
+  // screen with the curtain, unmounts once the browser is idle, so its
+  // teardown never lands in an animation frame.
   const introDone = () => {
     const state = introRef.current;
     state.done = true;
     delete curtainRef.current?.dataset.intro;
-    setIntro(false);
+    whenIdle(() => setIntro(false));
     const next = state.pending;
     state.pending = null;
     if (next) goRef.current?.(next.path, next.hash);
