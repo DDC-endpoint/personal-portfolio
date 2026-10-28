@@ -134,8 +134,8 @@ test.describe("footer and privacy", () => {
       await expect(footer).toContainText("Made by hand, in Colombo.");
       await expect(footer).toContainText("v:04 / Always evolving");
       const links = footer.locator("nav a");
-      await expect(links).toHaveText(["Home", "Services", "Privacy"]);
-      expect(await links.evaluateAll((els) => els.map((a) => a.getAttribute("href")))).toEqual(["/", "/services", "/privacy"]);
+      await expect(links).toHaveText(["Home", "Portfolio", "Services", "Privacy"]);
+      expect(await links.evaluateAll((els) => els.map((a) => a.getAttribute("href")))).toEqual(["/", "/portfolio", "/services", "/privacy"]);
       // centred on phones; the three columns read left, centre, right on desktop
       const aligns = await footer.locator("[data-footer-col]").evaluateAll((els) => els.map((el) => getComputedStyle(el).textAlign));
       expect(aligns).toEqual(isMobile ? ["center", "center", "center"] : ["left", "center", "right"]);

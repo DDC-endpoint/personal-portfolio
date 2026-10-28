@@ -21,11 +21,10 @@ test("mobile order", async ({ page }, info) => {
   const name = page.locator("#top h1");
   const portrait = page.locator("[data-portrait]");
   const lede = page.locator("#top p");
-  const button = page.locator("#top a[href='/services']:visible");
-  const ys = [await top(kicker), await top(name), await top(portrait), await top(lede), await top(button)];
+  const ys = [await top(kicker), await top(name), await top(portrait), await top(lede)];
   expect([...ys].sort((a, b) => a - b)).toEqual(ys);
-  // full width = the hero content width inside its 24px gutters
-  expect((await button.boundingBox()).width).toBeGreaterThanOrEqual(390 - 48 - 1);
+  // The hero ends on the lede: the SERVICES button is gone (Phase 6).
+  await expect(page.locator("#top a[href='/services']")).toHaveCount(0);
 });
 
 test("desktop stage", async ({ page }, info) => {

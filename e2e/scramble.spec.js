@@ -2,8 +2,8 @@ import { test, expect } from "@playwright/test";
 
 test.beforeEach(({}, info) => test.skip(info.project.name !== "desktop", "hover/scroll checks run on desktop"));
 
-// The hero's desktop SERVICES button — a mono button, so it scrambles.
-const servicesButton = (page) => page.locator("#top a[href='/services']:visible");
+// The Résumé section's Request CV button — a mono button, so it scrambles.
+const cvButton = (page) => page.locator("#resume a[href^='mailto:']");
 // Scrambling text lives in an aria-hidden span; a static sr-only copy carries the name.
 const visible = (el) => el.locator('[aria-hidden="true"]');
 
@@ -36,21 +36,22 @@ test("screen readers get the real section label mid-decode", async ({ page }) =>
 
 test("mono button scrambles without moving", async ({ page }) => {
   await page.goto("/");
-  const button = servicesButton(page);
+  const button = cvButton(page);
+  await button.scrollIntoViewIfNeeded();
   await expect(button).toBeVisible({ timeout: 5000 });
   const w = (await button.boundingBox()).width;
   await button.hover();
-  await expect.poll(() => visible(button).innerText(), { timeout: 1000 }).not.toBe("SERVICES");
+  await expect.poll(() => visible(button).innerText(), { timeout: 1000 }).not.toBe("REQUEST CV");
   expect(Math.abs((await button.boundingBox()).width - w)).toBeLessThanOrEqual(0.5);
-  await expect(page.getByRole("link", { name: "Services" }).first()).toBeVisible();
-  await expect.poll(() => visible(button).innerText(), { timeout: 1000 }).toBe("SERVICES");
+  await expect(page.getByRole("link", { name: "Request CV by email" })).toBeVisible();
+  await expect.poll(() => visible(button).innerText(), { timeout: 1000 }).toBe("REQUEST CV");
 });
 
 test("underlined links keep their underline and never scramble", async ({ page }) => {
   await page.goto("/");
-  const work = page.locator('header nav a[href="#work"]');
+  const work = page.locator('header nav a[href="/portfolio"]');
   await work.hover();
-  expect(new Set(await samples(work))).toEqual(new Set(["WORK"]));
+  expect(new Set(await samples(work))).toEqual(new Set(["PORTFOLIO"]));
   const pricing = page.locator("#about a[href='/services']");
   await pricing.scrollIntoViewIfNeeded();
   await pricing.hover();
@@ -60,7 +61,8 @@ test("underlined links keep their underline and never scramble", async ({ page }
 test("reduced motion never scrambles", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  const button = servicesButton(page);
+  const button = cvButton(page);
+  await button.scrollIntoViewIfNeeded();
   await button.hover();
-  expect(new Set(await samples(visible(button)))).toEqual(new Set(["SERVICES"]));
+  expect(new Set(await samples(visible(button)))).toEqual(new Set(["REQUEST CV"]));
 });

@@ -327,6 +327,8 @@ html:not(.js) [style*="transform:translateY"] { opacity: 1 !important; transform
   transition: background-size 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .link-line:hover { background-size: 100% 1px; }
+/* The nav's current page keeps its underline drawn (Phase 6). */
+.link-line[aria-current="page"] { background-size: 100% 1px; }
 
 /* Big number outline */
 .outline-num {

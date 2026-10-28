@@ -37,14 +37,22 @@ async function settle(page) {
 const mark = (page) => page.evaluate(() => { window.__marker = 1; window.__started = true; window.__portrait = []; });
 const sameDocument = (page) => page.evaluate(() => window.__marker === 1);
 
-// /services' Portfolio button: in the hero corner from md, in the menu on phones.
-async function clickPortfolio(page) {
-  const portfolio = page.locator('a[href="/"]').filter({ hasText: /^Portfolio/ });
+// A page in the nav: the header from md, the menu on phones (Phase 6).
+async function clickNav(page, name) {
   if ((await page.viewportSize()).width < 768) {
     await page.getByRole("button", { name: "Open menu" }).click();
-    await page.getByRole("dialog").locator('a[href="/"]').filter({ hasText: /^Portfolio/ }).click();
-  } else await portfolio.locator("visible=true").click();
+    await page.getByRole("dialog", { name: "Site menu" }).getByRole("link", { name, exact: true }).click();
+  } else await page.locator("header nav").getByRole("link", { name, exact: true }).click();
 }
+const clickPortfolio = (page) => clickNav(page, "Home");
+
+// The site has no cross-page section link right now, so the tests add one.
+const addLink = (page, href) =>
+  page.evaluate((href) => {
+    const a = Object.assign(document.createElement("a"), { href, textContent: "section link" });
+    a.dataset.testLink = "";
+    document.querySelector("main").prepend(a);
+  }, href);
 
 const idle = (page) => expect(veil(page)).toHaveAttribute("data-veil", "idle", { timeout: 8000 });
 
@@ -142,12 +150,13 @@ test.describe("transitions", () => {
   test.describe("timing", () => {
     test.describe.configure({ retries: 2 });
 
-    test("Home → /services by the hero button, at the top: a 0.52 s cover and a 0.64 s reveal", async ({ page }) => {
+    test("Home → /services by the nav, at the top: a 0.52 s cover and a 0.64 s reveal", async ({ page }) => {
       const errors = trackErrors(page);
       await page.goto("/");
       await settle(page);
       await page.evaluate(() => { window.__coveredAt = window.__revealingAt = undefined; });
-      const total = await transitionTo(page, () => page.locator('#top a[href="/services"]:visible').click(), /\/services$/);
+      // A DOM click: on phones the menu's opening would count towards the time.
+      const total = await transitionTo(page, () => page.evaluate(() => document.querySelector('header nav a[href="/services"]').click()), /\/services$/);
       expect(await page.evaluate(() => scrollY)).toBe(0);
       const { cover, reveal } = await page.evaluate(() => ({
         cover: window.__coveredAt - window.__t0,
@@ -167,22 +176,22 @@ test.describe("transitions", () => {
     await page.goto("/");
     await settle(page);
     await page.getByRole("button", { name: "Open menu" }).click();
-    await transitionTo(page, () => page.getByRole("dialog", { name: "Site menu" }).getByRole("link", { name: /Services/ }).click(), /\/services$/);
+    await transitionTo(page, () => page.getByRole("dialog", { name: "Site menu" }).getByRole("link", { name: "Services", exact: true }).click(), /\/services$/);
     await expect(page.getByRole("dialog", { name: "Site menu" })).toHaveCount(0);
   });
 
-  test("/services → Home by Portfolio, at the top", async ({ page }) => {
+  test("/services → Home by the nav, at the top", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
     await transitionTo(page, () => clickPortfolio(page), /\/$/);
     expect(await page.evaluate(() => scrollY)).toBe(0);
   });
 
-  test("/privacy → Home's #work lands with the section under the nav", async ({ page }, info) => {
-    test.skip(info.project.name !== "desktop", "the section links are in the desktop nav");
+  test("/privacy → Home's #work lands with the section under the nav", async ({ page }) => {
     await page.goto("/privacy");
     await settle(page);
-    await transitionTo(page, () => page.locator('header nav a[href="/#work"]').click(), /\/#work$/);
+    await addLink(page, "/#work");
+    await transitionTo(page, () => page.locator("[data-test-link]").evaluate((a) => a.click()), /\/#work$/);
     const top = await page.locator("#work").evaluate((el) => el.getBoundingClientRect().top);
     expect(Math.abs(top - 80)).toBeLessThan(4);
   });
@@ -231,7 +240,7 @@ test.describe("transitions", () => {
     await settle(page);
     const before = await page.evaluate(() => history.length);
     await mark(page);
-    await page.locator('#top a[href="/services"]:visible').click();
+    await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
     await expect(veil(page)).not.toHaveAttribute("data-veil", "idle");
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
     await idle(page);
@@ -359,7 +368,7 @@ test.describe("back and forward", () => {
     await page.evaluate(() => window.scrollBy(0, 200));
     await expect.poll(() => page.evaluate(() => Math.round(scrollY)), { timeout: 3000 }).toBeGreaterThan(1000);
     const y = await page.evaluate(() => scrollY);
-    await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+    await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
     await mark(page);
@@ -387,15 +396,14 @@ test.describe("back and forward", () => {
 // ---- Task 6: link target, reduced motion, forced colours, phone menu -------
 
 test.describe("details", () => {
-  test("“See the full portfolio” lands on Home's #work", async ({ page }) => {
+  test("a section link from /services lands on Home's #work", async ({ page }) => {
     await record(page);
     await page.goto("/services");
     await settle(page);
-    const link = page.getByRole("link", { name: /See the full portfolio/ });
-    await expect(link).toHaveAttribute("href", "/#work");
-    await link.scrollIntoViewIfNeeded();
+    await addLink(page, "/#work");
+    const link = page.locator("[data-test-link]");
     await mark(page);
-    await link.click();
+    await link.evaluate((a) => a.click());
     await expect(page).toHaveURL(/\/#work$/);
     await idle(page);
     expect(await sameDocument(page)).toBe(true);
@@ -413,7 +421,7 @@ test.describe("details", () => {
       await page.evaluate(() => window.scrollTo(0, 400));
       await mark(page);
       await page.evaluate(() => { window.__veil = ["idle"]; });
-      await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+      await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
       await expect(page).toHaveURL(/\/services$/);
       await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
       expect(await sameDocument(page)).toBe(true);
@@ -470,7 +478,7 @@ test.describe("robustness", () => {
     await record(page);
     await page.goto("/");
     await settle(page);
-    await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+    await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
     await mark(page);
@@ -496,7 +504,7 @@ test.describe("robustness", () => {
   test("Back during the cover sweep: the transition is called off", async ({ page }) => {
     await page.goto("/");
     await settle(page);
-    await page.evaluate(() => document.querySelector('#top a[href="/services"]').click());
+    await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
     await mark(page);
@@ -513,7 +521,7 @@ test.describe("robustness", () => {
   test("the running veil takes a real click, so nothing lands on the page underneath", async ({ page }) => {
     await page.goto("/");
     await settle(page);
-    await page.locator('#top a[href="/services"]:visible').click();
+    await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
     await expect(veil(page)).toHaveAttribute("data-veil", "covering");
     const { width, height } = page.viewportSize();
     const [x, y] = [width / 2, height / 2];

@@ -3,11 +3,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import EagerReveal from "./EagerReveal";
 import HeroPortrait from "./HeroPortrait";
-import { ScrambleText } from "./Scramble";
 import { EASE, INTRO_OFFSET, isSoftNavigation, shouldPlayIntro } from "@/lib/motion";
-
-const SERVICES_BUTTON =
-  "items-center gap-2 bg-electric text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300 group";
 
 // Arrived by a page transition (Phase 5): every entrance starts at its final
 // state, since the sweep is the only entrance. Hero only mounts client-side
@@ -27,10 +23,6 @@ function Word({ children, delay = 0 }) {
       {children}
     </motion.span>
   );
-}
-
-function ServicesArrow() {
-  return <span className="transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>;
 }
 
 export default function Hero() {
@@ -70,19 +62,6 @@ export default function Hero() {
             <div className="mt-1 text-ink-faint">Index / Landing</div>
           </motion.div>
         </motion.div>
-
-        {/* Prominent Services CTA — stays visible while at the top, scrolls away with the hero */}
-        <motion.a
-          href="/services"
-          data-hover
-          initial={enter({ opacity: 0, y: 8 })}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: at(1.3), duration: 0.6, ease: EASE }}
-          className={`hidden md:inline-flex ${SERVICES_BUTTON}`}
-        >
-          <ScrambleText text="Services" />
-          <ServicesArrow />
-        </motion.a>
       </div>
 
       {/* The drifting content is three siblings sharing one scroll drift, so
@@ -141,12 +120,6 @@ export default function Hero() {
           </EagerReveal>
         </div>
 
-        {/* Mobile only: the top-right CTA is hidden below md, so the hero
-            ends on a full-width Services button instead */}
-        <a href="/services" data-hover className={`md:hidden mt-6 flex w-full justify-center ${SERVICES_BUTTON}`}>
-          <ScrambleText text="Services" />
-          <ServicesArrow />
-        </a>
       </motion.div>
     </section>
   );

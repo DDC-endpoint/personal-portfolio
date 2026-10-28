@@ -9,7 +9,6 @@ import HowItWorks from "./services/HowItWorks";
 import RecentWork from "./services/RecentWork";
 import StartCard from "./services/StartCard";
 import { EMAIL, WHATSAPP_LINK } from "@/lib/site";
-import { EASE } from "@/lib/motion";
 import { BUSINESS, SERVICES_HERO, SERVICES, PRICING_NOTE, PRICES_UPDATED, FAQS } from "@/lib/services";
 
 function CTAButtons() {
@@ -49,9 +48,9 @@ export default function Services() {
       <section id="top" ref={introRef} className="relative px-6 md:px-10 pt-40 md:pt-56 pb-20 md:pb-28 overflow-hidden">
         <div className="absolute -top-40 -right-32 w-[55vw] h-[55vw] rounded-full bg-sky/60 dark:bg-sky/30 blur-3xl blob pointer-events-none" />
 
-        {/* Corner index + Portfolio CTA — mirrors the homepage hero's top-right
-            block (index label that fades on scroll, electric button below it).
-            Desktop only; mobile reaches the portfolio via the nav overlay. */}
+        {/* Corner index — mirrors the homepage hero's top-right label, which
+            fades on scroll. Desktop only. The Portfolio button is gone: the
+            nav carries the pages (Phase 6). */}
         <div className="hidden md:flex absolute top-28 right-6 md:right-10 flex-col items-end gap-4 z-10">
           <motion.div style={{ opacity: metaOpacity }} className="section-label text-right">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.8 }}>
@@ -59,18 +58,6 @@ export default function Services() {
               <div className="mt-1 text-ink-faint">Services / Hire</div>
             </motion.div>
           </motion.div>
-
-          <motion.a
-            href="/"
-            data-hover
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
-            className="group inline-flex items-center gap-2 bg-electric text-ivory hover:bg-electric/90 dark:bg-ink dark:text-ivory dark:hover:bg-ink/90 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300"
-          >
-            <ScrambleText text="Portfolio" />
-            <span className="transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
-          </motion.a>
         </div>
 
         <div className="grid grid-cols-12 gap-6 relative">
@@ -186,7 +173,7 @@ export default function Services() {
             </SplitLines>
             <Reveal delay={0.1}>
               <a
-                href="/#work"
+                href="/portfolio"
                 data-hover
                 className="group mt-5 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-electric link-line"
               >

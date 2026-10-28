@@ -23,7 +23,7 @@ export default function SmoothScroll() {
     //
     // Uses a single delegated listener on `document` rather than attaching to a
     // one-time snapshot of anchors. This catches every in-page anchor — including
-    // links rendered after mount (e.g. the ServicesNav links and the mobile-menu
+    // links rendered after mount (e.g. the mobile-menu
     // overlays, which are conditionally rendered) — so all pages behave alike.
     function handleAnchorClick(e) {
       const anchor = e.target.closest?.('a[href^="#"]');

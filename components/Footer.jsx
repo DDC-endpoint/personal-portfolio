@@ -1,15 +1,11 @@
 "use client";
-import { YEAR } from "@/lib/site";
+import { NAV_LINKS, YEAR } from "@/lib/site";
 import Reveal from "./Reveal";
 
 // Footer B (Damian, docs/v3/spike/footer-mock.html): the three columns stay,
 // the trading name sits under the © line and the page links under the
-// tagline. Everything is centred on phones.
-const LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/services", label: "Services" },
-  { href: "/privacy", label: "Privacy" },
-];
+// tagline. Everything is centred on phones. The links are the nav's four
+// pages.
 
 const mono = "font-mono text-[11px] uppercase tracking-[0.2em]";
 
@@ -27,7 +23,7 @@ export default function Footer() {
           <div data-footer-col className="flex flex-col items-center gap-2 text-center">
             <span className="font-display italic text-ink text-xl">Made by hand, in Colombo.</span>
             <nav aria-label="Footer" className="flex gap-7">
-              {LINKS.map((l) => (
+              {NAV_LINKS.map((l) => (
                 <a key={l.href} href={l.href} className={`${mono} text-ink link-line`}>
                   {l.label}
                 </a>
