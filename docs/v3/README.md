@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-28: Phases 1–5 merged into `v3` and pushed; Phase 6 built on `v3-portfolio`, at Damian's visual gate)
+## Where we are (2026-10-28, end of session: Phases 1–5 merged into `v3` and pushed; Phase 6 built on `v3-portfolio`, at Damian's visual gate, with his gate fixes in)
 
 | Track | State |
 |---|---|
@@ -15,15 +15,23 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 4**: copy refresh, Leadership rows, Skills terminal, `/services` | **Done and merged into `v3` locally (2026-10-27)** as `24b16d7`. Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. His gate changes (pinning, Recent work rows, prices, full-width stack) are in `decisions.md` → "Phase 4 build and review" and "Gate changes". See "What Phase 4 built". |
 | SEO and GEO upgrade (Phase 4 Task 11) | **Done and merged with Phase 4 (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
 | **Phase 5**: page transition (every page) and the first-load reveal | **Done and merged into `v3` (2026-10-28), and `v3` pushed to `origin`.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b) and his gate fixes (`decisions.md` → "Phase 5 gate changes"). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
-| **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Built, reviewed and at Damian's visual gate on `v3-portfolio` (2026-10-28).** Not merged into `v3` (his call: he sees it first). See "What Phase 6 built". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
+| **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Built, reviewed, gate fixes in, still at Damian's visual gate on `v3-portfolio` (2026-10-28).** Not merged into `v3` or pushed (his call: he sees it first). See "What Phase 6 built" and `decisions.md` → "Phase 6 gate fixes". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
 
-### The next step (resume here): Phase 6, then the performance pass
+### The next step (resume here): finish Phase 6's gate, then the performance pass
 
-**State (2026-10-28, end of the build session):** all eleven tasks of [`plan-phase-6.md`](plan-phase-6.md) are done on `v3-portfolio` (not pushed). Unit tests (189) and the full e2e suite pass. A fresh reviewer found five Important and seven Minor issues; all are fixed test-first (commit `7591774`). Lighthouse is in "Testing". **Next: Damian's visual gate**, then (on his word) merge into `v3`, then the performance pass.
+**State at hand-off (2026-10-28, end of the build-and-gate session):** Phase 6 is built on `v3-portfolio` (last commit before this hand-off: the docs commit after `4e90e98`), not pushed, not merged into `v3`. Unit tests (189) pass; the full e2e suite passed after the review fixes, and every spec touched since passes. The dev server was restarted at the end of the session (`npm run dev`, :3000); the spike server may still be on :3200.
 
-- **Branch:** `v3-portfolio`, cut from `v3` at `14ce453`. One commit per task (Tasks 7 and 8 share one: the loader and the entrances share the reveal signal and couldn't land green apart).
-- **Gate questions for Damian** (also in "What Phase 6 built"): the 404 page in dark mode, Kahatagaha's short preview, and the plan's "about 2.7 s" page change (it's 2.25 s by its own parts).
-- **The dev server** was started in this session (`npm run dev`, :3000).
+**Open at the gate (ask Damian, in this order):**
+1. **"Offset on the HOME navbar link" (his last message, unresolved).** The current-page underline was trimmed by the trailing letter-spacing in `115f350` (PRIVACY's screenshot); measured on HOME at 100/125/150/175/200% scaling, the underline now runs 1 px past each end of the glyphs (their side bearings), symmetric. It couldn't be reproduced. Asked him to hard-refresh (Ctrl+Shift+R) and, if it persists, send a screenshot and say whether it's at rest or on hover, light or dark. If it turns out to be vertical (the line too low), or a different element, fix that instead.
+2. **`/portfolio`'s first row** is hidden until the curtain lifts (it rises then), which costs mobile LCP (61 in the last run). Keep the rise, or show the first row from the first paint?
+3. **The 404 page is always light** (and logs a React dev warning about the layout's `<script>`): pre-existing, React rebuilds that route's document client-side and drops the pre-paint `js`/`dark` classes. Fix now or in the perf pass?
+4. **Kahatagaha's preview is short** (its landing page is one screen tall). Keep, or capture one of its concept pages?
+5. **The page change is 2.25 s, not the plan's "about 2.7 s"** (the plan's own parts add to 2.25). Confirm.
+6. **Merge:** on his word, `git checkout v3 && git merge --no-ff v3-portfolio` (local, as every phase), then push `v3` only if he asks.
+
+**Then the performance pass** (below). Carry-overs from Phase 6 for it: the portrait wave's densest frames during the first-load lift (an occasional missed frame about 1.1 s in); `/portfolio`'s mobile LCP (re-measure: its lede was made the static LCP candidate after the last run); Home's TBT is about 200 ms above `v3` before Phase 6; the decode setup cost when the strip's centred card changes.
+
+**How to measure smoothness on this machine:** headless Chromium paints in software (SwiftShader), so frame times there mislead. Launch with `chromium.launch({ channel: "chromium", args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11"] })` to get the RTX 4060, and throttle the CPU (CDP `Emulation.setCPUThrottlingRate`, 4×) to see main-thread costs; `long-animation-frame` entries then name the scripts. The probes used this session (`liftperf.mjs`, `scrollperf.mjs`, `probe_portrait.mjs`, `barprobe.mjs`) were in the session scratchpad, which doesn't survive; rewrite them from this description if needed.
 
 **Phase 6 in one paragraph:**
 - **Pages:** four in one nav (Home, Portfolio, Services, Privacy; the logo reads "DDC / Damian De Cruz"), with the hero's SERVICES button and `/services`' Portfolio button gone.
@@ -32,6 +40,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - **First load:** a morph loader (blob, count, the name) on a five-panel curtain.
 - **Page changes:** the same curtain replaces the glyph sweep.
 - **404:** the Isometric Board.
+- **At the gate:** the same board (ivory glass) on both electric contact cards; the footer's page links removed.
 - **Next:** the performance pass follows Phase 6.
 
 #### The performance pass (after Phase 6)
@@ -260,7 +269,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 ## What Phase 6 built (on `v3-portfolio`)
 
 **Pages and nav (Task 2):**
-- One nav on every page (`components/Nav.jsx`; `ServicesNav.jsx` is gone): the logo "DDC / Damian De Cruz", Home · Portfolio · Services · Privacy with the current page marked (electric, underline drawn, `aria-current`), the same four in the mobile menu and the footer (`lib/site.js` → `NAV_LINKS`).
+- One nav on every page (`components/Nav.jsx`; `ServicesNav.jsx` is gone): the logo "DDC / Damian De Cruz", Home · Portfolio · Services · Privacy with the current page marked (electric, underline drawn, `aria-current`), the same four in the mobile menu (`lib/site.js` → `NAV_LINKS`). The footer has no page links (gate).
 - Removed: the hero's SERVICES buttons, the mobile menu's Services button, `/services`' Portfolio button. "See the full portfolio" goes to `/portfolio`.
 
 **Data (Task 1):** `lib/projects.js` runs newest first with categories, full-capture paths, `HOME_STRIP` / `homeStrip()` (Home's five, numbered by the strip), `FILTERS` and the counts.
@@ -283,11 +292,16 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 **Review (Task 11):** five Important findings, all fixed with tests: the intro could lift twice on a late hydration; a hydration after the CSS failsafe covered the readable page again; a change to Home held 400 ms extra (waiting on the portrait's wave instead of its preparation); `/portfolio`'s card failsafe skipped the rise of rows reached after 5 s; `/portfolio`'s first row rose under the curtain. Seven Minor ones, all fixed (pointer-events specificity, stale veil comments, the strip's off-screen frames, the loader's count writes, forced colours spending the full load, hard-coded ink, test gaps). The impeccable detector flagged 10 px tags on `/portfolio` (now 11 px); its other findings are chosen design (the curtain's curved clip-paths, the address caret, the count line) or pre-existing site-wide.
 
-**Gate questions:**
-- **`/portfolio`'s first row** is hidden until the curtain lifts, which costs mobile LCP (61). Keep the rise, or show the first row from the first paint?
-- **The 404 page is always light, and logs a React dev warning about a `<script>`.** Both predate Phase 6 (checked with the board removed): on that route React rebuilds the document client-side, which drops the pre-paint `js`/`dark` classes. Fix now or leave for the perf pass?
-- **Kahatagaha's preview is short** (its landing page is one screen). Keep it, or capture one of its two concept pages instead?
-- **The page change is 2.25 s, not "about 2.7 s".** The plan's parts (cover 0.94 + hold 0.22 + lift 1.09) add to 2.25 s; the build follows the parts (the lab's timing).
+**At the gate (Damian, 2026-10-28; all in `decisions.md` → "Phase 6 gate fixes"):**
+- The portrait flashed finished before its wave during the lift: fixed (`3b4afe0`).
+- The current page's nav underline overhung the word: trimmed by the trailing tracking (`--trail`).
+- The reload curtain flickered (the seams' shadow popped on): the server HTML now paints it.
+- A slight frame drop in the first load's lift: the hero's entrance runs on animation controls; the loader unmounts when idle.
+- The footer's page links are removed (`adec99b`).
+- The progress bar stuttered while scrolling: the strip re-renders only the two cards whose active state changes (`1e8c4f0`).
+- The Isometric Board on both electric contact cards, beside the text (placement A from `spike/contact-board.html`), ivory glass, the 404's motion (`4e90e98`).
+
+**Gate questions still open:** see "The next step" above.
 
 ## What Phase 5 built (on `v3-phase-5`)
 
@@ -400,12 +414,15 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 ## Repo state at hand-off
 
 - **Branches:**
-  - `v3` (current) is pushed to `origin` with its upstream set (Damian, 2026-10-28). `v3-phase-1` to `v3-phase-5` and `v3-timeline-circuit` are merged and deleted. The working tree is clean.
+  - `v3-portfolio` (current): Phase 6, cut from `v3` at `14ce453`. Local only, not pushed, not merged. The working tree is clean.
+  - `v3` is pushed to `origin` with its upstream set (Damian, 2026-10-28). `v3-phase-1` to `v3-phase-5` and `v3-timeline-circuit` are merged and deleted.
   - Other local branches, `main` and `upgrade/deps`, are untouched by V3.
-- **Dev server:** Damian keeps `next dev` running on :3000. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another.
+- **Dev server:** `next dev` on :3000, restarted at the end of the 2026-10-28 session. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another. A long-running `next dev` slows down and makes timing tests flaky: restart it (with Damian's OK) before chasing flakes.
 - **Prototype server:** `node docs/v3/spike/serve.cjs` on :3200 (see "Running the prototypes"). It may still be running from the last session.
+- **Old worktrees:** `git worktree list` shows three from an earlier session (`wt-main`, `wt-p4`, `wt-v3` under another session's scratchpad). They're stale; remove them with `git worktree remove --force <path>` if they get in the way.
 - **`AGENTS.md`** is generated by `next dev` on every run. It is gitignored (Damian's call); don't commit it.
 - **Gallery photos:** all 10 are committed in `public/photography/`, EXIF-free. The originals stay in `assets/photography-originals/` (gitignored; they still carry EXIF and GPS). `npm run optimize-photos` rewrites every output, so restore unchanged ones with `git checkout -- public/photography`.
+- **Project screenshots:** `npm run capture-projects` (top shots) and `node scripts/capture-projects.mjs --full` (full pages for `/portfolio`); "portfolio" needs the dev server. Both strip metadata.
 - **Hero headshot:** the original ("Professional Young Man's Studio Headshot.png") is in Damian's Downloads folder and must never be committed. The processed `public/hero/portrait.webp` is committed; Damian approved publishing it, and it has no EXIF.
 
 ## Files
@@ -418,7 +435,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-5.md`](plan-phase-5.md): the Phase 5 plan (the page transition, plus Task 4b, the first-load reveal). **Built**, at the gate; read its status note.
-- [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`, and Task 11, SEO and GEO). **Built**, at the gate; read its status note.
+- [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`, and Task 11, SEO and GEO). **Done**; read its status note.
+- [`plan-phase-6.md`](plan-phase-6.md): the Phase 6 plan (four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board). **Built**, at the gate; read its status note.
 - [`pricing-2026-10.md`](pricing-2026-10.md): the October 2026 price research behind the `/services` prices, and what to re-check next time.
 - [`seo-geo.md`](seo-geo.md): the SEO and GEO audit summary, Damian's decisions, what we built, what Damian does outside the repo, and the monthly GEO prompt set.
 - [`research-reels.md`](research-reels.md): notes on the six Instagram reels and the ASCII reference video that shaped V3.
@@ -431,6 +449,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - `page-transition.html`: the page-transition prototype with three origins, a slow-motion toggle, dark mode and a Back button (Damian chose the top-down sweep at about 1.3 s; it opens set to that).
   - `intro-stamp.html`: the first-load intro: four shapes for the stamp (Halo, Clearing, Globe, Lens) against today's box, glyphs that pop or bloom, the first-frame glow, a replayable load and Hold cover (Damian chose A · Halo with glow + bloom).
   - `og-cards.html`, `og-cards.cjs`, `og-portrait.png`: the share-card template, its renderer and the exported ASCII portrait.
+  - Phase 6: `strip-carousel.html` (B chosen), `home-curation.html`, `portfolio-page.html`, `loader-curtain.html` ("Damian's" preset) and `contact-board.html` (the board on the contact cards; A chosen). Setup in `spike/README.md`.
   - `process-headshot.cjs`, `make-gallery-copies.cjs`, `serve.cjs`: helper scripts.
 
 ## How Damian likes to work
@@ -456,6 +475,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
   - He wants review minors fixed too, not deferred (Phase 2). Fix them test-first along with the Critical and Important findings.
   - Mono buttons scramble their letters only. An arrow sits outside `ScrambleText`, so a button never changes width (Phase 2).
   - At a visual gate, open the dev page in his browser for him (`Start-Process "http://localhost:3000/#…"`).
+- **He reports issues in a line or a cropped screenshot** ("offset on the HOME link", "the progress bar trips"). Reproduce and measure before changing anything (pixel measurements for alignment, per-frame probes for motion), say what the cause is, and ask for a screenshot when it can't be reproduced.
+- **Smoothness is judged on a real GPU:** see "The next step" → "How to measure smoothness".
 - **Chat style:** he sometimes turns on caveman mode (terse replies) for a session. It applies to chat only; docs, commits and code comments stay in normal prose.
 - **Record everything:**
   - Decisions go into `docs/v3/` straight away.

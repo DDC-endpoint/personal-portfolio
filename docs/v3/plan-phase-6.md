@@ -1,6 +1,6 @@
 # V3 Phase 6 Implementation Plan: pages, curation, the loader and the curtain
 
-> **Status: Tasks 1–10 built on `v3-portfolio` (2026-10-28); Task 11 (verify, review, gate) next.** Where the build departed from the plan: Tasks 7 and 8 share one commit; the page change is 2.25 s (the plan's "about 2.7 s" doesn't match its own parts); see `decisions.md` → "Phase 6 build" for every ruling. Approved by Damian (2026-10-28), with all ten builder's calls. Every design decision below is his, made from four spikes; see `decisions.md` → "Phase 6 planning". The build stops at a visual gate before anything merges into `v3` (Damian).
+> **Status: all eleven tasks built and reviewed on `v3-portfolio` (2026-10-28); at Damian's visual gate, with his gate fixes in (`decisions.md` → "Phase 6 gate fixes"); open gate questions in `README.md` → "The next step".** Where the build departed from the plan: Tasks 7 and 8 share one commit; the page change is 2.25 s (the plan's "about 2.7 s" doesn't match its own parts); see `decisions.md` → "Phase 6 build" for every ruling. Approved by Damian (2026-10-28), with all ten builder's calls. Every design decision below is his, made from four spikes; see `decisions.md` → "Phase 6 planning". The build stops at a visual gate before anything merges into `v3` (Damian).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (native inline execution, as Phases 1–5) to implement this plan task by task, test-first, then one fresh reviewer for the whole branch. Steps use checkbox (`- [ ]`) syntax for tracking.
 
