@@ -70,12 +70,11 @@ export default function Nav() {
 
   return (
     <>
-      <motion.header
-        initial={{ y: -40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 1, ease: EASE, delay: 0.2 }}
-        // right: --lock-gap keeps it still while a scroll lock hides the
-        // scrollbar (lib/scrollLock.js).
+      {/* No entrance of its own: the curtain is every page's entrance, and
+          the nav is there, still, as it lifts (Damian). right: --lock-gap
+          keeps it still while a scroll lock hides the scrollbar
+          (lib/scrollLock.js). */}
+      <header
         className="fixed top-0 left-0 right-[var(--lock-gap,0px)] z-50 mix-blend-multiply dark:mix-blend-screen"
       >
         <div className="px-6 md:px-10 py-6 flex items-center justify-between">
@@ -91,7 +90,7 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 aria-current={current(l.href)}
-                className="font-mono text-[11px] uppercase tracking-[0.18em] [--trail:0.18em] text-ink link-line aria-[current=page]:text-electric"
+                className="font-mono text-[11px] uppercase tracking-[0.18em] [--trail:0.18em] [--bear:0.07em] text-ink nav-line aria-[current=page]:text-electric"
               >
                 {l.label}
               </a>
@@ -130,7 +129,7 @@ export default function Nav() {
             </button>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       {/* Mobile menu overlay */}
       <AnimatePresence>

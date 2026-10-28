@@ -327,7 +327,9 @@ html:not(.js) [style*="transform:translateY"] { opacity: 1 !important; transform
 }
 
 /* The cursor sits above every layer, the Lens viewer (z-100) included: the
-   native cursor is hidden, so anything over it hides the pointer. */
+   native cursor is hidden, so anything over it hides the pointer. The one
+   exception is the page curtain (z-120): the cursor stays behind it while it
+   covers (Damian). */
 .cursor-dot, .cursor-ring {
   position: fixed; top: 0; left: 0;
   pointer-events: none; z-index: 110;
@@ -362,12 +364,32 @@ html:not(.js) [style*="transform:translateY"] { opacity: 1 !important; transform
   background-position: 0 100%;
   transition: background-size 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* --trail: the text's letter-spacing, which the browser also adds after the
-   last letter; trimming it ends the underline under that letter instead of
-   past it (the tracked mono nav links set it). */
-.link-line:hover,
-/* The nav's current page keeps its underline drawn (Phase 6). */
-.link-line[aria-current="page"] { background-size: calc(100% - var(--trail, 0px)) 1px; }
+.link-line:hover { background-size: 100% 1px; }
+
+/* The nav's underline: a pseudo-element, not .link-line's background,
+   because Chromium floors a background's tile size to whole CSS pixels (the
+   line came up to a pixel short or long of the word). Its ends sit on the
+   ink, not the letter cells:
+   --trail: the letter-spacing, which the browser also adds after the last
+   letter.
+   --bear: the glyphs' side bearing, the blank inside each cell (JetBrains
+   Mono capitals: 0.03-0.1em). */
+.nav-line { position: relative; }
+.nav-line::after {
+  content: "";
+  position: absolute;
+  left: var(--bear, 0px);
+  right: calc(var(--trail, 0px) + var(--bear, 0px));
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-line:hover::after,
+/* The current page keeps its underline drawn (Phase 6). */
+.nav-line[aria-current="page"]::after { transform: scaleX(1); }
 
 /* Big number outline */
 .outline-num {

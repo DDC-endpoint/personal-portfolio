@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { blockCurtain } from "./helpers";
 
 // A finished portrait: after the wave ("static"), or straight away when the
 // load was too slow for one ("skipped" — a cold dev build sometimes is).
@@ -36,6 +37,30 @@ test("ring grows into the lens", async ({ page }, info) => {
   await page.locator("#about").scrollIntoViewIfNeeded();
   await page.mouse.move(20, 450, { steps: 5 });
   await expect(ring).not.toHaveClass(/is-lens/);
+});
+
+test("the lens waits for the intro curtain, then opens under a resting pointer", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  // Hold the intro curtain down: its code arrives late, so it can't lift
+  // before the test gets the pointer in, however fast the page loads.
+  await blockCurtain(page, { delay: 4000 });
+  await page.goto("/");
+  // The curtain lets the pointer through, so enter the portrait under it
+  // once the cursor is live.
+  const curtain = page.locator("[data-curtain]");
+  await expect(page.locator("html")).toHaveClass(/js-cursor/, { timeout: 8000 });
+  await expect(curtain).toHaveAttribute("data-curtain", "intro");
+  const p = await face(page);
+  await page.mouse.move(20, 450);
+  await page.mouse.move(p.x, p.y, { steps: 5 });
+  const ring = page.locator(".cursor-ring");
+  await page.waitForTimeout(300);
+  await expect(curtain).not.toHaveAttribute("data-curtain", "idle");
+  await expect(ring).not.toHaveClass(/is-lens/);
+  // Revealed: the lens opens without the pointer moving.
+  await expect(ring).toHaveClass(/is-lens/, { timeout: 8000 });
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
+  await expect.poll(() => warmAt(page, p), { timeout: 1500 }).toBeGreaterThan(0);
 });
 
 test("lens reveals colour", async ({ page }, info) => {

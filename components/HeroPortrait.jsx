@@ -6,7 +6,7 @@ import {
   LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE,
 } from "@/lib/portrait";
 import { noiseChar } from "@/lib/decode";
-import { shouldPlayIntro, onReveal } from "@/lib/motion";
+import { shouldPlayIntro, onReveal, isRevealed } from "@/lib/motion";
 import { ring, customCursorShown } from "@/lib/cursor";
 
 // The V3 hero: Damian's studio headshot redrawn as an electric-blue ASCII
@@ -225,7 +225,9 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
 
   function drawLens() {
     // Strength first: with the lens off, nothing below runs (no layout reads).
-    lens.s += ((lens.on ? 1 : 0) - lens.s) * STRENGTH_EASE;
+    // The intro curtain lets the pointer through, so the lens waits for the
+    // reveal; a pointer already resting on the portrait gets it then.
+    lens.s += ((lens.on && isRevealed() ? 1 : 0) - lens.s) * STRENGTH_EASE;
     if (lens.s < 0.01) return;
     if (lens.own) {
       lens.x += (lens.tx - lens.x) * FOLLOW;
@@ -378,7 +380,16 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     ro.observe(wrapper);
     io.observe(wrapper);
     document.addEventListener("visibilitychange", sync);
-    if (!reduced) for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn);
+    if (!reduced) {
+      for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn);
+      // A pointer that came in before the listeners (a slow photo) sent no
+      // pointerenter: pick it up now. Only with the custom cursor, whose ring
+      // gives the lens its position; without it, the next move does.
+      if (canvas.matches(":hover") && customCursorShown()) {
+        lens.own = false;
+        lens.on = true;
+      }
+    }
     sync();
   })();
 

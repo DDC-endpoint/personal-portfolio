@@ -36,21 +36,28 @@ for (const [path, current] of PAGES) {
       await expect(marked).toHaveText(current);
       // Marked: electric text and the underline drawn.
       const look = await marked.evaluate((a) => {
-        // The underline's right end against the last letter's (a Range over
-        // the text, which excludes the trailing letter-spacing).
+        // The underline's ends against the word's letter cells (a Range over
+        // the text; its right edge includes the trailing letter-spacing).
         const r = document.createRange();
         r.selectNodeContents(a);
         const text = r.getBoundingClientRect();
         const box = a.getBoundingClientRect();
-        const size = getComputedStyle(a).backgroundSize;
+        const line = getComputedStyle(a, "::after");
         const tracking = parseFloat(getComputedStyle(a).letterSpacing);
-        return { color: getComputedStyle(a).color, size, lineEnd: box.left + box.width - tracking, textEnd: text.right - tracking };
+        return {
+          color: getComputedStyle(a).color,
+          transform: line.transform,
+          inset: [box.left + parseFloat(line.left) - text.left, text.right - tracking - (box.right - parseFloat(line.right))],
+        };
       });
       expect(look.color).toBe("rgb(37, 99, 235)");
-      // Drawn, and trimmed by the trailing tracking so it ends under the
-      // last letter, not past it.
-      expect(look.size).toMatch(/^calc\(100% - [\d.]+px\) 1px$/);
-      expect(Math.abs(look.lineEnd - look.textEnd)).toBeLessThan(1.5);
+      // Drawn, and inset at both ends by the side bearing (under 0.1em,
+      // 1.1px) so it starts and ends on the ink, not past it.
+      expect(look.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
+      for (const d of look.inset) {
+        expect(d).toBeGreaterThan(0.3);
+        expect(d).toBeLessThan(1.1);
+      }
       // In-page anchors are gone.
       await expect(header.locator('a[href*="#about"], a[href*="#faq"]')).toHaveCount(0);
     }

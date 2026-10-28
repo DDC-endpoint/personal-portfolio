@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import MotionProvider from "@/components/MotionProvider";
 import PageTransitions from "@/components/transition/PageTransitions";
+import { SiteCursor } from "@/components/ClientEnhancements";
 import { ldJson } from "@/lib/jsonld";
 import { siteGraph } from "@/lib/structuredData";
 import { SHARE } from "@/lib/shareImages";
@@ -83,6 +84,7 @@ export default function RootLayout({ children }) {
           {/* The page transition's curtain (and the first-load loader): persists
               across client-side page changes, so it can cover one page and reveal the next. */}
           <PageTransitions />
+          <SiteCursor />
         </MotionProvider>
         {/* The site's structured data: the WebSite, Damian and his business
             (lib/structuredData.js). Pages add their own nodes by @id. */}

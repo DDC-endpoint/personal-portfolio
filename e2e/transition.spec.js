@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { trackErrors } from "./helpers";
+import { trackErrors, blockCurtain } from "./helpers";
 
 // The page transition (docs/v3/plan-phase-5.md; the curtain from Phase 6).
 // Every assertion waits on data-curtain / data-state, never on a fixed sleep.
@@ -187,6 +187,31 @@ test.describe("the curtain", () => {
     expect(lift["2"]).toBeLessThan(lift["3"]);
     await idle(page);
     await expect(page).toHaveURL(/\/portfolio$/);
+  });
+
+  test("the cursor stays behind the curtain and lives through the page change", async ({ page, isMobile }) => {
+    test.skip(isMobile, "the custom cursor is desktop only");
+    await page.goto("/");
+    await settle(page);
+    await page.mouse.move(700, 500);
+    await page.mouse.move(720, 520, { steps: 3 });
+    await page.evaluate(() => {
+      window.__ring = document.querySelector(".cursor-ring");
+      window.__cursorLost = false;
+      new MutationObserver(() => {
+        if (!document.documentElement.classList.contains("js-cursor") || !window.__ring.isConnected) window.__cursorLost = true;
+      }).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+    });
+    // Behind the curtain: it stacks above the cursor (the native cursor is
+    // hidden, so nothing shows while it covers).
+    const z = await page.evaluate(() => [".curtain", ".cursor-ring", ".cursor-dot"].map((q) => Number(getComputedStyle(document.querySelector(q)).zIndex)));
+    expect(z[0]).toBeGreaterThan(z[1]);
+    expect(z[0]).toBeGreaterThan(z[2]);
+    await page.locator('header nav a[href="/services"]').click();
+    await expect(page).toHaveURL(/\/services$/);
+    await idle(page);
+    // The same cursor, never unmounted, never handing back to the native one.
+    expect(await page.evaluate(() => [window.__ring === document.querySelector(".cursor-ring"), window.__cursorLost])).toEqual([true, false]);
   });
 
   test("the resting shadow is there before any panel moves; panels are ivory and mist", async ({ page, isMobile }) => {
@@ -588,18 +613,6 @@ test.describe("details", () => {
 });
 
 // ---- Review fixes ------------------------------------------------------------
-
-// Aborts (or delays) the curtain's code chunk: the only one naming its "lifting" state.
-async function blockCurtain(page, { delay } = {}) {
-  await page.route("**/_next/static/chunks/**", async (route) => {
-    const res = await route.fetch();
-    const body = await res.text();
-    if (!body.includes('"lifting"')) return route.fulfill({ response: res, body });
-    if (delay === undefined) return route.abort();
-    await new Promise((r) => setTimeout(r, delay));
-    return route.fulfill({ response: res, body });
-  });
-}
 
 test.describe("robustness", () => {
   test("if the curtain's code can't load, page links still work (the browser loads them)", async ({ page }) => {

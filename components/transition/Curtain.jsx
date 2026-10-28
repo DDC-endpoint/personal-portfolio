@@ -6,13 +6,14 @@ import { forwardRef } from "react";
 // shape and the edge light. The label (and, on a first load, the morph
 // loader) rides the middle panel. The server HTML has it covering ("intro")
 // for the loader; the engine (./curtain.js) moves it from then on. Hidden
-// from screen readers; never in the way of a click while idle.
+// from screen readers; never in the way of a click while idle. Above every
+// layer, the cursor (z-110) included: the cursor stays behind it (Damian).
 
 const PANELS = 5;
 
 const Curtain = forwardRef(function Curtain(props, ref) {
   return (
-    <div ref={ref} data-curtain="intro" aria-hidden="true" className="curtain fixed inset-0 z-70 pointer-events-none nojs:hidden">
+    <div ref={ref} data-curtain="intro" aria-hidden="true" className="curtain fixed inset-0 z-[120] pointer-events-none nojs:hidden">
       {Array.from({ length: PANELS }, (_, i) => (
         <div key={i} data-panel={i} className="curtain-panel">
           <div data-drop className="absolute inset-0">
