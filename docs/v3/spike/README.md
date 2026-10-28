@@ -28,6 +28,8 @@ Then open:
 - http://localhost:3200/portfolio-page.html: **Phase 6 `/portfolio` as approved**: compact hero, grid with filters, Grid | List morph, and the animations Damian picked (scroll-through preview, address bar typing, upcoming build loop, row-by-row entrance with no decode, live pulse).
 - http://localhost:3200/loader-curtain.html: **Phase 6 loader and curtain as approved**: the "Damian's" preset (centre-out, liquid edges, edge light on, shadow always, lab speed, ivory/mist, the loader riding the middle panel, no tension, the mono label). "Crafted" and "Lab faithful" are the compared alternatives. Run the full load, the short reload, and page changes from the mock nav.
 
+The three Phase 6 pages above are built on `v3-portfolio` (2026-10-28); the site is now the reference, and these stay as the record of what was approved. `capture-full.mjs` is superseded by `node scripts/capture-projects.mjs --full`, which writes the same captures to `public/projects/full/` (copy them into `proj/full/` to refresh the spikes).
+
 **Set up `proj/` for the Phase 6 spikes** (gitignored copies of public images, plus full-page captures):
 
 ```bash

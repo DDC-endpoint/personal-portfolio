@@ -103,7 +103,7 @@ export default function PageTransitions() {
   const router = useRouter();
   const pathname = usePathname();
   const curtainRef = useRef(null);
-  const veilRef = useRef(null); // a promise of the curtain's engine, once loading starts
+  const engineRef = useRef(null); // a promise of the curtain's engine, once loading starts
   const busy = useRef(false);
   const token = useRef(0); // each run's number; a newer run calls older ones off
   const pathRef = useRef(pathname);
@@ -114,15 +114,15 @@ export default function PageTransitions() {
   // curtain (data-curtain="intro"); it unmounts once the curtain has lifted.
   const [intro, setIntro] = useState(true);
   // loaded: the loader is done; done: the lift is too (the intro is over).
-  const introRef = useRef({ loaded: false, done: false, veil: null, pending: null });
+  const introRef = useRef({ loaded: false, done: false, engine: null, pending: null });
   const goRef = useRef(null); // the controller's go(), for a click made during the intro
 
   // A failed load isn't kept: the next call tries again.
-  const loadVeil = () =>
-    (veilRef.current ??= import("./curtain")
+  const loadCurtain = () =>
+    (engineRef.current ??= import("./curtain")
       .then(({ createCurtain }) => createCurtain(curtainRef.current))
       .catch((error) => {
-        veilRef.current = null;
+        engineRef.current = null;
         throw error;
       }));
 
@@ -162,20 +162,20 @@ export default function PageTransitions() {
   // intro opens now instead, under the same cover.
   const lift = () => {
     const state = introRef.current;
-    if (!state.loaded || !state.veil || state.done) return;
+    if (!state.loaded || !state.engine || state.done) return;
     const next = state.pending;
     state.pending = null;
     if (next) {
       state.done = true;
       delete curtainRef.current?.dataset.intro;
       setIntro(false);
-      state.veil.coverNow(nameOf(next.path));
+      state.engine.coverNow(nameOf(next.path));
       goRef.current?.(next.path, next.hash, { covered: true });
       return;
     }
     // The lift keeps the intro's rules: the pointer passes through, and a
     // page link clicked meanwhile waits for it to finish.
-    state.veil.lift({ onClear: markRevealed }).then(introDone);
+    state.engine.lift({ onClear: markRevealed }).then(introDone);
   };
 
   const finishLoader = () => {
@@ -192,11 +192,11 @@ export default function PageTransitions() {
     // A late hydration: the loader's time is up already, so lift at once.
     if (performance.now() > LATE_MS) introRef.current.loaded = true;
     let live = true;
-    loadVeil()
-      .then((veil) => {
+    loadCurtain()
+      .then((engine) => {
         if (!live) return;
-        veil.coverNow();
-        introRef.current.veil = veil;
+        engine.coverNow();
+        introRef.current.engine = engine;
         lift();
       })
       .catch(() => live && skipIntro());
@@ -263,9 +263,9 @@ export default function PageTransitions() {
           land(targetTop(hash) ?? 0);
           markRevealed();
         } else {
-          const veil = await loadVeil();
+          const engine = await loadCurtain();
           if (!live()) return;
-          if (!covered) await veil.cover(nameOf(path));
+          if (!covered) await engine.cover(nameOf(path));
           if (!live()) return;
           const coveredAt = performance.now();
           coverStarts();
@@ -278,7 +278,7 @@ export default function PageTransitions() {
           if (left > 0) await sleep(left);
           if (!live()) return;
           land(targetTop(hash) ?? 0);
-          await veil.lift({ onClear: markRevealed });
+          await engine.lift({ onClear: markRevealed });
         }
         if (live()) busy.current = false;
       } catch {
@@ -310,15 +310,15 @@ export default function PageTransitions() {
           land(positions.current.get(current) ?? 0);
           markRevealed();
         } else {
-          const veil = await loadVeil();
+          const engine = await loadCurtain();
           if (!live()) return;
-          veil.coverNow(nameOf(path));
+          engine.coverNow(nameOf(path));
           if (!(await arrive(path, run, reload))) return;
           await frames(2);
           if (path === "/") await portraitDrawn();
           if (!live()) return;
           land(positions.current.get(current) ?? 0);
-          await veil.lift({ onClear: markRevealed });
+          await engine.lift({ onClear: markRevealed });
         }
         if (live()) busy.current = false;
       } catch {
@@ -360,7 +360,7 @@ export default function PageTransitions() {
     window.addEventListener("popstate", onPop);
     const cancelIdle = whenIdle(async () => {
       for (const p of PAGES) if (p !== window.location.pathname) router.prefetch(p);
-      if (!still()) await loadVeil().catch(() => {}); // a click retries it
+      if (!still()) await loadCurtain().catch(() => {}); // a click retries it
       if (!cancelled) document.documentElement.dataset.transitions = "ready";
     });
     return () => {
@@ -371,12 +371,12 @@ export default function PageTransitions() {
       window.removeEventListener("popstate", onPop);
       // Drop the curtain's engine, so a remount (React's dev double mount, for
       // one) builds a fresh one instead of reusing a destroyed one.
-      const veil = veilRef.current;
-      veilRef.current = null;
-      veil?.then((v) => v.destroy()).catch(() => {});
+      const engine = engineRef.current;
+      engineRef.current = null;
+      engine?.then((e) => e.destroy()).catch(() => {});
       delete document.documentElement.dataset.transitions;
     };
-    // loadVeil only reads refs.
+    // loadCurtain only reads refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 

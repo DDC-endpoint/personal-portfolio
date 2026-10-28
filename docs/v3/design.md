@@ -71,17 +71,19 @@ Damian's portfolio already has a settled look: ivory and navy with an electric-b
 - **Section labels** (`§ 0N — …`) decode in when they enter view. **Serif section titles** keep the existing line-by-line rise (`SplitLines`).
 - **Link hover:** mono buttons (e.g. `SERVICES →`, `Request CV`) briefly scramble and resolve. Links that already have the underline draw (the nav links, "Services & pricing", serif text links) keep only the underline and don't scramble (Damian, 2026-10-27).
 - **Cursor lens:** when the ring grows into the lens, the centre dot disappears (Damian, 2026-10-27).
-- **Page transition (every page; revised by Damian 2026-10-27, see [`plan-phase-5.md`](plan-phase-5.md)):** a top-down glyph sweep of about 1.3 s. A band of blue characters sweeps down and covers the outgoing page, the incoming page swaps in underneath, and the same sweep decodes it in.
-  - It covers every link between Home, `/services`, `/privacy` and the 404 page, including links like `/#work`.
-  - **First load and reload (Damian, during the build):** every page starts covered. The "DAMIAN DE CRUZ" stamp resolves in a soft ivory halo over the covered glyph field, then the same sweep reveals the page. Frame one already shows a faint glow around the name and its letters shimmer; the glyph field blooms out from the halo (gate changes, 2026-10-28). On Home the portrait wave and the hero float-in still follow. Forced colours keeps the plain stamp and its upward wipe. A link clicked during the intro opens when the stamp is done, under the same cover.
-  - Back and Forward decode in only: the page starts covered and the sweep reveals it where the visitor left it.
-  - Arriving on Home this way never replays the curtain or the 2.4 s portrait wave, and the hero text is already in place.
-  - Client-side navigation with a persistent transition overlay, rather than full reloads with a timed exit.
-  - Reduced motion: no cover; page changes are client-side and instant.
-  - (Originally "glyph dissolve, about 0.6 s, Home ↔ `/services`"; Damian chose the sweep and the timing from `spike/page-transition.html`.)
+- **Page transition: the curtain (every page; Phase 6, Damian 2026-10-28, see [`plan-phase-6.md`](plan-phase-6.md)):**
+  - Five full-height panels (three below `md`), ivory and mist (navy and navy-2 in dark mode), rise centre-out to cover the page (0.7 s, 0.12 s apart), hold 0.22 s while the next page swaps in at full cover, then carry on upwards (0.85 s), power4 in-out. A page change takes about 2.25 s.
+  - Their edges curve with their speed, a 1 px electric line glints along them with speed, and a soft shadow sits on the seams from the first frame, with a moving one that grows smoothly.
+  - The destination's name rides the middle panel in small vertical mono with an electric dot.
+  - It covers every link between Home, `/portfolio`, `/services`, `/privacy` and the 404 page, including section links like `/#contact`. Back and Forward start covered and lift.
+  - Client-side navigation with a persistent overlay, the 4 s fallback to a normal load, focus to `<main>` on arrival.
+  - Reduced motion and forced colours: no curtain; page changes are client-side and instant.
+  - (History: Phase 5's top-down glyph sweep, chosen from `spike/page-transition.html`, was replaced by the curtain, chosen from `spike/loader-curtain.html`.)
+- **First load and reload: the morph loader (Phase 6).** Every page's server HTML starts with the curtain covering and the loader on its middle panel: a morphing blob with the count inside (Instrument Serif italic), "DAMIAN DE CRUZ" decoding under it in regular-weight mono, and the coordinates. The count follows real readiness (fonts, and on Home the portrait): it can't pass 96 before the page is ready and 1.2 s have gone, and finishes by 2.5 s. At 100 the blob settles into a circle and one ring pulses out; the curtain lifts and the loader rides the middle panel away. Later loads in the same tab session show only the name resolving (about 0.4 s). A link clicked meanwhile opens under the same cover.
+- **Entrances after the lift (Phase 6):** every arrival's above-the-fold entrance (Home's hero and portrait wave, `/services`' and `/portfolio`'s heroes, the privacy heading) starts as the panels clear, on first loads, reloads and page changes alike.
 - **Cursor:** the existing ring and dot. Over the hero portrait the ring grows into the lens (see Hero).
 - **Marquee:** removed from the page.
-- **Nav, scroll progress bar and footer** keep their current form, apart from the label and hover upgrades.
+- **Nav (Phase 6):** one nav on every page: the logo "DDC / Damian De Cruz", then Home · Portfolio · Services · Privacy with the current page marked. The scroll progress bar keeps its form; the footer lists the same four pages.
 - **Reduced motion:** static final state everywhere: no loader, idle animation, pinning, scrambling or growth.
   - The portrait shows as finished ASCII, with no lens.
   - Projects becomes a plain list of decoded screenshots.
@@ -99,15 +101,15 @@ Section order: Hero → About → Leadership → Skills → Projects → Timelin
 Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 - **Layout:**
-  - Today's hero stays: nav, corner metadata, SERVICES button in its current spot, kicker, name at 13.5vw, lede, and the sky-blue blobs.
+  - Today's hero stays: nav, corner metadata, kicker, name at 13.5vw, lede, and the sky-blue blobs. The SERVICES button is gone (Phase 6): the nav carries the pages.
   - The "Currently" line and the scroll indicator are removed.
   - The portrait is bottom-anchored, slightly left of the right edge, with its height capped so its label clears the nav.
   - It drifts and fades with the hero on scroll.
   - Dark mode dims the orb behind it.
-  - Mobile order: kicker → name → portrait → lede → a full-width SERVICES button.
+  - Mobile order: kicker → name → portrait → lede.
   - Exact values are in `hero-portrait.md` → Layout.
 - **Rendering:** a canvas ASCII portrait made from the processed studio headshot. Glyph ramp ` .·:;-=+*#%@`, cell 4, mono electric blue. Shading uses tints of electric blue rather than opacity. The bottom and shoulders fade out.
-- **Loader (revised 2026-10-27):** the existing `IntroStamp` curtain plays on every load or reload of Home. As it lifts, a 2.4 s wave builds the portrait from the face outward, from skeleton blocks through a noise front to the final glyphs, and the hero text floats in as on the live site (no letter decode). Hero text must be server-rendered and visible to LCP from the first paint.
+- **Loader (Phase 6):** the morph loader on the curtain (see "Global motion system") plays on every load or reload. As the curtain clears, on every arrival on Home, a 2.4 s wave builds the portrait from the face outward, from skeleton blocks through a noise front to the final glyphs, and the name rises (no letter decode). Hero text must be server-rendered.
 - **Idle:** a scan band sweeps down every 6 s, plus sparse character flicker.
 - **Lens:** the cursor ring grows into a lens about 120 px in radius that shows the full-colour photo. It has a thin ring and an `x · y` readout. Touch: drag on the portrait to move the lens.
 
@@ -130,37 +132,24 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 - The skills data is unchanged.
 - Reduced motion: shown fully typed.
 
-### 5. Projects: "Selected Work" (wow)
+### 5. Projects: "Selected Work" (wow; Phase 6: the carousel)
 
-- **Data and order:**
-  - 01 This Portfolio
-  - 02 Personal Dashboard
-  - 03 Aloys Travels (`https://aloys-travels.com/`)
-  - 04 Spades Solutions
-  - 05 Danella De Cruz
-  - 06 Kahatagaha Graphite
-  - 07 Interact District 3220: upcoming, not linked
-  - 08 ai-studio: upcoming, not linked, "In the works · 2026", no blurb
-  - End card: "Your project next"
+- **Five sites, strongest first (Damian):** Aloys Travels, Danella De Cruz, Kahatagaha Graphite, Spades Solutions, Personal Dashboard, then the end card ("Your project next"). Every project, including This Portfolio and the upcoming ones, is on `/portfolio`.
+- **Intro:** "Five favourites from a growing shelf. The rest, and what's on the way, is on the portfolio page." with an "All work →" link to `/portfolio` (underline draw, no scramble).
+- **Pinned carousel (variant B, `spike/home-curation.html`):**
+  - The section pins while about 3 viewport-heights of scroll glide the strip along a ~12° path through the screen centre. Cards are 40vw (the shot capped at 48.8vh), half a screen apart, so one card is centred with its neighbours' centres on the screen edges; the end card finishes dead centre.
+  - The strip eases after the scroll (about 110 ms) and stays where the visitor stops.
+  - Depth of field: a card is fully sharp within ±0.4 of a step of the centre, then ramps to scale 0.9, opacity 0.68, blur 3.2 px and saturate 0.65 at one step, a little more past it. Phones: dim and shrink only.
+- **Card:** a minimal browser window with the site's hand-traced skeleton and a mono label `NN — Title — Year`.
+- **The centred card is the active one** (on every device): it decodes from its skeleton into the screenshot and shows its tags and blurb, and dissolves back after it leaves the centre. Tab brings the next card to the centre. The pointer doesn't pick the card. Click or Enter opens the live site in a new tab.
+- **End card:** an empty window whose address bar types out `your-site.com`, with "Your project next" and "Start a project →" to Contact.
+- **Mobile:** no pinning; the cards stack with an alternating sideways offset, and the card nearest the centre is active.
+- **Reduced motion and no JS:** a plain list of screenshots.
+- **Screenshots:** captured from each live site at 1440×900 and optimised to WebP; full-page captures (720 wide) for `/portfolio`'s preview.
 
-  Coursework Archive is removed. Blurbs are in `copy.md`.
-- **Pinned diagonal strip:**
-  - The section pins while about 3 viewport-heights of scroll drive a strip of cards along a gentle ~12° path from lower-left to upper-right. Then it releases.
-  - The cards themselves stay level; only the path is diagonal.
-  - Each card is about 45% of the viewport width, so roughly two are in view: one fully, the next arriving.
-- **Card:**
-  - A minimal browser window: three dots, plus the site's domain in a mono address bar.
-  - Inside is a **skeleton** of that site's real homepage layout (nav, hero, cards, footer) drawn in the blue palette, so each one is recognisable.
-  - Under the card sits a small mono label `NN — Title — Year`.
-- **Hover / keyboard focus:**
-  - The skeleton decodes through characters into a real screenshot of the site, and the tags and blurb appear.
-  - Click or Enter opens the live site in a new tab.
-  - When the pointer leaves, the card dissolves back into its skeleton after a short delay.
-- **Upcoming cards:** **generic** skeletons (Damian). Nothing of Interact's unreleased design goes in the public repo. Address bars read `interactdistrict3220.org` and `ai-studio`. They never decode. On hover they scramble and stay as skeletons, with a `loading… 2026 →` label. They are not links. When a site goes live, flipping its status gives it the full treatment.
-- **This Portfolio card:** recursive. Its skeleton is the V3 hero itself, including a tiny ASCII portrait, and it decodes into a screenshot of V3.
-- **End card:** an empty skeleton window whose address bar types out `your-site.com`, with "Your project next" and a "Start a project →" link to Contact.
-- **Mobile:** no pinning. Cards are full width and level, stacked vertically; the diagonal shows as a gentle alternating sideways offset (builder's call). The card nearest the centre of the screen decodes automatically, and tapping opens the site.
-- **Screenshots:** captured from each live site at 1440×900 (top of the page) and optimised to WebP.
+### `/portfolio` (Phase 6)
+
+Every project, newest first, in a 3-column grid (2 from `md`, 1 on phones) of browser-frame cards, with filter chips (All, Client, Concept, Personal, In progress), a Grid | List morph, a row-by-row entrance with the address bar typing, a breathing live dot, an upcoming build loop and a scroll-through preview of each site's full page. Full spec: [`plan-phase-6.md`](plan-phase-6.md) → "`/portfolio`".
 
 ### 6. Timeline: "How I got here" (wow)
 
@@ -236,7 +225,7 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
 
 ## `/services`
 
-- Shared motion basics apply: label decode, link scramble, glyph-dissolve transition and cursor.
+- Shared motion basics apply: label decode, link scramble, the curtain and the cursor. It uses the site's one nav (Phase 6), and "See the full portfolio" goes to `/portfolio`.
 - **§ 02 How it works:** the 2×2 grid of steps becomes a single column, so the running-stitch thread from the Timeline can be reused unchanged (builder's call).
 - **§ 03 Recent work:**
   - Cards become small skeleton browser windows that decode on hover, the same component as Projects.
@@ -253,6 +242,7 @@ Full spec in [`hero-portrait.md`](hero-portrait.md). In short:
    - **Phase 3:** Timeline, Lens and Contact. For the Lens, run the 6 new originals in `assets/photography-originals/` through `npm run optimize-photos`, check for no EXIF/GPS, and add them with the captions and placement from the Lens table.
    - **Phase 4:** copy refresh across Home, the remaining quiet-section upgrades (Leadership rows, Skills terminal) and `/services`.
    - **Phase 5:** the page transition. It was split out of Phase 4 on 2026-10-27 at Damian's request, because it moves both pages to client-side navigation.
+   - **Phase 6:** the four-page nav, `/portfolio`, the Home carousel, the morph loader and the curtain, and the 404 board ([`plan-phase-6.md`](plan-phase-6.md)).
 3. Test `v3` after every merge: golden path, mobile, reduced motion and a Lighthouse mobile run.
 4. When all phases are in, merge `v3` to `main`, which triggers the redeploy.
 

@@ -256,6 +256,23 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
 - **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
+## Phase 6 build (2026-10-28)
+
+Builder's rulings during the build (Tasks 1–10), for Damian's gate:
+
+- **Numbering:** `PROJECTS` is numbered 01–08 in `/portfolio`'s order; Home's strip numbers its five 01–05 (as the spikes do). The copy (blurbs, tags) is unchanged from `copy.md`: the spikes' shortened blurbs weren't adopted, since the plan says only the listed copy changes.
+- **This Portfolio's link** is `/` everywhere (was `#top`); upcoming cards have no skeleton now (was the generic one), since nothing renders it any more.
+- **The strip marks `data-settled`** while it glides, and a keyboard focus scrolls it a frame later, after the browser's own focus scroll (otherwise the browser's scroll wins).
+- **This Portfolio's full-page capture is taken under reduced motion** (the pinned strip as a plain list), so its preview isn't a tall empty pin.
+- **`/portfolio`'s list rows** show the number, name, first tag (none on phones), year and ↗, as the plan says (the decisions entry said "tags").
+- **The end card on `/portfolio`** is a wide window (the spike's), not Home's 16:10 one.
+- **`/services`' corner label and the privacy heading** now rise as the curtain clears (EagerReveal); `SplitLines` headings in view on arrival wait for the same moment.
+- **The first load's cover is the curtain itself** in the server HTML (`data-curtain="intro"`), with the loader as a child of its rider. A late hydration (past 2.5 s) lifts at once. If the curtain's code fails to load, the curtain hides and the page shows.
+- **The portrait's 2.5 s lateness rule** is measured from the arrival, not the document, so the wave plays on page changes too.
+- **The loader's kind** (full or short) is decided once per document, so React's dev double mount can't read the flag it just set.
+- **EagerReveal skips its replay under forced colours** (no curtain there, so the content has been on screen all along).
+- **The 404 board's shadow** is ink in light mode and black in dark mode (as the curtain's).
+
 ## Phase 6 planning (2026-10-28)
 
 Damian asked for "a few minor changes before the perf pass", which grew into Phase 6: a `/portfolio` page, a four-page nav, a carousel strip on Home, the Isometric Board on the 404 page, and a new loader and page transition. The performance pass moves after it. Answers from four spike pages, all in `spike/` (`strip-carousel.html`, `portfolio-page.html`, `loader-curtain.html`):

@@ -100,7 +100,7 @@ test("upcoming cards have no link, screenshot or full capture", () => {
     expect(p.href).toBeNull();
     expect(p.shot).toBeNull();
     expect(p.full).toBeNull();
-    expect(p.skeleton).toBe("generic");
+    expect(p.skeleton).toBeNull();
     expect(p.cats).toContain("upcoming");
   }
   expect(byTitle("ai-studio").tags).toEqual([]);
