@@ -719,12 +719,16 @@ test.describe("robustness", () => {
     await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
     const size = page.viewportSize();
     await page.setViewportSize({ width: size.height, height: size.width });
+    // The right edge is the curtain's, not innerWidth: the scrollbar's room
+    // (globals.css → scrollbar-gutter) is never under it, and headless
+    // Chromium leaves that room unpainted.
     const covered = () =>
-      page.evaluate(() =>
-        [[4, 4], [innerWidth - 4, 4], [innerWidth / 2, innerHeight / 2], [4, innerHeight - 4], [innerWidth - 4, innerHeight - 4]].every(([x, y]) =>
+      page.evaluate(() => {
+        const w = document.querySelector("[data-curtain]").getBoundingClientRect().right;
+        return [[4, 4], [w - 4, 4], [w / 2, innerHeight / 2], [4, innerHeight - 4], [w - 4, innerHeight - 4]].every(([x, y]) =>
           document.elementFromPoint(x, y)?.closest("[data-curtain]")
-        )
-      );
+        );
+      });
     await expect.poll(covered).toBe(true);
     await idle(page);
   });

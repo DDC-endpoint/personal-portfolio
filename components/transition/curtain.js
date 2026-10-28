@@ -39,6 +39,7 @@ export function createCurtain(root) {
   const rider = root.querySelector("[data-rider]");
   const label = root.querySelector("[data-label]");
   let panels = all;
+  let width = 0; // the curtain's: the viewport less the scrollbar's room
   let raf = 0, last = 0, gen = 0, destroyed = false;
   let settle = null; // resolves the current move
 
@@ -46,6 +47,7 @@ export function createCurtain(root) {
 
   // Five panels from md, three below (the outer two sit out).
   const layout = () => {
+    width = root.clientWidth;
     const count = panelCount(window.innerWidth);
     panels = count === all.length ? all : all.slice(1, all.length - 1);
   };
@@ -53,7 +55,7 @@ export function createCurtain(root) {
 
   function draw(dt) {
     const vh = window.innerHeight;
-    const w = window.innerWidth / panels.length;
+    const w = width / panels.length; // as the CSS's panels
     const ww = Math.ceil(w) + 1;
     const top = vh * 0.15, bot = vh * 1.15;
     const root = document.documentElement;

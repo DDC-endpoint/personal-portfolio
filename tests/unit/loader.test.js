@@ -1,4 +1,4 @@
-import { N, TARGETS, LOAD, blobPath, stepCount, decodeText, loadKind, SEEN_KEY } from "@/lib/loader";
+import { N, TARGETS, LOAD, blobPath, stepCount, decodeText, splitParts, loadKind, SEEN_KEY } from "@/lib/loader";
 
 const DT = 1 / 60;
 
@@ -79,6 +79,14 @@ test("decodeText keeps spaces, then resolves left to right", () => {
   expect(zero).not.toBe("DAMIAN DE CRUZ");
   expect(decodeText("DAMIAN DE CRUZ", 1, rand)).toBe("DAMIAN DE CRUZ");
   expect(decodeText("DAMIAN DE CRUZ", 0.5, rand).slice(0, 7)).toBe("DAMIAN ");
+});
+
+test("splitParts cuts a decoded text back into its parts", () => {
+  expect(splitParts("DAMIAN DE CRUZ", ["DAMIAN", "DE CRUZ"])).toEqual(["DAMIAN", "DE CRUZ"]);
+  const coords = ["N 6.9271°", "/", "E 79.8612°"];
+  expect(splitParts("N 6.9271° / E 79.8612°", coords)).toEqual(coords);
+  // Mid-decode, the noise stays with its part.
+  expect(splitParts("DAMIAN X# @RU*", ["DAMIAN", "DE CRUZ"])).toEqual(["DAMIAN", "X# @RU*"]);
 });
 
 test("loadKind: the full loader first in a session, then short", () => {

@@ -274,7 +274,9 @@ test.describe("recent work (desktop)", () => {
 
   test("rows span the full width and swap sides", async ({ page }) => {
     await page.goto("/services");
-    const vw = page.viewportSize().width;
+    // The page's width: the window less the scrollbar's room (globals.css →
+    // scrollbar-gutter).
+    const vw = await page.evaluate(() => document.body.getBoundingClientRect().width);
     for (let i = 0; i < 4; i++) {
       const row = workCards(page).nth(i);
       const box = await row.boundingBox();
