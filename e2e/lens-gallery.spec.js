@@ -276,7 +276,7 @@ for (const scale of [1, 1.5]) {
     test("the dot print registers with the photo", async ({ page }, info) => {
       desktopOnly(info);
       await page.goto("/");
-      await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 4000 }); // the curtain covers the page
+      await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 }); // the curtain covers the page
       await frame(page, "05").scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('[data-frame="05"] img').complete);
       const photo = frame(page, "05").locator("[data-photo]");

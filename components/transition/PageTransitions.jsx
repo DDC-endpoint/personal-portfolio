@@ -1,44 +1,54 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import IntroStamp from "@/components/IntroStamp";
-import { FALLBACK_MS, PAGES, TIMING, intercept, pageOf, stampRadius } from "@/lib/pageTransition";
-import { markSoftNavigation, shouldPlayIntro } from "@/lib/motion";
+import MorphLoader from "@/components/MorphLoader";
+import Curtain from "./Curtain";
+import { FALLBACK_MS, PAGES, intercept, pageOf } from "@/lib/pageTransition";
+import { TIMING } from "@/lib/curtain";
+import { NAV_LINKS } from "@/lib/site";
+import { coverStarts, markRevealed, shouldPlayIntro } from "@/lib/motion";
 import { getLenis } from "@/lib/lenis";
 
-// The page transition (docs/v3/plan-phase-5.md). Mounted once in the site
-// layout, which persists across client-side navigations, so the veil (a
-// full-screen canvas) stays put while the page beneath it changes.
+// The page transition (docs/v3/plan-phase-5.md, its look from Phase 6: the
+// curtain). Mounted once in the site layout, which persists across
+// client-side navigations, so the curtain stays put while the page beneath
+// it changes.
 //
 // Links stay plain <a href>: one delegated click listener takes over clicks
-// between the site's pages (lib/pageTransition.js says which). The veil
-// covers the page, the router swaps the next one in underneath, and the veil
-// reveals it. Links to the page you're on scroll instead.
+// between the site's pages (lib/pageTransition.js says which). The curtain
+// covers the page, the router swaps the next one in underneath at full
+// cover, and the curtain lifts. Links to the page you're on scroll instead.
 //
-// The first load of any page plays the same reveal (Damian, during the
-// build): the server HTML starts covered by the IntroStamp, the veil is drawn
-// fully covered behind it, the name resolves over the glyph field, and the
-// sweep reveals the page. A page link clicked meanwhile opens once the stamp
-// is done, under the same cover.
+// The first load of any page lifts the same curtain: the server HTML starts
+// covered, with the morph loader (components/MorphLoader.jsx) on the middle
+// panel; once it's done the curtain lifts and the loader rides away. A page
+// link clicked meanwhile opens once the loader is done, under the same cover.
+//
+// Every arrival's above-the-fold entrance waits for the curtain to clear
+// (lib/motion.js → whenRevealed): coverStarts() before the swap, and
+// markRevealed() as the panels clear (or at once, with no curtain).
 //
 // Nobody is ever stuck: every wait for a page has the 4 s fallback (a normal
 // page load), and anything that fails along the way falls back the same way.
 // Back during a transition calls the transition off and reveals the page the
 // visitor went back to.
 //
-// The canvas is in the server HTML but idle and invisible; the drawing engine
-// (Veil.js) is split out of the first load. It's imported at once when the
-// intro plays, otherwise once the browser is idle, or at the first click if
-// that comes sooner. html[data-transitions="ready"] says the controller is
+// The panels are in the server HTML but idle and invisible; the engine
+// (./curtain.js) is split out of the first load. It's imported at once when
+// the intro plays, otherwise once the browser is idle, or at the first click
+// if that comes sooner. html[data-transitions="ready"] says the controller is
 // live.
 
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
 const PORTRAIT_WAIT_MS = 400; // the reveal waits this long for Home's portrait
-const LATE_MS = 2500; // hydration later than this: the page is readable already
-const BLOOM_REST_MS = 120; // the full glyph field holds this long before the reveal
+const LATE_MS = 2500; // hydration later than this: the loader's time is up
+const FAILSAFE_MS = 5000; // the CSS failsafe has started hiding the curtain (globals.css)
+
+// The destination's name on the curtain's middle panel.
+const nameOf = (path) => NAV_LINKS.find((l) => l.href === path)?.label ?? "";
 
 // Reduced motion and forced colours: page changes stay client-side but
-// instant, with no veil.
+// instant, with no curtain.
 const still = () => window.matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active)").matches;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -79,13 +89,12 @@ function land(top) {
   main.focus({ preventScroll: true });
 }
 
-// Home's portrait leaves "loading" once it's drawn; don't uncover an empty
-// stage, but never wait long for it.
+// Home's portrait marks itself data-prepared once it can draw (its wave then
+// waits for the lift); don't uncover an empty stage, but never wait long.
 async function portraitDrawn() {
   const until = performance.now() + PORTRAIT_WAIT_MS;
   while (performance.now() < until) {
-    const state = document.querySelector("[data-portrait]")?.getAttribute("data-state");
-    if (state !== "loading") return;
+    if (document.querySelector("[data-portrait][data-prepared]")) return;
     await frames(1);
   }
 }
@@ -93,112 +102,111 @@ async function portraitDrawn() {
 export default function PageTransitions() {
   const router = useRouter();
   const pathname = usePathname();
-  const canvasRef = useRef(null);
-  const veilRef = useRef(null); // a promise of the veil, once loading starts
+  const curtainRef = useRef(null);
+  const engineRef = useRef(null); // a promise of the curtain's engine, once loading starts
   const busy = useRef(false);
   const token = useRef(0); // each run's number; a newer run calls older ones off
   const pathRef = useRef(pathname);
   const waiters = useRef([]);
   // Where each page was left (by URL), so Back and Forward return there.
   const positions = useRef(new Map());
-  // The first-load intro: the stamp is in the server HTML (active), and shows
-  // the glyph field through it once the veil is drawn behind it.
-  const [intro, setIntro] = useState({ active: true, glyphs: false });
-  // ended: the stamp is done; done: its reveal is too (the intro is over).
-  const introRef = useRef({ ended: false, done: false, veil: null, pending: null });
+  // The first-load intro: the loader is in the server HTML, on the covering
+  // curtain (data-curtain="intro"); it unmounts once the curtain has lifted.
+  const [intro, setIntro] = useState(true);
+  // loaded: the loader is done; lifting: the lift has started (once only);
+  // done: the intro is over.
+  const introRef = useRef({ loaded: false, lifting: false, done: false, engine: null, pending: null });
   const goRef = useRef(null); // the controller's go(), for a click made during the intro
 
   // A failed load isn't kept: the next call tries again.
-  const loadVeil = () =>
-    (veilRef.current ??= import("./Veil")
-      .then(({ createVeil }) => createVeil(canvasRef.current))
+  const loadCurtain = () =>
+    (engineRef.current ??= import("./curtain")
+      .then(({ createCurtain }) => createCurtain(curtainRef.current))
       .catch((error) => {
-        veilRef.current = null;
+        engineRef.current = null;
         throw error;
       }));
 
-  // The intro is over: the veil takes clicks again while it runs, and a page
-  // link clicked during the reveal opens now.
-  const introDone = () => {
+  // No curtain after all (reduced motion, forced colours, or its code
+  // failed to load): show the page as it is.
+  const skipIntro = () => {
     const state = introRef.current;
     state.done = true;
-    delete canvasRef.current?.dataset.intro;
+    const root = curtainRef.current;
+    if (root) {
+      root.dataset.curtain = "idle";
+      delete root.dataset.intro;
+    }
+    setIntro(false);
+    markRevealed();
     const next = state.pending;
     state.pending = null;
     if (next) goRef.current?.(next.path, next.hash);
     else busy.current = false;
   };
 
-  const endIntro = (glyphs) => {
-    introRef.current.done = true;
-    delete canvasRef.current?.dataset.intro;
-    setIntro({ active: false, glyphs });
+  // The intro is over: the curtain takes clicks again while it runs, and a
+  // page link clicked during the lift opens now. The loader, parked off
+  // screen with the curtain, unmounts once the browser is idle, so its
+  // teardown never lands in an animation frame.
+  const introDone = () => {
+    const state = introRef.current;
+    state.done = true;
+    delete curtainRef.current?.dataset.intro;
+    whenIdle(() => setIntro(false));
+    const next = state.pending;
+    state.pending = null;
+    if (next) goRef.current?.(next.path, next.hash);
+    else busy.current = false;
   };
 
-  // The stamp's name has resolved: fade it and sweep the page in (or, if the
-  // veil never got drawn, let the stamp wipe away as the old curtain did).
-  // A link clicked during the intro opens now, under the cover.
-  const finishIntro = () => {
+  // The loader is done (and the curtain's engine is in): lift the curtain,
+  // the loader riding the middle panel away. A link clicked during the
+  // intro opens now instead, under the same cover.
+  const lift = () => {
     const state = introRef.current;
-    state.ended = true;
-    // A veil that arrived late is still blooming: let the glyph field fill
-    // the screen (and rest a beat) before the reveal, so the halo over the
-    // glyphs is always seen. A link clicked meanwhile is picked up then.
-    if (state.veil && !state.pending) {
-      const wait = TIMING.bloom * 1000 + BLOOM_REST_MS - (performance.now() - state.coveredAt);
-      if (wait > 0) {
-        setTimeout(finishIntro, wait);
-        return;
-      }
-    }
+    if (!state.loaded || !state.engine || state.done || state.lifting) return;
+    state.lifting = true;
     const next = state.pending;
     state.pending = null;
     if (next) {
-      if (state.veil || still()) {
-        endIntro(Boolean(state.veil));
-        goRef.current?.(next.path, next.hash, { covered: Boolean(state.veil) });
-        return;
-      }
-      // The veil isn't drawn yet: keep the stamp up until it covers, so the
-      // stamp never wipes away while a cover sweeps down.
-      loadVeil()
-        .then((veil) => {
-          veil.coverNow();
-          endIntro(true);
-          goRef.current?.(next.path, next.hash, { covered: true });
-        })
-        .catch(() => window.location.assign(next.path + next.hash));
+      state.done = true;
+      delete curtainRef.current?.dataset.intro;
+      setIntro(false);
+      state.engine.coverNow(nameOf(next.path));
+      goRef.current?.(next.path, next.hash, { covered: true });
       return;
     }
-    setIntro({ active: false, glyphs: Boolean(state.veil) });
-    if (!state.veil) return introDone();
-    // The reveal keeps the intro's rules: the pointer passes through, and a
+    // The lift keeps the intro's rules: the pointer passes through, and a
     // page link clicked meanwhile waits for it to finish.
-    state.veil.reveal().then(introDone);
+    state.engine.lift({ onClear: markRevealed }).then(introDone);
+  };
+
+  const finishLoader = () => {
+    introRef.current.loaded = true;
+    lift();
   };
 
   useEffect(() => {
-    if (!shouldPlayIntro()) {
-      setIntro({ active: false, glyphs: false });
-      return;
-    }
+    // Reduced motion and forced colours: no curtain, no loader (the CSS has
+    // already hidden them).
+    if (!shouldPlayIntro() || still()) return skipIntro();
     busy.current = true;
-    // Canvas colours ignore forced colours: those visitors keep the plain
-    // stamp and its wipe. A late hydration does too: the page has been
-    // readable for a while, so it isn't covered again.
-    if (window.matchMedia("(forced-colors: active)").matches || performance.now() > LATE_MS) return;
+    curtainRef.current.dataset.intro = "";
+    // A late hydration: the loader's time is up already, so lift at once.
+    if (performance.now() > LATE_MS) introRef.current.loaded = true;
     let live = true;
-    loadVeil()
-      .then((veil) => {
-        if (!live || introRef.current.ended) return;
-        canvasRef.current.dataset.intro = "";
-        // The glyphs bloom out from the halo's edge (half its radius in).
-        veil.coverNow({ gradual: true, inner: stampRadius(window.innerWidth, window.innerHeight) * 0.5 });
-        introRef.current.veil = veil;
-        introRef.current.coveredAt = performance.now();
-        setIntro({ active: true, glyphs: true });
+    loadCurtain()
+      .then((engine) => {
+        if (!live) return;
+        // The CSS failsafe has already uncovered the page: never cover a
+        // readable page again.
+        if (performance.now() > FAILSAFE_MS) return skipIntro();
+        engine.coverNow();
+        introRef.current.engine = engine;
+        lift();
       })
-      .catch(() => {}); // the stamp wipes away as the old curtain did
+      .catch(() => live && skipIntro());
     return () => {
       live = false;
     };
@@ -245,37 +253,39 @@ export default function PageTransitions() {
     const here = () => window.location.pathname + window.location.hash;
     let current = here(); // the URL whose page (and scroll) is on screen
 
-    // `covered`: the veil already covers the page (a click during the intro).
+    // `covered`: the curtain already covers the page (a click during the intro).
     async function go(path, hash, { covered = false } = {}) {
       const run = ++token.current;
       const live = () => run === token.current;
       const url = path + hash;
       busy.current = true;
-      markSoftNavigation();
       positions.current.set(current, window.scrollY);
       try {
         if (still()) {
+          coverStarts();
           router.push(url, { scroll: false });
           if (!(await arrive(path, run, () => window.location.assign(url)))) return;
           current = url;
           await frames(1);
           land(targetTop(hash) ?? 0);
+          markRevealed();
         } else {
-          const veil = await loadVeil();
+          const engine = await loadCurtain();
           if (!live()) return;
-          if (!covered) await veil.cover();
+          if (!covered) await engine.cover(nameOf(path));
           if (!live()) return;
           const coveredAt = performance.now();
+          coverStarts();
           router.push(url, { scroll: false });
           if (!(await arrive(path, run, () => window.location.assign(url)))) return;
           current = url;
-          await frames(2); // let the new page paint under the veil
+          await frames(2); // let the new page paint under the curtain
           if (path === "/") await portraitDrawn();
           const left = TIMING.hold * 1000 - (performance.now() - coveredAt);
           if (left > 0) await sleep(left);
           if (!live()) return;
           land(targetTop(hash) ?? 0);
-          await veil.reveal();
+          await engine.lift({ onClear: markRevealed });
         }
         if (live()) busy.current = false;
       } catch {
@@ -288,6 +298,15 @@ export default function PageTransitions() {
     // where the visitor left it. During a transition, this calls it off.
     async function onPop() {
       const inFlight = busy.current;
+      // Back during the first-load intro: the intro is over, so the loader
+      // can't lift the curtain again later.
+      const intro = introRef.current;
+      if (!intro.done) {
+        intro.done = intro.lifting = true;
+        intro.pending = null;
+        delete curtainRef.current?.dataset.intro;
+        setIntro(false);
+      }
       positions.current.set(current, window.scrollY); // the page still on screen
       current = here();
       const path = pageOf(window.location.pathname);
@@ -299,22 +318,23 @@ export default function PageTransitions() {
       const live = () => run === token.current;
       const reload = () => window.location.reload();
       busy.current = true;
-      markSoftNavigation();
+      coverStarts();
       try {
         if (still()) {
           if (!(await arrive(path, run, reload))) return;
           await frames(1);
           land(positions.current.get(current) ?? 0);
+          markRevealed();
         } else {
-          const veil = await loadVeil();
+          const engine = await loadCurtain();
           if (!live()) return;
-          veil.coverNow();
+          engine.coverNow(nameOf(path));
           if (!(await arrive(path, run, reload))) return;
           await frames(2);
           if (path === "/") await portraitDrawn();
           if (!live()) return;
           land(positions.current.get(current) ?? 0);
-          await veil.reveal();
+          await engine.lift({ onClear: markRevealed });
         }
         if (live()) busy.current = false;
       } catch {
@@ -356,7 +376,7 @@ export default function PageTransitions() {
     window.addEventListener("popstate", onPop);
     const cancelIdle = whenIdle(async () => {
       for (const p of PAGES) if (p !== window.location.pathname) router.prefetch(p);
-      if (!still()) await loadVeil().catch(() => {}); // a click retries it
+      if (!still()) await loadCurtain().catch(() => {}); // a click retries it
       if (!cancelled) document.documentElement.dataset.transitions = "ready";
     });
     return () => {
@@ -365,26 +385,20 @@ export default function PageTransitions() {
       clearTimeout(fallback);
       document.removeEventListener("click", onClick);
       window.removeEventListener("popstate", onPop);
-      // Drop the veil, so a remount (React's dev double mount, for one)
-      // builds a fresh one instead of reusing a destroyed one.
-      const veil = veilRef.current;
-      veilRef.current = null;
-      veil?.then((v) => v.destroy()).catch(() => {});
+      // Drop the curtain's engine, so a remount (React's dev double mount, for
+      // one) builds a fresh one instead of reusing a destroyed one.
+      const engine = engineRef.current;
+      engineRef.current = null;
+      engine?.then((e) => e.destroy()).catch(() => {});
       delete document.documentElement.dataset.transitions;
     };
-    // loadVeil only reads refs.
+    // loadCurtain only reads refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   return (
     <>
-      <canvas
-        ref={canvasRef}
-        data-veil="idle"
-        aria-hidden="true"
-        className="page-veil fixed inset-0 z-70 h-full w-full pointer-events-none nojs:hidden"
-      />
-      <IntroStamp active={intro.active} glyphs={intro.glyphs} onDone={finishIntro} />
+      <Curtain ref={curtainRef}>{intro && <MorphLoader onDone={finishLoader} />}</Curtain>
     </>
   );
 }

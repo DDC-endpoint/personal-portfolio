@@ -48,11 +48,9 @@ test.describe("motion basics (desktop)", () => {
 
   test("mono buttons scramble without moving", async ({ page }) => {
     await page.goto("/services");
-    await page.waitForTimeout(1200); // the corner button floats in
     const buttons = [
       page.locator("#top a[href^='https://wa.me']"),
       page.locator("#top a[href^='mailto:']"),
-      page.locator("#top a[href='/']"),
     ];
     for (const b of buttons) {
       await expect(b).toBeVisible();
@@ -76,7 +74,7 @@ test.describe("motion basics (desktop)", () => {
 
   test("underlined links don't scramble", async ({ page }) => {
     await page.goto("/services");
-    const links = [page.locator('header nav a[href="#faq"]'), page.locator("#recent a.link-line").first()];
+    const links = [page.locator('header nav a[href="/privacy"]'), page.locator("#recent a.link-line").first()];
     for (const l of links) {
       await l.scrollIntoViewIfNeeded();
       await l.hover();
@@ -88,15 +86,6 @@ test.describe("motion basics (desktop)", () => {
       expect(seen.size).toBe(1);
     }
   });
-});
-
-test("the mobile menu's Portfolio button scrambles", async ({ page, isMobile }) => {
-  test.skip(!isMobile);
-  await page.goto("/services");
-  await page.getByRole("button", { name: /menu/i }).click();
-  const b = page.getByRole("dialog", { name: "Services menu" }).locator("a[href='/']");
-  await expect(b).toBeVisible();
-  await expect(b.locator(".sr-only")).toHaveText("Portfolio");
 });
 
 // § 02 How it works: the four steps on a mini circuit.

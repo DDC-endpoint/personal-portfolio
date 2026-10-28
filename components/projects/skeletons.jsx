@@ -4,8 +4,9 @@ import { MINI_PORTRAIT } from "@/lib/miniPortrait";
 // Blueprint skeletons for the Projects cards: each live site's homepage,
 // hand-traced from its 1440×900 screenshot (public/projects/<slug>.webp) as
 // bars and blocks in the blue palette. Colour comes only from token classes,
-// so dark mode recolours them with no JS. Upcoming cards share the generic
-// skeleton: nothing of an unreleased client design goes in this public repo.
+// so dark mode recolours them with no JS. Upcoming work has none (/portfolio
+// shows a build loop instead): nothing of an unreleased client design goes in
+// this public repo.
 
 const Svg = ({ k, children }) => (
   <svg
@@ -259,34 +260,6 @@ function Portfolio() {
   );
 }
 
-// Upcoming cards: a plain site shape, nothing of the real design.
-function Generic() {
-  return (
-    <Svg k="generic">
-      <Bar x={120} y={40} w={120} h={16} heavy />
-      {[880, 980, 1080, 1180].map((x) => (
-        <Bar key={x} x={x} y={42} w={70} h={11} />
-      ))}
-      <Solid x={1270} y={30} w={50} h={34} />
-      <Bar x={420} y={250} w={600} h={48} heavy />
-      <Bar x={500} y={312} w={440} h={48} heavy />
-      <Bar x={470} y={390} w={500} h={12} />
-      <Bar x={540} y={414} w={360} h={12} />
-      <Solid x={640} y={456} w={160} h={44} />
-      {[120, 530, 940].map((x) => (
-        <g key={x}>
-          <Block x={x} y={560} w={380} h={230} />
-          <Photo x={x} y={560} w={380} h={130} />
-          <Bar x={x + 24} y={712} w={200} h={14} heavy />
-          <Bar x={x + 24} y={740} w={300} h={10} />
-          <Bar x={x + 24} y={758} w={250} h={10} />
-        </g>
-      ))}
-      <rect x={0} y={830} width={1440} height={70} className="fill-electric/10" />
-    </Svg>
-  );
-}
-
 function Empty() {
   return <Svg k="empty" />;
 }
@@ -298,6 +271,5 @@ export const SKELETONS = {
   spades: Spades,
   danella: Danella,
   kahatagaha: Kahatagaha,
-  generic: Generic,
   empty: Empty,
 };

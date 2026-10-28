@@ -1,6 +1,7 @@
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ClientEnhancements from "@/components/ClientEnhancements";
+import EagerReveal from "@/components/EagerReveal";
 import { EMAIL } from "@/lib/site";
 import { SHARE } from "@/lib/shareImages";
 
@@ -83,7 +84,10 @@ export default function PrivacyPage() {
               <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">Updated {UPDATED}</div>
             </div>
             <div className="col-span-12 md:col-span-9 md:col-start-4 max-w-2xl">
-              <h1 className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight text-ink">Privacy</h1>
+              {/* Rises as the curtain clears; the lede below is the LCP element. */}
+              <EagerReveal as="h1" y={24} className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight text-ink">
+                Privacy
+              </EagerReveal>
               <p className="mt-6 text-lg md:text-xl leading-relaxed text-ink-soft">
                 What this site collects, why, and how to have it removed. In short: visit statistics, and whatever
                 you choose to send me.

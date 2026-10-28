@@ -1,123 +1,172 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useScroll } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import SplitLines from "./SplitLines";
 import { DecodeLabel } from "./Scramble";
 import ProjectCard from "./projects/ProjectCard";
 import EndCard from "./projects/EndCard";
-import { PROJECTS } from "@/lib/projects";
-import { STRIP, stripLayout, cardPosition, stripOffset, progressForCard, nearestToCentre } from "@/lib/strip";
+import { homeStrip } from "@/lib/projects";
+import {
+  STRIP,
+  stripLayout,
+  cardPosition,
+  stripOffset,
+  focusAt,
+  progressForCard,
+  depthAt,
+  stackDepth,
+  smoothStep,
+  nearestToCentre,
+} from "@/lib/strip";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
-// § 04 Selected Work (docs/v3/design.md → 5. Projects).
+// § 04 Selected Work (docs/v3/plan-phase-6.md → Task 3): Damian's five and
+// the end card, as a carousel.
 //
 // Desktop (≥ md, motion allowed): the track is 4 screens tall and its
-// viewport is sticky, so the section pins for 3 screens of scroll while
-// framer's useScroll slides the strip of cards along a 12° path
-// (lib/strip.js). Below md, under reduced motion and without JS, the same
-// cards are a plain vertical list. The pin itself is CSS (js:motion-safe:md:,
-// the `js` class set pre-paint by the layout's inline script), so the server
-// HTML is right for everyone; only the card positions need JS. Heights are
-// in svh, so mobile browser toolbars showing and hiding never re-lay it out.
+// viewport is sticky, so the section pins for 3 screens of scroll while the
+// strip glides along a 12° path through the screen centre, one card centred
+// at a time (lib/strip.js). The displayed progress eases after the scroll
+// progress, and every frame writes each card's depth of field (scale,
+// opacity, blur, saturation) to its style. Below md the cards stack, and the
+// ones away from the centre of the screen dim and shrink (no blur). Under
+// reduced motion and without JS the cards are a plain list. The pin itself is
+// CSS (js:motion-safe:md:, the `js` class set pre-paint by the layout's
+// inline script), so the server HTML is right for everyone; only the card
+// positions need JS. Heights are in svh, so mobile browser toolbars showing
+// and hiding never re-lay it out.
 //
-// One card is active at a time, and only it decodes:
-//   fine pointer: the card under the pointer, re-checked as the strip scrolls
-//                 under a resting pointer (Damian's stationary-hover rule)
-//   touch:        the card nearest the centre of the screen (also on a
-//                 fine-pointer device, after a touch, until the mouse moves)
-//   keyboard:     the focused card; in the strip, Tab focus scrolls it into view
-// Input modality decides between the last two: a Tab press hands control to
-// focus (a parked mouse no longer counts) until the pointer next moves, and
-// only keyboard focus scrolls the strip, so a click (whose mousedown also
-// focuses the card) never moves the card out from under the pointer.
-// The viewport is overflow: clip, not hidden, so the browser's own focus
-// scrolling can never shift it sideways.
+// One card is active at a time, and only it decodes: the centred card (within
+// half a step of the centre on desktop, the one nearest the middle of the
+// screen on phones). A Tab press hands control to focus: the focused card is
+// brought to the centre, so the two agree. The pointer never picks the card
+// (Damian, Phase 6). Only keyboard focus scrolls the strip, so a click (whose
+// mousedown also focuses the card) never moves the card out from under the
+// pointer. The viewport is overflow: clip, not hidden, so the browser's own
+// focus scrolling can never shift it sideways.
 
-const COUNT = PROJECTS.length + 1; // + the end card
-const FINE = "(hover: hover) and (pointer: fine)";
+const CARDS = homeStrip();
+const COUNT = CARDS.length + 1; // + the end card
+const END = CARDS.length;
 const WIDE = "(min-width: 768px)";
 // The track: one screen of sticky viewport plus PIN_SCREENS of scroll.
 const TRACK_STYLE = { "--pin-track": `${(1 + STRIP.PIN_SCREENS) * 100}svh` };
 const STACK_ITEM = "w-[86%] even:ml-auto md:w-full md:max-w-3xl md:ml-[25%] md:even:ml-[25%]";
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+
+// Clears what the frame loop wrote, when the mode changes.
+const clearStyles = (el) => {
+  for (const k of ["transform", "opacity", "filter", "zIndex"]) el.style[k] = "";
+};
 
 export default function Projects() {
   const trackRef = useRef(null);
   const stripRef = useRef(null);
+  const viewportRef = useRef(null);
   const reduced = useReducedMotion();
-  const reducedRef = useRef(false);
+  const mode = useRef(null); // "strip" | "stack" | null (the plain list)
   const layoutRef = useRef(null);
-  const pointer = useRef(null);
+  const shown = useRef(null); // the displayed progress, eased after the scroll's
+  const lastFrame = useRef(0);
+  const wasOnScreen = useRef(true); // the last frame's: skip writes while it stays off
   const focused = useRef(null);
   const keyboard = useRef(false);
-  const touch = useRef(false);
-  const viewportRef = useRef(null);
   const raf = useRef(0);
   const [layout, setLayout] = useState(null);
-  const [active, setActive] = useState(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const { scrollYProgress } = useScroll({ target: trackRef, offset: ["start start", "end end"] });
+  const [active, setActiveState] = useState(null);
+  // The frame loop asks every frame; React hears only when the centred card
+  // actually changes (and then re-renders just the two cards involved:
+  // ProjectCard is memoised and its props are stable).
+  const activeRef = useRef(null);
+  const setActive = useCallback((i) => {
+    if (activeRef.current === i) return;
+    activeRef.current = i;
+    setActiveState(i);
+  }, []);
 
-  const place = useCallback(
-    (p) => {
-      const L = layoutRef.current;
-      const o = L ? stripOffset(p, L) : { x: 0, y: 0 };
-      x.set(o.x);
-      y.set(o.y);
-    },
-    [x, y]
-  );
+  const items = () => [...(stripRef.current?.children ?? [])];
 
-  // Which card should be active right now.
-  const pick = useCallback(() => {
+  const frame = useCallback((now) => {
+    raf.current = 0;
     const strip = stripRef.current, track = trackRef.current;
-    if (reducedRef.current || !strip || !track) return null;
-    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    if (!strip || !track) return;
+    const vh = window.innerHeight;
     const t = track.getBoundingClientRect();
-    if (t.bottom <= 0 || t.top >= vh) return focused.current;
-    if (window.matchMedia(FINE).matches && !touch.current) {
-      const pt = pointer.current;
-      const el = pt && document.elementFromPoint(pt.x, pt.y)?.closest("[data-card]");
-      if (el && strip.contains(el)) return Number(el.dataset.card);
-      return focused.current;
+    const onScreen = t.bottom > 0 && t.top < vh;
+    const stillOff = !onScreen && !wasOnScreen.current;
+    wasOnScreen.current = onScreen;
+    if (stillOff && mode.current) return;
+
+    if (mode.current === "strip") {
+      const L = layoutRef.current;
+      const target = clamp01(-t.top / (t.height - vh));
+      const dt = lastFrame.current ? Math.min(now - lastFrame.current, 100) : 16.7;
+      const prev = shown.current;
+      shown.current = prev === null || !onScreen ? target : smoothStep(prev, target, dt);
+      const moving = shown.current !== target;
+      lastFrame.current = moving ? now : 0;
+      const f = focusAt(shown.current, COUNT);
+      const o = stripOffset(f, L);
+      strip.style.transform = `translate3d(${o.x}px, ${o.y}px, 0)`;
+      items().forEach((el, i) => {
+        const d = Math.abs(i - f);
+        const z = depthAt(d);
+        el.style.transform = z.scale === 1 ? "" : `scale(${z.scale})`;
+        el.style.opacity = z.opacity === 1 ? "" : String(z.opacity);
+        el.style.filter = z.blur > 0.05 ? `blur(${+z.blur.toFixed(2)}px) saturate(${+z.saturate.toFixed(2)})` : "";
+        el.style.zIndex = String(100 - Math.round(d * 10));
+      });
+      strip.dataset.settled = String(!moving);
+      const nearest = Math.round(f);
+      setActive(onScreen && Math.abs(nearest - f) < 0.5 && nearest < END ? nearest : null);
+      if (moving) raf.current = requestAnimationFrame(frame);
+      return;
     }
-    // The end card is a candidate too: when it is nearest, no project card is.
-    const items = [...strip.querySelectorAll("[data-card], [data-end-card]")];
-    const inStrip = !!layoutRef.current;
-    const centres = items.map((c) => {
-      const r = c.getBoundingClientRect();
-      return inStrip ? r.left + r.width / 2 : r.top + r.height / 2;
-    });
-    const i = nearestToCentre(centres, inStrip ? vw : vh);
-    if (i < 0) return focused.current;
-    return items[i].dataset.card === undefined ? null : Number(items[i].dataset.card);
+
+    if (mode.current === "stack") {
+      const els = items();
+      const centres = els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2;
+      });
+      els.forEach((el, i) => {
+        const z = stackDepth(Math.abs(centres[i] - vh / 2) / vh);
+        el.style.transform = `scale(${z.scale})`;
+        el.style.opacity = String(z.opacity);
+      });
+      if (keyboard.current) return setActive(focused.current);
+      const i = onScreen ? nearestToCentre(centres, vh) : -1;
+      // The end card is a candidate too: when it is nearest, no project card is.
+      setActive(i < 0 || i === END ? null : i);
+    }
   }, []);
 
   const schedule = useCallback(() => {
-    if (raf.current) return;
-    raf.current = requestAnimationFrame(() => {
-      raf.current = 0;
-      setActive(pick());
-    });
-  }, [pick]);
+    if (!raf.current) raf.current = requestAnimationFrame(frame);
+  }, [frame]);
 
-  // Strip layout: only on wide screens with motion allowed.
+  // Mode and layout: the strip on wide screens with motion allowed, the stack
+  // below md, the plain list under reduced motion.
   useEffect(() => {
-    reducedRef.current = reduced;
     const wide = window.matchMedia(WIDE);
     const measure = () => {
+      const next = reduced ? null : wide.matches ? "strip" : "stack";
+      if (next !== mode.current) {
+        items().forEach(clearStyles);
+        if (stripRef.current) {
+          stripRef.current.style.transform = "";
+          delete stripRef.current.dataset.settled;
+        }
+      }
+      mode.current = next;
       const L =
-        wide.matches && !reduced
-          ? stripLayout({
-              vw: document.documentElement.clientWidth,
-              vh: viewportRef.current?.clientHeight || window.innerHeight,
-              count: COUNT,
-            })
+        next === "strip"
+          ? stripLayout({ vw: document.documentElement.clientWidth, vh: viewportRef.current?.clientHeight || window.innerHeight })
           : null;
       layoutRef.current = L;
       setLayout(L);
-      place(scrollYProgress.get());
+      shown.current = null; // snap after a resize
+      if (!next) setActive(null);
       schedule();
     };
     measure();
@@ -127,64 +176,42 @@ export default function Projects() {
       window.removeEventListener("resize", measure);
       wide.removeEventListener("change", measure);
     };
-  }, [reduced, place, schedule, scrollYProgress]);
+  }, [reduced, schedule]);
 
-  // Scroll moves the strip; pointer and scroll both re-pick the active card.
+  // Scroll drives the frames; a Tab press hands control to focus until the
+  // pointer is next used.
   useEffect(() => {
-    const unsub = scrollYProgress.on("change", (p) => {
-      place(p);
-      schedule();
-    });
-    const onMove = (e) => {
-      if (e.pointerType === "touch") return;
+    const onPointerDown = () => {
       keyboard.current = false;
-      touch.current = false;
-      pointer.current = { x: e.clientX, y: e.clientY };
       schedule();
-    };
-    const onPointerDown = (e) => {
-      keyboard.current = false;
-      if (e.pointerType === "touch") {
-        touch.current = true;
-        pointer.current = null;
-        schedule();
-      }
     };
     const onKey = (e) => {
-      if (e.key !== "Tab") return;
-      keyboard.current = true;
-      pointer.current = null;
-      schedule();
+      if (e.key === "Tab") keyboard.current = true;
     };
-    const onLeave = () => {
-      pointer.current = null;
-      schedule();
-    };
-    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("pointerdown", onPointerDown, { passive: true, capture: true });
     window.addEventListener("keydown", onKey, { capture: true });
-    window.addEventListener("scroll", schedule, { passive: true });
-    document.documentElement.addEventListener("mouseleave", onLeave);
     return () => {
-      unsub();
-      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("scroll", schedule);
       window.removeEventListener("pointerdown", onPointerDown, { capture: true });
       window.removeEventListener("keydown", onKey, { capture: true });
-      window.removeEventListener("scroll", schedule);
-      document.documentElement.removeEventListener("mouseleave", onLeave);
       cancelAnimationFrame(raf.current);
       raf.current = 0;
     };
-  }, [scrollYProgress, place, schedule]);
+  }, [schedule]);
 
-  // In the strip, brings item i (a card, or the end card) to its leading slot
-  // when it was reached by keyboard.
+  // In the strip, brings item i (a card, or the end card) to the centre when
+  // it was reached by keyboard. A frame later, so it lands after the
+  // browser's own scroll to the newly focused element.
   const scrollStripTo = useCallback((i) => {
-    const L = layoutRef.current, track = trackRef.current;
-    if (!L || !track || !keyboard.current) return;
-    const top = track.getBoundingClientRect().top + window.scrollY;
-    const p = progressForCard(i, L);
-    window.scrollTo({ top: top + p * (track.offsetHeight - window.innerHeight), behavior: "instant" });
+    if (mode.current !== "strip" || !keyboard.current) return;
+    requestAnimationFrame(() => {
+      const track = trackRef.current;
+      if (!track) return;
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      const p = progressForCard(i, COUNT);
+      window.scrollTo({ top: top + p * (track.offsetHeight - window.innerHeight), behavior: "instant" });
+    });
   }, []);
 
   const onFocusCard = useCallback(
@@ -202,11 +229,17 @@ export default function Projects() {
     schedule();
   };
 
-  const at = (i) => {
-    if (!layout) return { className: STACK_ITEM };
-    const { left, top } = cardPosition(i, layout);
-    return { style: { position: "absolute", left, top, width: layout.cardW } };
-  };
+  // Each card's place, stable between renders (so the memoised cards skip).
+  const places = useMemo(
+    () =>
+      Array.from({ length: COUNT }, (_, i) => {
+        if (!layout) return { className: STACK_ITEM };
+        const { left, top } = cardPosition(i, layout);
+        return { style: { position: "absolute", left, top, width: layout.cardW } };
+      }),
+    [layout]
+  );
+  const onEndFocus = useCallback(() => scrollStripTo(END), [scrollStripTo]);
 
   return (
     <section id="work" className="relative border-t border-rule">
@@ -219,9 +252,19 @@ export default function Projects() {
             A small but <span className="italic text-electric">growing</span> shelf.
           </SplitLines>
           <Reveal delay={0.1}>
-            <p className="mt-6 max-w-xl text-base md:text-lg text-ink-soft">
-              Six projects out in the world, two more on the way. The shelf keeps growing, so check back.
-            </p>
+            <div className="mt-6 flex flex-wrap items-baseline gap-x-7 gap-y-3">
+              <p className="max-w-xl text-base md:text-lg text-ink-soft">
+                Five favourites from a growing shelf. The rest, and what&rsquo;s on the way, is on the portfolio page.
+              </p>
+              <a
+                href="/portfolio"
+                data-hover
+                className="group inline-flex items-center gap-2 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.2em] text-electric link-line"
+              >
+                All work
+                <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+              </a>
+            </div>
           </Reveal>
         </div>
       </div>
@@ -232,18 +275,17 @@ export default function Projects() {
           data-strip-viewport
           className="js:motion-safe:md:sticky js:motion-safe:md:top-0 js:motion-safe:md:h-svh js:motion-safe:md:overflow-clip"
         >
-          <motion.div
+          <div
             ref={stripRef}
             data-strip
             onBlur={onBlur}
-            style={layout ? { x, y } : undefined}
             className={layout ? "absolute left-0 top-0" : "flex flex-col gap-16 px-4 pb-32 md:gap-24 md:px-10 md:pb-44"}
           >
-            {PROJECTS.map((p, i) => (
-              <ProjectCard key={p.slug} project={p} index={i} active={active === i} onFocusCard={onFocusCard} {...at(i)} />
+            {CARDS.map((p, i) => (
+              <ProjectCard key={p.slug} project={p} index={i} active={active === i} onFocusCard={onFocusCard} {...places[i]} />
             ))}
-            <EndCard onFocus={() => scrollStripTo(PROJECTS.length)} {...at(PROJECTS.length)} />
-          </motion.div>
+            <EndCard onFocus={onEndFocus} {...places[END]} />
+          </div>
         </div>
       </div>
     </section>

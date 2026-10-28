@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { N, LIFT, falloff, ambient, smoothing, settled, aim as boardAim } from "@/lib/isoBoard";
 
 // Isometric Board — a 5×5 grid tilted into an isometric-feeling plane
 // (perspective wrapper → rotateX 54° rotateZ 45°, preserve-3d all the way
@@ -12,11 +13,8 @@ import { useEffect, useRef } from "react";
 // target with dt-based easing (1 − exp(−dt/τ)) and writes styles via refs.
 // Gotcha: offsetX/Y are already inverse-mapped into the tile's local space by
 // the browser, so fractional in-tile position works despite the 3D transform.
-
-const N = 5;
-const LIFT = 26; // px translateZ at full lift
-const SIGMA = 0.85; // falloff radius in cells
-const TAU = 0.14; // smoothing time constant (s)
+// The maths is shared with the 404 page's board (lib/isoBoard.js); the look
+// here stays the lab's.
 
 export default function IsometricBoard({ reducedMotion }) {
   const faceRefs = useRef([]);
@@ -40,13 +38,10 @@ export default function IsometricBoard({ reducedMotion }) {
       shadows[i].style.opacity = (l * 0.8).toFixed(3);
       shadows[i].style.transform = `scale(${(1 + l * 0.25).toFixed(3)})`;
     };
-    const falloff = (r, c, fx, fy) =>
-      Math.exp(-((c + 0.5 - fx) ** 2 + (r + 0.5 - fy) ** 2) / (2 * SIGMA * SIGMA));
-
     if (reducedMotion) {
       // Settled composition: a pointer "parked" mid-board — a lifted cluster.
       for (let r = 0; r < N; r++)
-        for (let c = 0; c < N; c++) apply(r * N + c, falloff(r, c, 3.1, 1.6) * 0.9);
+        for (let c = 0; c < N; c++) apply(r * N + c, settled(r, c));
       return;
     }
 
@@ -59,14 +54,14 @@ export default function IsometricBoard({ reducedMotion }) {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       t += dt;
-      const k = 1 - Math.exp(-dt / TAU);
+      const k = smoothing(dt);
       const p = pointer.current;
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           const i = r * N + c;
           const target = p.on
             ? falloff(r, c, p.x, p.y)
-            : Math.max(0, 0.1 + 0.14 * Math.sin(t * 0.9 - (r + c) * 0.7)); // ambient drift
+            : ambient(r, c, t); // ambient drift
           l[i] += (target - l[i]) * k;
           apply(i, l[i]);
         }
@@ -80,13 +75,8 @@ export default function IsometricBoard({ reducedMotion }) {
   // Per-tile aim: cell index + fractional offset → continuous board coords.
   const aim = (r, c) => (e) => {
     const el = e.currentTarget;
-    const fx = el.offsetWidth
-      ? Math.min(1, Math.max(0, e.nativeEvent.offsetX / el.offsetWidth))
-      : 0.5;
-    const fy = el.offsetHeight
-      ? Math.min(1, Math.max(0, e.nativeEvent.offsetY / el.offsetHeight))
-      : 0.5;
-    pointer.current = { x: c + fx, y: r + fy, on: true };
+    const at = boardAim(r, c, e.nativeEvent.offsetX, e.nativeEvent.offsetY, el.offsetWidth, el.offsetHeight);
+    pointer.current = { ...at, on: true };
   };
 
   return (

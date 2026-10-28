@@ -1,4 +1,4 @@
-import ServicesNav from "@/components/ServicesNav";
+import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Services from "@/components/Services";
 import ClientEnhancements from "@/components/ClientEnhancements";
@@ -43,7 +43,7 @@ export default function ServicesPage() {
       />
       <ClientEnhancements />
       <ScrollProgress />
-      <ServicesNav />
+      <Nav />
       <main className="relative">
         <Services />
         <Footer />

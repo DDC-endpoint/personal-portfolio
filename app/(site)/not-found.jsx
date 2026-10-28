@@ -3,12 +3,16 @@
 // the 404 lives in (site) and unmatched URLs are funneled here by the
 // [...notFound] catch-all route. Renders inside the site layout (ivory theme).
 // The link home is a plain <a>: the page transition (components/transition/)
-// takes it over, as it does every link between the site's pages.
+// takes it over, as it does every link between the site's pages. The
+// Isometric Board sits above the message (Phase 6).
+import IsoBoard from "@/components/IsoBoard";
+
 export default function NotFound() {
   return (
     <main className="grid min-h-screen place-items-center px-6">
       <div className="text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">
+        <IsoBoard />
+        <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">
           404 — page not found
         </p>
         <h1 className="mt-4 font-display text-5xl tracking-tightest">

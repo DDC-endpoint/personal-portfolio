@@ -110,12 +110,14 @@ test.describe("snippet hygiene and alt text", () => {
 
   test("decorative text can't become a snippet", async ({ page }) => {
     await page.goto("/");
-    // the scrambled curtain, the ASCII mini portrait, the year counter, "loading…"
-    await expect(page.locator(".intro-stamp")).toHaveAttribute("data-nosnippet", "");
-    await expect(page.locator('[data-card="0"] [data-nosnippet] svg')).toHaveCount(1);
+    // the scrambled curtain, the skeletons' decorative text, the year counter
+    await expect(page.locator(".morph-loader")).toHaveAttribute("data-nosnippet", "");
+    await expect(page.locator('[data-card="0"] [data-nosnippet]')).toHaveCount(1);
     for (const c of await page.locator("[data-counter]").all()) await expect(c).toHaveAttribute("data-nosnippet", "");
-    const loading = page.locator("[data-card]", { hasText: "loading…" }).locator("[data-nosnippet]", { hasText: "loading…" });
-    expect(await loading.count()).toBeGreaterThan(0);
+    // /portfolio's upcoming cards: "loading…"
+    await page.goto("/portfolio");
+    const loading = page.locator("[data-build] [data-nosnippet]", { hasText: "loading…" });
+    await expect(loading).toHaveCount(2);
   });
 
   test("the name in the H1 is spelt as the entity", async ({ page }) => {
@@ -126,16 +128,15 @@ test.describe("snippet hygiene and alt text", () => {
 
 test.describe("footer and privacy", () => {
   for (const path of ["/", "/services", "/privacy"]) {
-    test(`${path}: footer B with the trading name and links`, async ({ page, isMobile }) => {
+    test(`${path}: footer B with the trading name, no page links`, async ({ page, isMobile }) => {
       await page.goto(path);
       const footer = page.locator("footer");
       await expect(footer).toContainText("© 2026 Damian De Cruz");
       await expect(footer).toContainText("Trading as DDC Web Services");
       await expect(footer).toContainText("Made by hand, in Colombo.");
       await expect(footer).toContainText("v:04 / Always evolving");
-      const links = footer.locator("nav a");
-      await expect(links).toHaveText(["Home", "Services", "Privacy"]);
-      expect(await links.evaluateAll((els) => els.map((a) => a.getAttribute("href")))).toEqual(["/", "/services", "/privacy"]);
+      // The nav carries the pages (Damian, Phase 6 gate).
+      await expect(footer.locator("a")).toHaveCount(0);
       // centred on phones; the three columns read left, centre, right on desktop
       const aligns = await footer.locator("[data-footer-col]").evaluateAll((els) => els.map((el) => getComputedStyle(el).textAlign));
       expect(aligns).toEqual(isMobile ? ["center", "center", "center"] : ["left", "center", "right"]);

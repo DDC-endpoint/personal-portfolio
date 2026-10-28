@@ -1,11 +1,11 @@
 "use client";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
-import { EASE, isSoftNavigation } from "@/lib/motion";
+import { EASE, onReveal } from "@/lib/motion";
 
 // Above-the-fold entrance that never hides content from the first paint: the
 // server HTML renders children fully visible — so the text paints (and LCP is
-// recorded) before hydration — then the entrance replays once hydrated. Use
+// recorded) under the curtain — then the entrance replays as it clears. Use
 // INSTEAD OF Reveal/motion `initial` for anything visible at the top of a
 // page; keep Reveal for below-the-fold sections, where the hidden SSR state
 // costs nothing and avoids the replay. Reduced motion: content stays visible,
@@ -35,18 +35,19 @@ export default function EagerReveal({
 
   useEffect(() => {
     if (reduced || !replay) return;
-    // Arrived by a page transition: the sweep is the only entrance.
-    if (isSoftNavigation()) return;
-    // Slow connection: by the time JS arrives the content has been on screen
-    // for seconds — blinking it away to replay an entrance reads as a glitch,
-    // so the entrance only plays when hydration is prompt.
-    if (performance.now() > 2500) return;
+    // Forced colours: no curtain, so the content has been on screen all
+    // along; blinking it away to replay an entrance would read as a glitch.
+    if (window.matchMedia("(forced-colors: active)").matches) return;
+    // Hidden under the curtain, then in as it clears (every arrival:
+    // lib/motion.js → onReveal).
     controls.set({ opacity: 0, y });
-    controls.start({
-      opacity: 1,
-      y: 0,
-      transition: { duration, ease: EASE, delay },
-    });
+    return onReveal(() =>
+      controls.start({
+        opacity: 1,
+        y: 0,
+        transition: { duration, ease: EASE, delay },
+      })
+    );
     // Replay exactly once, on mount — later prop changes must not re-hide
     // content, so the deps stay empty on purpose.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,4 +1,4 @@
-import { shouldPlayIntro, resetIntroDecision, markSoftNavigation, isSoftNavigation } from "@/lib/motion";
+import { shouldPlayIntro, resetIntroDecision, whenRevealed, onReveal, markRevealed, coverStarts, isRevealed } from "@/lib/motion";
 
 function stubWindow({ reduced = false } = {}) {
   globalThis.window = { matchMedia: (q) => ({ matches: reduced && q.includes("reduce") }) };
@@ -6,6 +6,8 @@ function stubWindow({ reduced = false } = {}) {
 
 beforeEach(() => resetIntroDecision());
 afterEach(() => delete globalThis.window);
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
 
 test("plays on every load", () => {
   stubWindow();
@@ -32,26 +34,45 @@ test("SSR is undecided", () => {
   expect(shouldPlayIntro()).toBe(true);
 });
 
-describe("soft navigation (arrived by a page transition)", () => {
-  test("after markSoftNavigation() the intro never plays", () => {
-    stubWindow();
-    expect(shouldPlayIntro()).toBe(true);
-    markSoftNavigation();
-    expect(isSoftNavigation()).toBe(true);
-    expect(shouldPlayIntro()).toBe(false);
+describe("the reveal (entrances wait for the curtain to clear)", () => {
+  test("a load starts covered: whenRevealed waits for markRevealed", async () => {
+    let done = false;
+    whenRevealed().then(() => (done = true));
+    await tick();
+    expect(isRevealed()).toBe(false);
+    expect(done).toBe(false);
+    markRevealed();
+    await tick();
+    expect(done).toBe(true);
   });
 
-  test("a fresh load isn't a soft navigation", () => {
-    stubWindow();
-    expect(isSoftNavigation()).toBe(false);
-    expect(shouldPlayIntro()).toBe(true);
+  test("resolves at once when no curtain plays (already revealed)", async () => {
+    markRevealed();
+    let done = false;
+    whenRevealed().then(() => (done = true));
+    await tick();
+    expect(done).toBe(true);
   });
 
-  test("resetIntroDecision() clears both (a reload)", () => {
-    stubWindow();
-    markSoftNavigation();
-    resetIntroDecision();
-    expect(isSoftNavigation()).toBe(false);
-    expect(shouldPlayIntro()).toBe(true);
+  test("once per arrival: a page change covers again, and the next reveal fires", async () => {
+    markRevealed();
+    coverStarts();
+    expect(isRevealed()).toBe(false);
+    const seen = [];
+    onReveal(() => seen.push("a"));
+    markRevealed();
+    await tick();
+    markRevealed(); // a second call for the same arrival does nothing new
+    await tick();
+    expect(seen).toEqual(["a"]);
+  });
+
+  test("onReveal can be called off", async () => {
+    const seen = [];
+    const off = onReveal(() => seen.push("x"));
+    off();
+    markRevealed();
+    await tick();
+    expect(seen).toEqual([]);
   });
 });
