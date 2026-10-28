@@ -266,6 +266,7 @@ Damian's first look at the gate:
 - **The progress bar stuttered while scrolling (Damian):** the strip re-rendered every card each time the centred card changed. It now re-renders only the two cards involved.
 - **The Isometric Board on the electric contact cards (Damian, asked):** Home § 08 Contact and `/services` Start a project. His picks: ivory glass tiles (translucent ivory, ivory edge light, navy shadow), motion as on the 404. Placement (Damian, from `spike/contact-board.html`): **A, beside the text** (above it on phones); B behind, C corner and D bleed were not chosen. Built into both cards: `IsoBoard` gains a `tone` ("page" for the 404, "glass" for the cards) and sizing props.
 - **A slight frame drop in the first load's lift:** the reveal re-rendered the hero in a frame already busy with the panels and the portrait's wave. The hero's entrance now runs on animation controls, and the loader unmounts when the browser is idle. Measured on a real GPU, the drops at the reveal are gone; an occasional single missed frame remains about 1.1 s in, where the portrait's wave is densest (its cost predates Phase 6): for the performance pass.
+- **Merged to `main` (Damian, 2026-10-28):** Phase 6 merged `--no-ff` into `v3`, then PR #4 merged `v3` into `main` as `da83fc0`, before the performance pass (his call). `v3` was fast-forwarded to the same commit. Gate questions 6-9 (README → "The next step") shipped with the current behaviour.
 
 ## Phase 6 build (2026-10-28)
 
@@ -459,7 +460,7 @@ Damian's changes at the Phase 4 visual gate:
 
 ## Status and next step (continue here)
 
-As of the end of 2026-10-27, Phases 1 to 4, the Timeline circuit and the SEO/GEO upgrade are built and merged into `v3` locally. The page transition is Phase 5, not yet planned. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
+As of 2026-10-28, all six phases, the Timeline circuit and the SEO/GEO upgrade are merged into `v3`, and `v3` is merged to `main` (PR #4, `da83fc0`). The performance pass is next. The bullets below are the record from 2026-10-27. [`README.md`](README.md) has the full status, what each phase built, the next step, and how to test.
 
 - **Approved:** Damian approved [`design.md`](design.md) on 2026-10-26. His later revisions are in "Phase 1 review (2026-10-27)" above; where they conflict with older entries, they win.
 - **Next:** build [`plan-phase-5.md`](plan-phase-5.md) (the page transition, approved 2026-10-27) from Task 0, built on `v3-phase-5` (native inline execution, one fresh reviewer at the end) and merged into `v3` locally on his approval. Then the performance pass, then `v3` → `main`.

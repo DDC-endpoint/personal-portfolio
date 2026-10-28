@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-28, end of session: Phases 1–5 merged into `v3` and pushed; Phase 6 built on `v3-portfolio`, at Damian's visual gate, with his gate fixes in)
+## Where we are (2026-10-28: Phases 1–6 merged into `v3`, and `v3` merged to `main` by PR #4; `main` and `v3` are the same commit)
 
 | Track | State |
 |---|---|
@@ -15,11 +15,11 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 4**: copy refresh, Leadership rows, Skills terminal, `/services` | **Done and merged into `v3` locally (2026-10-27)** as `24b16d7`. Damian approved [`plan-phase-4.md`](plan-phase-4.md) with every builder's call. It was built test-first and reviewed by a fresh reviewer, and every finding is fixed. His gate changes (pinning, Recent work rows, prices, full-width stack) are in `decisions.md` → "Phase 4 build and review" and "Gate changes". See "What Phase 4 built". |
 | SEO and GEO upgrade (Phase 4 Task 11) | **Done and merged with Phase 4 (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
 | **Phase 5**: page transition (every page) and the first-load reveal | **Done and merged into `v3` (2026-10-28), and `v3` pushed to `origin`.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b) and his gate fixes (`decisions.md` → "Phase 5 gate changes"). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
-| **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Done and merged into `v3` (2026-10-28), `v3` pushed, and a PR opened from `v3` to `main`** (Damian approved the gate after five late fixes: the nav underline, the lens under the curtain, the progress bar, the cursor behind the curtain, the nav's entrance). See "What Phase 6 built" and `decisions.md` → "Phase 6 gate fixes". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
+| **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Done and merged into `v3` (2026-10-28), then merged to `main` by PR #4 (`da83fc0`, 2026-10-28); `v3` was fast-forwarded to the same commit and pushed** (Damian approved the gate after five late fixes: the nav underline, the lens under the curtain, the progress bar, the cursor behind the curtain, the nav's entrance). See "What Phase 6 built" and `decisions.md` → "Phase 6 gate fixes". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
 
-### The next step (resume here): the PR to `main`, then the performance pass
+### The next step (resume here): deploy, the post-deploy checks, then the performance pass
 
-**State (2026-10-28, end of the gate session):** Phase 6 is merged into `v3` (`--no-ff` from `v3-portfolio`), `v3` is pushed, and the PR from `v3` to `main` is open (V3 goes live when it merges and the server deploys). Unit tests (193) pass; every e2e spec touched by the gate fixes passes. The dev server was restarted at the end of the session (`npm run dev`, :3000); the spike server may still be on :3200.
+**State (2026-10-28):** PR #4 (`v3` → `main`) is merged as `da83fc0`, and `v3` was fast-forwarded to it, so `main` and `v3` are the same commit, both pushed. Merging doesn't deploy: V3 goes live when Damian runs the deploy on the server (HANDOFF → *Deploying*). After that, run the checks in "After the merge to `main`". Unit tests (193) pass; every e2e spec touched by the gate fixes passes. Before the merge, the whole range was scanned for personal data (net diff and every commit, including since-deleted images): no IPs, secrets or extra emails, and no EXIF, XMP or IPTC on any image.
 
 **Gate items (1-5 fixed and merged; 6-9 still open questions for Damian):**
 1. **"Offset on the HOME navbar link": fixed.** His screenshot (100% scaling) showed the underline 1.2 px past the E and flush with the H. Cause: Chromium floors a background's tile size to whole CSS px, so `.link-line`'s background line ran up to a pixel long or short; and it spanned the letter cells, not the ink. The nav now draws its line as a `::after` (`.nav-line` in `globals.css`), inset by `--trail` and by the glyphs' side bearing (`--bear: 0.07em`). Measured on all four links at 100-200% and 4x: both ends within one device pixel of the ink (exact at 4x; at 100% HOME's right end is ~0.6 px over, raster snapping). `.link-line` itself is unchanged (it wraps across lines in the Privacy prose).
@@ -31,7 +31,7 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 7. **The 404 page is always light** (and logs a React dev warning about the layout's `<script>`): pre-existing, React rebuilds that route's document client-side and drops the pre-paint `js`/`dark` classes. Fix now or in the perf pass?
 8. **Kahatagaha's preview is short** (its landing page is one screen tall). Keep, or capture one of its concept pages?
 9. **The page change is 2.25 s, not the plan's "about 2.7 s"** (the plan's own parts add to 2.25). Confirm.
-10. **Merge:** done on his word (2026-10-28): `v3-portfolio` merged `--no-ff` into `v3`, `v3` pushed, PR `v3` to `main` opened.
+10. **Merge:** done on his word (2026-10-28): `v3-portfolio` merged `--no-ff` into `v3`, `v3` pushed, PR `v3` to `main` opened, then merged the same day on his request (`da83fc0`). Questions 6-9 shipped with the current behaviour and stay open.
 
 **Then the performance pass** (below). Carry-overs from Phase 6 for it: the portrait wave's densest frames during the first-load lift (an occasional missed frame about 1.1 s in); `/portfolio`'s mobile LCP (re-measure: its lede was made the static LCP candidate after the last run); Home's TBT is about 200 ms above `v3` before Phase 6; the decode setup cost when the strip's centred card changes.
 
@@ -49,11 +49,11 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 #### The performance pass (after Phase 6)
 
-**State at hand-off (2026-10-28):** Phase 5 (the page transition, the first-load reveal and the gate fixes) is merged into `v3`, and `v3` is pushed to `origin` with its upstream set. `v3` is not merged to `main`, so the live site hasn't changed. Unit tests (157) and e2e pass. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load"), the transition's sweep-timing test (it retries), the hero lens's touch drag and the Projects end-card scramble.
+**State (2026-10-28):** V3 is on `main` without the pass: Damian merged PR #4 first, so the pass now tunes the merged site rather than gating the merge. Known flakes under full-suite load, which pass on retry or alone: one Phase 1 cursor-lens test, the Home loader's timing-dependent group (`e2e/loader.spec.js` → "every load"), the transition's sweep-timing test (it retries), the hero lens's touch drag and the Projects end-card scramble.
 
-1. **The performance pass (Damian, 2026-10-27: after Phase 5 merges, before `v3` → `main`).** Mobile Lighthouse on `v3` is a few points below `main`, mostly from before Phase 4 (see "Testing"). The target is "no worse than `main`". Branch it off `v3` (`v3-perf`).
+1. **The performance pass (Damian, 2026-10-27: planned before `v3` → `main`; the merge came first, 2026-10-28).** Mobile Lighthouse on V3 is a few points below the pre-V3 site, mostly from before Phase 4 (see "Testing"). The target is "no worse than the pre-V3 `main`" (`8cad99b`). Branch it off `v3` (`v3-perf`).
 2. **Damian, outside the repo:** check GA4 → Admin → Data streams → the web stream → Enhanced measurement → Page views → "Page changes based on browser history events" is on, so client-side page changes are counted.
-3. **Then `v3` → `main`,** which redeploys the site. See "Before `v3` merges to `main`".
+3. **Then `v3` → `main` again by PR,** and deploy.
 4. **The dev server can slow down over a long session** (hydration went from about 270 ms to 800 ms, and the full e2e run from 4.6 to 9.9 minutes, with timing tests failing). If the suite suddenly turns flaky, restart `next dev` (with Damian's OK) before chasing it.
 
 **History, for context:**
@@ -61,10 +61,10 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - Phase 3 merged as `60c1725`. At its gate Damian settled the dark-mode Contact card (`#2563EB` in both themes) and raised five fixes (`decisions.md` → "Phase 3 gate fixes").
 - The Timeline's running stitch was replaced by a circuit with a pinned year counter after a five-way prototype (`spike/timeline-rails.html`), merged as `9eeed8c` (`decisions.md` → "Timeline circuit").
 
-## Before `v3` merges to `main`
+## After the merge to `main` (merged 2026-10-28; check after the deploy)
 
-- **Ships a live-site bug fix (2026-10-27).** On damiandc.com today, visitors with reduced motion get a React hydration error (#418), and React rebuilds the page, which resets them to light mode. It's fixed on `v3` (`lib/useReducedMotion.js`), not on `main`, by Damian's choice, so the live site keeps the bug until `v3` merges. Mention it in the `v3` → `main` PR and check it on the live site after the redeploy: turn on reduced motion, choose dark mode, and reload `/` and `/services`.
-- **Do the performance pass first** (Damian's order: after Phase 5), then run the Lighthouse comparison against `main` (see "Testing"). The final check is PageSpeed Insights on the live site after the redeploy.
+- **Ships a live-site bug fix.** On the pre-V3 site, visitors with reduced motion got a React hydration error (#418), and React rebuilt the page, which reset them to light mode. V3 fixes it (`lib/useReducedMotion.js`; noted in PR #4). Check it on the live site after the deploy: turn on reduced motion, choose dark mode, and reload `/` and `/services`.
+- **The performance pass didn't come first** (Damian merged PR #4 before it). After the deploy, run PageSpeed Insights on the live site and compare with the July 2026 live scores in HANDOFF → *Performance Pass*; the pass follows.
 - **What goes live with it:** the new prices, the lab host's own `robots.txt`, and the new share cards. Check `lab.damiandc.com/robots.txt` (no Sitemap line) and `/sitemap.xml` (404) after the redeploy.
 
 ## How V3 ships
@@ -72,7 +72,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 1. `v3` is the integration branch, cut from `main` at `8cad99b`, just after PR #3.
 2. Each phase gets its own branch off `v3` and merges **into `v3`**, never into `main`. Every merge so far has been a local `--no-ff` merge at Damian's request, with no PR.
 3. After every merge, test `v3`: `npm test`, `npm run e2e`, screenshots (golden path, mobile, dark, reduced motion), and a Lighthouse run on production builds.
-4. When all five phases are in (Phase 5, the page transition, was split out of Phase 4), `v3` merges to `main`, which triggers the site redeploy.
+4. When all phases are in, `v3` merges to `main`. **Done 2026-10-28:** with all six phases in, PR #4 merged `v3` into `main` (`da83fc0`), and `v3` was fast-forwarded to match. Merging doesn't deploy; the site goes live when the server's deploy pulls `main`.
+5. Later V3 work (the performance pass) takes the same route: a branch off `v3`, merged into `v3`, then `v3` → `main` by PR.
 
 ## What Phase 1 built (on `v3`)
 
@@ -418,9 +419,9 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 ## Repo state at hand-off
 
 - **Branches:**
-  - `v3-portfolio` (current): Phase 6, cut from `v3` at `14ce453`. Local only, not pushed, not merged. The working tree is clean.
-  - `v3` is pushed to `origin` with its upstream set (Damian, 2026-10-28). `v3-phase-1` to `v3-phase-5` and `v3-timeline-circuit` are merged and deleted.
-  - Other local branches, `main` and `upgrade/deps`, are untouched by V3.
+  - `main` and `v3` point at the same commit (PR #4's merge `da83fc0`, plus the docs update after it), both pushed (2026-10-28). The working tree is clean.
+  - `v3-portfolio` (local only): Phase 6, merged into `v3` and so into `main`; safe to delete. `v3-phase-1` to `v3-phase-5` and `v3-timeline-circuit` are merged and deleted.
+  - `upgrade/deps` is merged (PR #3).
 - **Dev server:** `next dev` on :3000, restarted at the end of the 2026-10-28 session. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another. A long-running `next dev` slows down and makes timing tests flaky: restart it (with Damian's OK) before chasing flakes.
 - **Prototype server:** `node docs/v3/spike/serve.cjs` on :3200 (see "Running the prototypes"). It may still be running from the last session.
 - **Old worktrees:** `git worktree list` shows three from an earlier session (`wt-main`, `wt-p4`, `wt-v3` under another session's scratchpad). They're stale; remove them with `git worktree remove --force <path>` if they get in the way.
@@ -438,9 +439,9 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 - [`plan-phase-1.md`](plan-phase-1.md): the Phase 1 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-2.md`](plan-phase-2.md): the Phase 2 plan. It's **done**; read its status note for where the build departed from it.
 - [`plan-phase-3.md`](plan-phase-3.md): the Phase 3 plan. It's **done**; read its status note for where the build departed from it.
-- [`plan-phase-5.md`](plan-phase-5.md): the Phase 5 plan (the page transition, plus Task 4b, the first-load reveal). **Built**, at the gate; read its status note.
+- [`plan-phase-5.md`](plan-phase-5.md): the Phase 5 plan (the page transition, plus Task 4b, the first-load reveal). **Done**; read its status note.
 - [`plan-phase-4.md`](plan-phase-4.md): the Phase 4 plan (copy refresh, Leadership rows, Skills terminal, `/services`, and Task 11, SEO and GEO). **Done**; read its status note.
-- [`plan-phase-6.md`](plan-phase-6.md): the Phase 6 plan (four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board). **Built**, at the gate; read its status note.
+- [`plan-phase-6.md`](plan-phase-6.md): the Phase 6 plan (four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board). **Done**, merged to `main`; read its status note.
 - [`pricing-2026-10.md`](pricing-2026-10.md): the October 2026 price research behind the `/services` prices, and what to re-check next time.
 - [`seo-geo.md`](seo-geo.md): the SEO and GEO audit summary, Damian's decisions, what we built, what Damian does outside the repo, and the monthly GEO prompt set.
 - [`research-reels.md`](research-reels.md): notes on the six Instagram reels and the ASCII reference video that shaped V3.

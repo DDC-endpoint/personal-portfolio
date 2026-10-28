@@ -19,14 +19,14 @@ The GitHub repo (`EnderGuardian25/personal-portfolio`) and the `main` branch are
 
 The `.gitignore` already excludes `assets/private/`, `assets/photography-originals/`, `.env*.local`, and `.claude/scheduled_tasks.lock` — keep those rules intact.
 
-## V3 redesign in progress
+## V3 redesign
 
-A phased redesign is under way on the local `v3` branch (not pushed). **Resuming V3 work? Start at `docs/v3/README.md`**: it holds the status, the next step, the testing procedure and how Damian likes to work. Phase branches merge into `v3`, never into `main`.
+The V3 redesign (Phases 1–6) is merged to `main` (PR #4, `da83fc0`, 2026-10-28), and `v3` sits at the same commit; both are pushed. **Resuming V3 work (the performance pass, the open gate questions)? Start at `docs/v3/README.md`**: it holds the status, the next step, the testing procedure and how Damian likes to work. Remaining V3 work branches off `v3`, merges into `v3`, and reaches `main` by PR.
 
 ## Build / verify
 
 - Dev: `npm run dev` (http://localhost:3000). Use `lab.localhost:3000` to exercise the lab subdomain locally.
-- Tests (on `v3`): `npm test` (Vitest, `tests/unit/`), `npm run e2e` (Playwright against `next dev`, `e2e/`).
+- Tests: `npm test` (Vitest, `tests/unit/`), `npm run e2e` (Playwright against `next dev`, `e2e/`).
 - Never run `npm run build` while `next dev` is running — they share `.next` and clobber each other.
 - The lab is served at **lab.damiandc.com** via `proxy.js`; `damiandc.com/lab` returns a 404 by design. Don't "fix" that 404.
 
