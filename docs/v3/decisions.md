@@ -256,6 +256,14 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
 - **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
+## Phase 6 gate fixes (2026-10-28)
+
+Damian's first look at the gate:
+- **The portrait flashed finished, then went back to skeleton for its wave** during the curtain's lift ("flickers off from full colour"). Fixed: until the reveal the portrait is skeleton only (`3b4afe0`).
+- **The current page's underline overhung the word** (his screenshot of PRIVACY): the trailing letter-spacing. The underline is now trimmed by it (`--trail`), on the nav's current page and its hover.
+- **A flicker in the reload curtain:** the seams' resting shadow popped on when scripts took over. The server HTML now paints it from the first frame.
+- **A slight frame drop in the first load's lift:** the reveal re-rendered the hero in a frame already busy with the panels and the portrait's wave. The hero's entrance now runs on animation controls, and the loader unmounts when the browser is idle. Measured on a real GPU, the drops at the reveal are gone; an occasional single missed frame remains about 1.1 s in, where the portrait's wave is densest (its cost predates Phase 6): for the performance pass.
+
 ## Phase 6 build (2026-10-28)
 
 Builder's rulings during the build (Tasks 1–10), for Damian's gate:
