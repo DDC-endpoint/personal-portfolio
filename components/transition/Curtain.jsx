@@ -3,15 +3,16 @@ import { forwardRef } from "react";
 // The curtain's panels, in the server HTML (docs/v3/plan-phase-6.md → "The
 // curtain"): five full-height columns (three below md), alternating ivory and
 // mist (navy and navy-2 in dark mode), each with its shadow, its clipped
-// shape and the edge light. The label rides the middle panel. Idle, it's
-// hidden; the engine (./curtain.js) moves it. Hidden from screen readers;
-// never in the way of a click.
+// shape and the edge light. The label (and, on a first load, the morph
+// loader) rides the middle panel. The server HTML has it covering ("intro")
+// for the loader; the engine (./curtain.js) moves it from then on. Hidden
+// from screen readers; never in the way of a click while idle.
 
 const PANELS = 5;
 
 const Curtain = forwardRef(function Curtain(props, ref) {
   return (
-    <div ref={ref} data-curtain="idle" aria-hidden="true" className="curtain fixed inset-0 z-70 pointer-events-none nojs:hidden">
+    <div ref={ref} data-curtain="intro" aria-hidden="true" className="curtain fixed inset-0 z-70 pointer-events-none nojs:hidden">
       {Array.from({ length: PANELS }, (_, i) => (
         <div key={i} data-panel={i} className="curtain-panel">
           <div data-drop className="absolute inset-0">

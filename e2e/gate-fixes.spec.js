@@ -28,7 +28,7 @@ test.describe("the Lens viewer", () => {
   test("closing on a photo whose tile is off-screen leaves the page where it was", async ({ page }, info) => {
     desktopOnly(info);
     await page.goto("/");
-    await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+    await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
     // Scroll frame 01's tile just above the screen, open a tile still on
     // screen, then step round to frame 01.
     await expect(frame(page, "01")).toHaveAttribute("data-develop", /.+/);
@@ -65,7 +65,7 @@ test.describe("the electric cards' buttons", () => {
     test(`${path}: both buttons change colour on hover and on keyboard focus`, async ({ page }, info) => {
       desktopOnly(info);
       await page.goto(path);
-      await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+      await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
       const buttons = page.locator(`${card} [data-electric-card] a.rounded-full`);
       await expect(buttons).toHaveCount(2);
       await buttons.first().scrollIntoViewIfNeeded();
@@ -89,7 +89,7 @@ test.describe("the electric cards' buttons", () => {
 test("the FAQ questions keep the custom cursor (no pointer finger)", async ({ page }, info) => {
   desktopOnly(info);
   await page.goto("/services");
-  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   await page.waitForFunction(() => document.documentElement.classList.contains("js-cursor"));
   const question = page.locator("#faq summary").first();
   await question.scrollIntoViewIfNeeded();
@@ -102,7 +102,7 @@ test("the FAQ questions keep the custom cursor (no pointer finger)", async ({ pa
 test("privacy: the Google links' arrows nudge up and right on hover", async ({ page }, info) => {
   desktopOnly(info);
   await page.goto("/privacy");
-  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   for (const link of await page.locator("main a[target='_blank']").all()) {
     const arrow = link.locator("[data-arrow]");
     await expect(arrow).toHaveText("↗");
@@ -120,7 +120,7 @@ test("the hero lede is a little wider, and never runs into the portrait", async 
   for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768]]) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
-    await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+    await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
     const { lede, portrait } = await page.evaluate(() => ({
       lede: document.querySelector("#top p").getBoundingClientRect().toJSON(),
       portrait: document.querySelector("[data-portrait]").getBoundingClientRect().toJSON(),
@@ -135,7 +135,7 @@ const mobileOnly = (info) => test.skip(info.project.name !== "mobile", "phone");
 test("phones: the viewer's arrows sit at the bottom of the screen, clear of the photo", async ({ page }, info) => {
   mobileOnly(info);
   await page.goto("/");
-  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   const tile = page.locator('[data-frame="03"]');
   await expect(tile).toHaveAttribute("data-develop", /.+/);
   await tile.scrollIntoViewIfNeeded();
@@ -165,7 +165,7 @@ test("phones: the viewer's arrows sit at the bottom of the screen, clear of the 
 test("desktop: the viewer's arrows stay beside the photo", async ({ page }, info) => {
   desktopOnly(info);
   await page.goto("/");
-  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   const tile = page.locator('[data-frame="03"]');
   await expect(tile).toHaveAttribute("data-develop", /.+/);
   await tile.scrollIntoViewIfNeeded();
@@ -182,7 +182,7 @@ test("desktop: the viewer's arrows stay beside the photo", async ({ page }, info
 test("phones: while the year strip is pinned, nothing shows through behind the header", async ({ page }, info) => {
   mobileOnly(info);
   await page.goto("/");
-  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   const strip = page.locator("[data-counter=strip]");
   // Before it pins (the Timeline's top mid-screen): no cover above it.
   await page.locator("#timeline").evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight / 2));
@@ -206,7 +206,7 @@ test("phones: while the year strip is pinned, nothing shows through behind the h
 
 test("the viewer's caption is two lines: the frame and month, then the title", async ({ page }, info) => {
   await page.goto("/");
-  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   const tile = page.locator('[data-frame="03"]');
   await expect(tile).toHaveAttribute("data-develop", /.+/);
   await tile.scrollIntoViewIfNeeded();

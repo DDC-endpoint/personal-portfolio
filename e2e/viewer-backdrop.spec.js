@@ -18,7 +18,7 @@ const measure = () => ({
 
 async function openViewer(page) {
   await page.goto("/");
-  await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   await expect(frame(page, "03")).toHaveAttribute("data-develop", /.+/);
   await frame(page, "03").scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);

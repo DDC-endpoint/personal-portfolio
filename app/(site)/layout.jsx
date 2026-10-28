@@ -50,8 +50,10 @@ export const metadata = {
 
 // Runs before first paint so the saved/system theme is applied with no flash.
 // Also stamps `js` on <html> — CSS uses it to hide JS-dependent chrome (the
-// IntroStamp curtain) from no-JS visitors before anything ever renders.
-const themeScript = `(function(){document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`;
+// first-load curtain) from no-JS visitors before anything ever renders — and
+// `ddc-seen` once this tab has had its full loader (lib/loader.js), so a
+// reload's first paint is the short loader.
+const themeScript = `(function(){document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}try{if(sessionStorage.getItem('ddc-loaded'))document.documentElement.classList.add('ddc-seen');}catch(e){}})();`;
 
 export default function RootLayout({ children }) {
   return (

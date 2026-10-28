@@ -111,7 +111,7 @@ test.describe("snippet hygiene and alt text", () => {
   test("decorative text can't become a snippet", async ({ page }) => {
     await page.goto("/");
     // the scrambled curtain, the skeletons' decorative text, the year counter
-    await expect(page.locator(".intro-stamp")).toHaveAttribute("data-nosnippet", "");
+    await expect(page.locator(".morph-loader")).toHaveAttribute("data-nosnippet", "");
     await expect(page.locator('[data-card="0"] [data-nosnippet]')).toHaveCount(1);
     for (const c of await page.locator("[data-counter]").all()) await expect(c).toHaveAttribute("data-nosnippet", "");
     // /portfolio's upcoming cards: "loading…"

@@ -53,10 +53,10 @@ export default function Services() {
             nav carries the pages (Phase 6). */}
         <div className="hidden md:flex absolute top-28 right-6 md:right-10 flex-col items-end gap-4 z-10">
           <motion.div style={{ opacity: metaOpacity }} className="section-label text-right">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.8 }}>
+            <EagerReveal delay={0.5} y={0} duration={0.8}>
               <div>(002)</div>
               <div className="mt-1 text-ink-faint">Services / Hire</div>
-            </motion.div>
+            </EagerReveal>
           </motion.div>
         </div>
 

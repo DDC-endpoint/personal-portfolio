@@ -6,7 +6,7 @@ import {
   LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE,
 } from "@/lib/portrait";
 import { noiseChar } from "@/lib/decode";
-import { shouldPlayIntro, INTRO_OFFSET } from "@/lib/motion";
+import { shouldPlayIntro, onReveal } from "@/lib/motion";
 import { ring, customCursorShown } from "@/lib/cursor";
 
 // The V3 hero: Damian's studio headshot redrawn as an electric-blue ASCII
@@ -18,12 +18,13 @@ import { ring, customCursorShown } from "@/lib/cursor";
 // The loop pauses while the portrait is off-screen or the tab is hidden.
 // Reduced motion: drawn once, no loop.
 //
-// On every load it builds itself as the IntroStamp curtain lifts (the same
-// memoized shouldPlayIntro() decision, starting at INTRO_OFFSET): a 2.4 s
+// On every arrival on Home (Phase 6: first load, reload or page change) it
+// builds itself as the curtain clears (lib/motion.js → onReveal): a 2.4 s
 // wave spreads from the face — skeleton blocks, then a noise front, then the
-// final glyphs. If image + font arrive later than 2.5 s into the load, the
-// wave is skipped: content that has been on screen for seconds must not blink
-// away.
+// final glyphs. If image + font arrive later than 2.5 s into the arrival,
+// the wave is skipped and the finished portrait shows instead. Once it's
+// ready to draw it marks itself data-prepared, which the first-load loader
+// waits for (components/MorphLoader.jsx).
 //
 // Lens: over the portrait the site cursor's ring grows into a lens that shows
 // the full-colour photo (same fade mask), with the glyphs under it cleared.
@@ -32,7 +33,7 @@ import { ring, customCursorShown } from "@/lib/cursor";
 
 const SRC = "/hero/portrait.webp";
 const SUPERSAMPLE = 3;
-const LATE_MS = 2500; // the site-wide slow-load cut-off (see EagerReveal)
+const LATE_MS = 2500; // an image or font later than this into the arrival skips the wave
 
 const rgbVar = (styles, name) => styles.getPropertyValue(name).trim().split(/\s+/).map(Number);
 const css = ([r, g, b]) => `rgb(${r},${g},${b})`;
@@ -376,6 +377,11 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
 
   return {
     ready,
+    // The curtain has cleared: the wave starts now.
+    startWave() {
+      waveStart = performance.now();
+      sync();
+    },
     destroy() {
       destroyed = true;
       photo.close();
@@ -400,9 +406,9 @@ export default function HeroPortrait({ className = "" }) {
   useEffect(() => {
     let portrait = null;
     let cancelled = false;
-    // The curtain (IntroStamp, mounted alongside) lifts INTRO_OFFSET after
-    // hydration — the wave starts then, together with the hero's float-in.
-    const liftAt = performance.now() + INTRO_OFFSET * 1000;
+    // The wave waits for the curtain to clear, as the hero's entrance does.
+    const arrivedAt = performance.now();
+    let offReveal = () => {};
     // next/font hashes the family name, so read the real one from its variable.
     const family = getComputedStyle(document.documentElement).getPropertyValue("--font-jetbrains-mono").trim() || "monospace";
     // Fetched as a blob so every decode and resize runs in createImageBitmap,
@@ -424,7 +430,7 @@ export default function HeroPortrait({ className = "" }) {
         // Forced colours still gets the curtain, but its portrait is static.
         const still = window.matchMedia("(forced-colors: active)").matches;
         const play = seen && !still && shouldPlayIntro();
-        const wave = play && performance.now() <= LATE_MS;
+        const wave = play && performance.now() - arrivedAt <= LATE_MS;
         portrait = createPortrait({
           wrapper: wrapperRef.current,
           canvas: canvasRef.current,
@@ -433,19 +439,27 @@ export default function HeroPortrait({ className = "" }) {
           family,
           onLayout: (cols, rows) => setGrid(`${cols} × ${rows}`),
           wave,
-          waveAt: liftAt,
+          waveAt: Infinity,
           onWaveStart: () => setState("wave"),
           onWaveEnd: () => setState("static"),
         });
         await portrait.ready;
-        if (cancelled || wave) return; // the wave reports its own states
+        if (cancelled) return;
+        wrapperRef.current.dataset.prepared = "";
+        if (wave) {
+          offReveal = onReveal(() => portrait.startWave());
+          return; // the wave reports its own states
+        }
         setState(play ? "skipped" : "static");
       })
       .catch(() => {
-        if (!cancelled) setState("error");
+        if (cancelled) return;
+        wrapperRef.current.dataset.prepared = "";
+        setState("error");
       });
     return () => {
       cancelled = true;
+      offReveal();
       portrait?.destroy();
     };
   }, []);

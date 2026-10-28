@@ -1,23 +1,25 @@
 "use client";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import EagerReveal from "./EagerReveal";
 import HeroPortrait from "./HeroPortrait";
-import { EASE, INTRO_OFFSET, isSoftNavigation, shouldPlayIntro } from "@/lib/motion";
+import { EASE, onReveal } from "@/lib/motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
-// Arrived by a page transition (Phase 5): every entrance starts at its final
-// state, since the sweep is the only entrance. Hero only mounts client-side
-// in that case, so reading the flag in render can't break hydration.
-const enter = (from) => (isSoftNavigation() ? false : from);
+// The hero's entrance plays on every arrival on Home (Phase 6: first load,
+// reload or page change), starting as the curtain clears (lib/motion.js →
+// onReveal). Until then the name waits below its line mask.
+const Shown = createContext(false);
 
 function Word({ children, delay = 0 }) {
+  const shown = useContext(Shown);
   // No overflow-hidden here — clipping is handled at the line-div level so
   // italic glyph overhang is never cut on either side.
   return (
     <motion.span
-      initial={enter({ y: "110%" })}
-      animate={{ y: 0 }}
-      transition={{ duration: 1, ease: EASE, delay }}
+      initial={{ y: "110%" }}
+      animate={shown ? { y: 0 } : { y: "110%" }}
+      transition={shown ? { duration: 1, ease: EASE, delay } : { duration: 0 }}
       className="inline-block"
     >
       {children}
@@ -25,13 +27,21 @@ function Word({ children, delay = 0 }) {
   );
 }
 
+function Fade({ children, delay }) {
+  const shown = useContext(Shown);
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: shown ? 1 : 0 }} transition={shown ? { delay, duration: 0.8 } : { duration: 0 }}>
+      {children}
+    </motion.div>
+  );
+}
+
 export default function Hero() {
   const ref = useRef(null);
-  // On every load the whole entrance chains after the intro stamp (Damian,
-  // V3: curtain on every reload). The memoized shouldPlayIntro() guarantees
-  // this always matches IntroStamp's — and HeroPortrait's — decision.
-  const t0 = shouldPlayIntro() ? INTRO_OFFSET : 0;
-  const at = (s) => t0 + s;
+  const reduced = useReducedMotion();
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => onReveal(() => setRevealed(true)), []);
+  const shown = revealed || reduced;
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
@@ -39,6 +49,7 @@ export default function Hero() {
   const metaOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
 
   return (
+    <Shown.Provider value={shown}>
     <section id="top" ref={ref} className="relative min-h-screen w-full overflow-hidden pt-44 md:pt-52">
       {/* atmospheric blue blobs — dimmed in dark mode so the sky orb behind
           the portrait doesn't fight the blue glyphs */}
@@ -50,17 +61,17 @@ export default function Hero() {
         style={{ opacity: metaOpacity }}
         className="absolute top-28 left-6 md:left-10 section-label"
       >
-        <motion.div initial={enter({ opacity: 0 })} animate={{ opacity: 1 }} transition={{ delay: at(1.15), duration: 0.8 }}>
+        <Fade delay={1.15}>
           <div>N 6.9271° / E 79.8612°</div>
           <div className="mt-1 text-ink-faint">Colombo · Sri Lanka</div>
-        </motion.div>
+        </Fade>
       </motion.div>
       <div className="absolute top-28 right-6 md:right-10 flex flex-col items-end gap-4 z-10">
         <motion.div style={{ opacity: metaOpacity }} className="section-label text-right">
-          <motion.div initial={enter({ opacity: 0 })} animate={{ opacity: 1 }} transition={{ delay: at(1.15), duration: 0.8 }}>
+          <Fade delay={1.15}>
             <div>(001)</div>
             <div className="mt-1 text-ink-faint">Index / Landing</div>
-          </motion.div>
+          </Fade>
         </motion.div>
       </div>
 
@@ -73,7 +84,7 @@ export default function Hero() {
             it painted in the SSR HTML (early LCP) and replays the entrance
             after hydration, invisible behind the intro curtain. */}
         <EagerReveal
-          delay={at(0.1)}
+          delay={0.1}
           y={8}
           duration={0.6}
           className="mb-4 md:mb-6 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-soft"
@@ -84,13 +95,13 @@ export default function Hero() {
         <h1 className="font-display tracking-tightest leading-[0.82] text-ink text-[17vw] md:text-[13.5vw] uppercase">
           {/* Each line rises as one unit from behind its line-level mask. */}
           <div className="overflow-hidden pb-[0.04em] flex flex-wrap items-end gap-x-[0.04em]">
-            <Word delay={at(0.25)}>Damian</Word>
+            <Word delay={0.25}>Damian</Word>
           </div>
           <div className="overflow-hidden pb-[0.04em] flex flex-wrap items-end gap-x-[0.04em] -mt-2 md:-mt-4">
-            <Word delay={at(0.4)}>
+            <Word delay={0.4}>
               <span className="italic font-display text-electric">De&nbsp;</span>
             </Word>
-            <Word delay={at(0.4)}>Cruz.</Word>
+            <Word delay={0.4}>Cruz.</Word>
           </div>
         </h1>
       </motion.div>
@@ -122,5 +133,6 @@ export default function Hero() {
 
       </motion.div>
     </section>
+    </Shown.Provider>
   );
 }
