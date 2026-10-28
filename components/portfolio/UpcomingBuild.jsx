@@ -19,7 +19,7 @@ export default function UpcomingBuild() {
           <i key={k} className={`${bar} h-full min-h-[26px]`} style={{ "--k": k }} />
         ))}
       </div>
-      <span data-nosnippet="" className="absolute bottom-[8%] left-[8%] font-mono text-[10px] uppercase tracking-[0.2em] text-ink-faint">
+      <span data-nosnippet="" className="absolute bottom-[8%] left-[8%] font-mono text-[11px] uppercase tracking-[0.2em] text-ink-faint">
         loading… 2026 →
       </span>
     </div>

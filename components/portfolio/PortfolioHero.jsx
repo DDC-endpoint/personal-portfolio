@@ -25,7 +25,9 @@ export default function PortfolioHero({ filter, onFilter, view, onView }) {
           All <em className="text-electric">work.</em>
         </EagerReveal>
       </h1>
-      <EagerReveal as="p" delay={0.4} y={8} duration={0.8} className="max-w-[46ch] text-[17px] leading-relaxed text-ink-soft">
+      {/* The LCP element: painted from the first frame, never re-hidden
+          (EagerReveal's replay={false}, as Home's lede). */}
+      <EagerReveal as="p" replay={false} className="max-w-[46ch] text-[17px] leading-relaxed text-ink-soft">
         Client sites, concepts and my own tools, newest first.
       </EagerReveal>
       <EagerReveal delay={0.55} y={8} duration={0.8} className="hidden flex-wrap items-center justify-between gap-4 pt-2 js:flex">

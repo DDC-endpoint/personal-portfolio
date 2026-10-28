@@ -41,7 +41,8 @@ import { getLenis } from "@/lib/lenis";
 
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
 const PORTRAIT_WAIT_MS = 400; // the reveal waits this long for Home's portrait
-const LATE_MS = 2500; // hydration later than this: the page is readable already
+const LATE_MS = 2500; // hydration later than this: the loader's time is up
+const FAILSAFE_MS = 5000; // the CSS failsafe has started hiding the curtain (globals.css)
 
 // The destination's name on the curtain's middle panel.
 const nameOf = (path) => NAV_LINKS.find((l) => l.href === path)?.label ?? "";
@@ -88,13 +89,12 @@ function land(top) {
   main.focus({ preventScroll: true });
 }
 
-// Home's portrait leaves "loading" once it's drawn; don't uncover an empty
-// stage, but never wait long for it.
+// Home's portrait marks itself data-prepared once it can draw (its wave then
+// waits for the lift); don't uncover an empty stage, but never wait long.
 async function portraitDrawn() {
   const until = performance.now() + PORTRAIT_WAIT_MS;
   while (performance.now() < until) {
-    const state = document.querySelector("[data-portrait]")?.getAttribute("data-state");
-    if (state !== "loading") return;
+    if (document.querySelector("[data-portrait][data-prepared]")) return;
     await frames(1);
   }
 }
@@ -113,8 +113,9 @@ export default function PageTransitions() {
   // The first-load intro: the loader is in the server HTML, on the covering
   // curtain (data-curtain="intro"); it unmounts once the curtain has lifted.
   const [intro, setIntro] = useState(true);
-  // loaded: the loader is done; done: the lift is too (the intro is over).
-  const introRef = useRef({ loaded: false, done: false, engine: null, pending: null });
+  // loaded: the loader is done; lifting: the lift has started (once only);
+  // done: the intro is over.
+  const introRef = useRef({ loaded: false, lifting: false, done: false, engine: null, pending: null });
   const goRef = useRef(null); // the controller's go(), for a click made during the intro
 
   // A failed load isn't kept: the next call tries again.
@@ -162,7 +163,8 @@ export default function PageTransitions() {
   // intro opens now instead, under the same cover.
   const lift = () => {
     const state = introRef.current;
-    if (!state.loaded || !state.engine || state.done) return;
+    if (!state.loaded || !state.engine || state.done || state.lifting) return;
+    state.lifting = true;
     const next = state.pending;
     state.pending = null;
     if (next) {
@@ -195,6 +197,9 @@ export default function PageTransitions() {
     loadCurtain()
       .then((engine) => {
         if (!live) return;
+        // The CSS failsafe has already uncovered the page: never cover a
+        // readable page again.
+        if (performance.now() > FAILSAFE_MS) return skipIntro();
         engine.coverNow();
         introRef.current.engine = engine;
         lift();
@@ -291,6 +296,15 @@ export default function PageTransitions() {
     // where the visitor left it. During a transition, this calls it off.
     async function onPop() {
       const inFlight = busy.current;
+      // Back during the first-load intro: the intro is over, so the loader
+      // can't lift the curtain again later.
+      const intro = introRef.current;
+      if (!intro.done) {
+        intro.done = intro.lifting = true;
+        intro.pending = null;
+        delete curtainRef.current?.dataset.intro;
+        setIntro(false);
+      }
       positions.current.set(current, window.scrollY); // the page still on screen
       current = here();
       const path = pageOf(window.location.pathname);

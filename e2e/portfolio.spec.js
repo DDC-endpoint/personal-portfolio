@@ -27,6 +27,33 @@ const chip = (page, name) => page.getByRole("group", { name: "Filter the work" }
 const viewButton = (page, name) => page.getByRole("group", { name: "View" }).getByRole("button", { name });
 const ready = (page) => page.waitForFunction(() => document.querySelector("[data-work]")?.dataset.ready === "true");
 
+test("the first row lands only as the curtain lifts", async ({ page }) => {
+  await page.addInitScript(() => {
+    new MutationObserver(() => {
+      const c = document.querySelector("[data-curtain]");
+      if (!c || window.__atLift !== undefined) return;
+      if (c.dataset.curtain === "covered") window.__covered = [...document.querySelectorAll("[data-work-card]")].slice(0, 3).map((el) => el.hasAttribute("data-in"));
+      if (c.dataset.curtain === "lifting") window.__atLift = true;
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-curtain"] });
+  });
+  await page.goto("/portfolio");
+  await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
+  expect(await page.evaluate(() => window.__covered)).toEqual([false, false, false]);
+  await expect(cards(page).first()).toHaveAttribute("data-in", "", { timeout: 4000 });
+});
+
+test("rows further down still rise when reached, however long the visitor waits", async ({ page }) => {
+  await page.goto("/portfolio");
+  await ready(page);
+  await page.waitForTimeout(6000); // past the pre-hydration failsafe
+  const last = cardOf(page, "ai-studio");
+  await expect(last).not.toHaveAttribute("data-in", "");
+  expect(await last.evaluate((el) => getComputedStyle(el).opacity)).toBe("0");
+  await last.scrollIntoViewIfNeeded();
+  await expect(last).toHaveAttribute("data-in", "", { timeout: 4000 });
+  await expect(last).toHaveCSS("opacity", "1", { timeout: 4000 });
+});
+
 test("hero: the count, the title and the lede", async ({ page }) => {
   await page.goto("/portfolio");
   await expect(page.locator("[data-work-count]")).toHaveText("06 live · 02 on the way");

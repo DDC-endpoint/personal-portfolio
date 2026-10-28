@@ -4,7 +4,7 @@ import { trackErrors } from "./helpers";
 // The page transition (docs/v3/plan-phase-5.md; the curtain from Phase 6).
 // Every assertion waits on data-curtain / data-state, never on a fixed sleep.
 
-const veil = (page) => page.locator("[data-curtain]");
+const curtain = (page) => page.locator("[data-curtain]");
 const panels = (page) => page.locator("[data-curtain] [data-panel]");
 const portrait = (page) => page.locator("[data-portrait]");
 
@@ -12,11 +12,11 @@ const portrait = (page) => page.locator("[data-portrait]");
 // whether the curtain was ever in the DOM after the transition started.
 async function record(page) {
   await page.addInitScript(() => {
-    window.__veil = [];
+    window.__curtain = [];
     window.__portrait = [];
     const log = () => {
       const v = document.querySelector("[data-curtain]")?.getAttribute("data-curtain");
-      if (v && window.__veil.at(-1) !== v) window.__veil.push(v);
+      if (v && window.__curtain.at(-1) !== v) window.__curtain.push(v);
       const p = document.querySelector("[data-portrait]")?.getAttribute("data-state");
       if (p && window.__portrait.at(-1) !== p) window.__portrait.push(p);
       if (window.__started && document.querySelector(".morph-loader")) window.__curtainAfter = true;
@@ -31,7 +31,7 @@ async function settle(page) {
   await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
   await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
   await expect(page.locator("[data-curtain]")).toHaveAttribute("data-curtain", "idle", { timeout: 8000 });
-  await page.evaluate(() => { window.__veil = ["idle"]; });
+  await page.evaluate(() => { window.__curtain = ["idle"]; });
 }
 
 // Leaves a marker on window: if it survives, the page change was client-side.
@@ -55,7 +55,7 @@ const addLink = (page, href) =>
     document.querySelector("main").prepend(a);
   }, href);
 
-const idle = (page) => expect(veil(page)).toHaveAttribute("data-curtain", "idle", { timeout: 8000 });
+const idle = (page) => expect(curtain(page)).toHaveAttribute("data-curtain", "idle", { timeout: 8000 });
 
 test.describe("arriving on Home", () => {
   test("from /services: the name rises and the portrait waves after the lift (Phase 6)", async ({ page }) => {
@@ -96,9 +96,9 @@ test.describe("the curtain at rest", () => {
     const html = await (await request.get("/services")).text();
     expect(html).toMatch(/<div[^>]*data-curtain="intro"/);
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-curtain", "idle", { timeout: 9000 });
-    await expect(veil(page)).toHaveAttribute("aria-hidden", "true");
-    expect(await veil(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "idle", { timeout: 9000 });
+    await expect(curtain(page)).toHaveAttribute("aria-hidden", "true");
+    expect(await curtain(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   });
 
 
@@ -106,8 +106,8 @@ test.describe("the curtain at rest", () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto("/services");
-    await expect(veil(page)).toHaveCount(1);
-    await expect(veil(page)).toBeHidden();
+    await expect(curtain(page)).toHaveCount(1);
+    await expect(curtain(page)).toBeHidden();
     await context.close();
   });
 });
@@ -178,10 +178,10 @@ test.describe("the curtain", () => {
       expect(cover["1"]).toBeLessThan(cover["0"]);
       expect(cover["3"]).toBeLessThan(cover["4"]);
     }
-    await expect(veil(page)).toHaveAttribute("data-curtain", /covered|lifting/, { timeout: 4000 });
+    await expect(curtain(page)).toHaveAttribute("data-curtain", /covered|lifting/, { timeout: 4000 });
     const at = await page.evaluate(() => window.__atCover);
     expect(at).toEqual({ url: "/services", label: "Portfolio" });
-    await expect(veil(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
     const lift = await startOrder(page, "lifting");
     expect(lift["2"]).toBeLessThan(lift["1"]);
     expect(lift["2"]).toBeLessThan(lift["3"]);
@@ -228,13 +228,13 @@ const footerLink = (page, name) => page.getByRole("navigation", { name: "Footer"
 async function transitionTo(page, click, url) {
   await mark(page);
   await page.evaluate(() => {
-    window.__veil = [document.querySelector("[data-curtain]").dataset.curtain];
+    window.__curtain = [document.querySelector("[data-curtain]").dataset.curtain];
     window.__t0 = performance.now();
   });
   await click();
   await expect(page).toHaveURL(url);
   await idle(page);
-  expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covering", "covered", "lifting", "idle"]);
+  expect(await page.evaluate(() => window.__curtain)).toEqual(["idle", "covering", "covered", "lifting", "idle"]);
   expect(await sameDocument(page)).toBe(true);
   expect(await page.evaluate(() => document.activeElement === document.querySelector("main"))).toBe(true);
   return page.evaluate(() => window.__idleAt - window.__t0);
@@ -279,6 +279,25 @@ test.describe("transitions", () => {
       expect(total).toBeGreaterThan(1900);
       expect(errors).toEqual([]);
     });
+  });
+
+  // Home's portrait is prepared well before the lift; the curtain mustn't
+  // wait for its wave (which itself waits for the lift). Timed from the new
+  // page's arrival, so the dev server's fetch doesn't count.
+  test("a change to Home doesn't wait on the portrait's wave", async ({ page }) => {
+    await page.goto("/services");
+    await settle(page);
+    await page.evaluate(() => {
+      window.__coveredAt = window.__revealingAt = window.__arrivedAt = undefined;
+      const watch = () => {
+        if (location.pathname === "/" && document.querySelector("[data-portrait]")) window.__arrivedAt ??= performance.now();
+        if (window.__arrivedAt === undefined) requestAnimationFrame(watch);
+      };
+      requestAnimationFrame(watch);
+    });
+    await transitionTo(page, () => page.evaluate(() => document.querySelector('header nav a[href="/"]').click()), /\/$/);
+    const wait = await page.evaluate(() => window.__revealingAt - window.__arrivedAt);
+    expect(wait).toBeLessThan(330); // was the full 400 ms portrait wait, plus frames
   });
 
   test("Home → /services from the mobile menu", async ({ page }, info) => {
@@ -331,7 +350,7 @@ test.describe("transitions", () => {
     await (await popup).close();
     await link.click({ button: "middle" });
     await expect(page).toHaveURL(/\/$/);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+    expect(await page.evaluate(() => window.__curtain)).toEqual(["idle"]);
   });
 
   test("a new-tab link is left to the browser", async ({ page, context }) => {
@@ -342,16 +361,16 @@ test.describe("transitions", () => {
     await page.getByRole("link", { name: /Google’s privacy policy/ }).click();
     await (await popup).close();
     await expect(page).toHaveURL(/\/privacy$/);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+    expect(await page.evaluate(() => window.__curtain)).toEqual(["idle"]);
   });
 
-  test("a second click while the veil runs does nothing", async ({ page }) => {
+  test("a second click while the curtain runs does nothing", async ({ page }) => {
     await page.goto("/");
     await settle(page);
     const before = await page.evaluate(() => history.length);
     await mark(page);
     await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
-    await expect(veil(page)).not.toHaveAttribute("data-curtain", "idle");
+    await expect(curtain(page)).not.toHaveAttribute("data-curtain", "idle");
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
     await idle(page);
     await expect(page).toHaveURL(/\/services$/);
@@ -382,11 +401,11 @@ test.describe("transitions", () => {
     await mark(page);
     const home = footerLink(page, "Home");
     await home.scrollIntoViewIfNeeded();
-    await page.evaluate(() => { window.__veil = ["idle"]; });
+    await page.evaluate(() => { window.__curtain = ["idle"]; });
     await home.click();
     await expect.poll(() => page.evaluate(() => scrollY), { timeout: 5000 }).toBe(0);
     await expect(page).toHaveURL(/\/$/);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+    expect(await page.evaluate(() => window.__curtain)).toEqual(["idle"]);
     expect(await sameDocument(page)).toBe(true);
   });
 });
@@ -405,7 +424,7 @@ test.describe("first load", () => {
         await load();
         await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
         await idle(page);
-        expect(await page.evaluate(() => window.__veil)).toEqual(["intro", "covered", "lifting", "idle"]);
+        expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "covered", "lifting", "idle"]);
       }
     });
   }
@@ -430,18 +449,18 @@ test.describe("first load", () => {
   test("a link clicked during the intro opens once the loader is done, under the same cover", async ({ page }) => {
     await record(page);
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 6000 });
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 6000 });
     await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["intro", "covered", "lifting", "idle"]);
+    expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "covered", "lifting", "idle"]);
     expect(await sameDocument(page)).toBe(true);
     expect(await page.evaluate(() => scrollY)).toBe(0);
   });
 
   test("a link clicked during the intro's reveal opens right after it", async ({ page }) => {
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
     await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
     await idle(page);
@@ -450,8 +469,8 @@ test.describe("first load", () => {
 
   test("the intro lets the pointer through, as the curtain did", async ({ page }) => {
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 6000 });
-    expect(await veil(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 6000 });
+    expect(await curtain(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   });
 
   for (const [name, media] of [["reduced motion", { reducedMotion: "reduce" }], ["forced colours", { forcedColors: "active" }]]) {
@@ -459,10 +478,10 @@ test.describe("first load", () => {
       await page.emulateMedia(media);
       await record(page);
       await page.goto("/services");
-      await expect(veil(page)).toBeHidden();
+      await expect(curtain(page)).toBeHidden();
       await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
       await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
-      expect(await page.evaluate(() => window.__veil)).toEqual(["intro", "idle"]);
+      expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "idle"]);
     });
   }
 });
@@ -483,20 +502,20 @@ test.describe("back and forward", () => {
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
     await mark(page);
-    await page.evaluate(() => { window.__veil = ["idle"]; });
+    await page.evaluate(() => { window.__curtain = ["idle"]; });
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "lifting", "idle"]);
+    expect(await page.evaluate(() => window.__curtain)).toEqual(["idle", "covered", "lifting", "idle"]);
     expect(await sameDocument(page)).toBe(true);
     expect(Math.abs((await page.evaluate(() => scrollY)) - y)).toBeLessThan(80);
     await expect(page.locator(".morph-loader")).toHaveCount(0);
 
-    await page.evaluate(() => { window.__veil = ["idle"]; });
+    await page.evaluate(() => { window.__curtain = ["idle"]; });
     await page.goForward();
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "lifting", "idle"]);
+    expect(await page.evaluate(() => window.__curtain)).toEqual(["idle", "covered", "lifting", "idle"]);
     expect(await page.evaluate(() => scrollY)).toBe(0);
     expect(await sameDocument(page)).toBe(true);
     expect(errors).toEqual([]);
@@ -522,7 +541,7 @@ test.describe("details", () => {
   });
 
   for (const [name, media] of [["reduced motion", { reducedMotion: "reduce" }], ["forced colours", { forcedColors: "active" }]]) {
-    test(`${name}: client-side and instant, no veil`, async ({ page }) => {
+    test(`${name}: client-side and instant, no curtain`, async ({ page }) => {
       await page.emulateMedia(media);
       await record(page);
       await page.goto("/");
@@ -530,12 +549,12 @@ test.describe("details", () => {
       await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
       await page.evaluate(() => window.scrollTo(0, 400));
       await mark(page);
-      await page.evaluate(() => { window.__veil = ["idle"]; });
+      await page.evaluate(() => { window.__curtain = ["idle"]; });
       await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
       await expect(page).toHaveURL(/\/services$/);
       await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
       expect(await sameDocument(page)).toBe(true);
-      expect(await page.evaluate(() => window.__veil)).toEqual(["idle"]);
+      expect(await page.evaluate(() => window.__curtain)).toEqual(["idle"]);
       expect(await page.evaluate(() => document.activeElement === document.querySelector("main"))).toBe(true);
     });
   }
@@ -558,8 +577,8 @@ test.describe("details", () => {
 
 // ---- Review fixes ------------------------------------------------------------
 
-// Aborts (or delays) the veil's code chunk: the only one naming its "lifting" state.
-async function blockVeil(page, { delay } = {}) {
+// Aborts (or delays) the curtain's code chunk: the only one naming its "lifting" state.
+async function blockCurtain(page, { delay } = {}) {
   await page.route("**/_next/static/chunks/**", async (route) => {
     const res = await route.fetch();
     const body = await res.text();
@@ -571,8 +590,8 @@ async function blockVeil(page, { delay } = {}) {
 }
 
 test.describe("robustness", () => {
-  test("if the veil's code can't load, page links still work (the browser loads them)", async ({ page }) => {
-    await blockVeil(page);
+  test("if the curtain's code can't load, page links still work (the browser loads them)", async ({ page }) => {
+    await blockCurtain(page);
     await page.goto("/");
     await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
     await mark(page);
@@ -584,7 +603,7 @@ test.describe("robustness", () => {
   // The next page hasn't committed yet, so /services is still the current
   // history entry and Back goes to the one before it (Home), as Back during a
   // normal page load would.
-  test("Back while the veil covers: reveals the page the visitor went back to, in the same document", async ({ page }) => {
+  test("Back while the curtain covers: reveals the page the visitor went back to, in the same document", async ({ page }) => {
     await record(page);
     await page.goto("/");
     await settle(page);
@@ -592,14 +611,14 @@ test.describe("robustness", () => {
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
     await mark(page);
-    // Hold the next page back so the veil is still covering when Back comes.
+    // Hold the next page back so the curtain is still covering when Back comes.
     await page.route(/\/privacy/, async (route) => {
       if (!route.request().headers()["rsc"]) return route.continue();
       await new Promise((r) => setTimeout(r, 1500));
       return route.continue().catch(() => {});
     });
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
-    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
     const t0 = Date.now();
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
@@ -619,7 +638,7 @@ test.describe("robustness", () => {
     await idle(page);
     await mark(page);
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
-    await expect(veil(page)).toHaveAttribute("data-curtain", "covering");
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "covering");
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await idle(page);
@@ -628,11 +647,11 @@ test.describe("robustness", () => {
     expect(await sameDocument(page)).toBe(true);
   });
 
-  test("the running veil takes a real click, so nothing lands on the page underneath", async ({ page }) => {
+  test("the running curtain takes a real click, so nothing lands on the page underneath", async ({ page }) => {
     await page.goto("/");
     await settle(page);
     await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
-    await expect(veil(page)).toHaveAttribute("data-curtain", "covering");
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "covering");
     const { width, height } = page.viewportSize();
     const [x, y] = [width / 2, height / 2];
     const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.hasAttribute("data-curtain"), [x, y]);
@@ -645,7 +664,7 @@ test.describe("robustness", () => {
   test("idle, the panels are parked below the screen and hidden", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
-    expect(await veil(page).evaluate((el) => getComputedStyle(el).visibility)).toBe("hidden");
+    expect(await curtain(page).evaluate((el) => getComputedStyle(el).visibility)).toBe("hidden");
     const tops = await panels(page).evaluateAll((els) =>
       els.filter((el) => getComputedStyle(el).display !== "none").map((el) => el.getBoundingClientRect().top)
     );
@@ -663,7 +682,7 @@ test.describe("robustness", () => {
     await page.goto("/services");
     await settle(page);
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
-    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
+    await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
     const size = page.viewportSize();
     await page.setViewportSize({ width: size.height, height: size.width });
     const covered = () =>
@@ -689,8 +708,20 @@ test.describe("robustness", () => {
     expect(y).toBe(0);
   });
 
-  test("a very late hydration lifts the curtain at once, with no count", async ({ page }) => {
+  test("a very late hydration: no count, at most one lift, and the page ends uncovered", async ({ page }) => {
     await record(page);
+    // Every change of data-curtain with the value it left: a second lift
+    // shows up as lifting → lifting.
+    await page.addInitScript(() => {
+      window.__left = [];
+      document.addEventListener("DOMContentLoaded", () => {
+        new MutationObserver((ms) => ms.forEach((m) => window.__left.push(m.oldValue))).observe(document.querySelector("[data-curtain]"), {
+          attributes: true,
+          attributeFilter: ["data-curtain"],
+          attributeOldValue: true,
+        });
+      });
+    });
     // Every script arrives after 3 s: hydration lands well past the 2.5 s cut-off.
     await page.route("**/_next/static/chunks/**", async (route) => {
       await new Promise((r) => setTimeout(r, 3000));
@@ -699,22 +730,42 @@ test.describe("robustness", () => {
     await page.goto("/services");
     await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 30000 });
     await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
-    // Covered and lifting can land in one mutation batch: check the ends.
-    const log = await page.evaluate(() => window.__veil);
+    // It lifts at once, or, if the curtain's own code arrives after the CSS
+    // failsafe (each chunk here is 3 s late), it stands down: either way it
+    // ends idle. Let the loader finish too: it must never lift a second time.
+    await page.waitForTimeout(1500);
+    const log = await page.evaluate(() => window.__curtain);
     expect(log[0]).toBe("intro");
-    expect(log).toContain("lifting");
     expect(log.at(-1)).toBe("idle");
+    expect((await page.evaluate(() => window.__left)).filter((v) => v === "lifting").length).toBeLessThanOrEqual(1);
+  });
+
+  test("hydration after the CSS failsafe never covers the readable page again", async ({ page }) => {
+    await record(page);
+    await page.route("**/_next/static/chunks/**", async (route) => {
+      if (route.request().url().endsWith(".css")) return route.continue();
+      await new Promise((r) => setTimeout(r, 6500));
+      return route.continue().catch(() => {});
+    });
+    await page.goto("/services", { waitUntil: "domcontentloaded" });
+    await expect(curtain(page)).toBeHidden({ timeout: 7000 });
+    await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const log = await page.evaluate(() => window.__curtain);
+    expect(log).not.toContain("covered");
+    expect(log.at(-1)).toBe("idle");
+    await expect(page.locator("#top h1")).toBeVisible();
   });
 
   test("a link clicked during the intro, before the curtain's code arrives, opens under the same cover", async ({ page }) => {
     await record(page);
-    await blockVeil(page, { delay: 1500 });
+    await blockCurtain(page, { delay: 1500 });
     await page.goto("/services");
     await expect(page.locator(".morph-loader")).toHaveCount(1);
     await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 10000 });
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["intro", "covered", "lifting", "idle"]);
+    expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "covered", "lifting", "idle"]);
     expect(await sameDocument(page)).toBe(true);
   });
 });

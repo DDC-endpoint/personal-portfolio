@@ -100,7 +100,7 @@ export default function IsoBoard() {
                 {/* the shadow stays on the board, growing as the face lifts */}
                 <span
                   ref={(el) => (shadows.current[i] = el)}
-                  className="absolute inset-0 rounded-[2px] bg-[radial-gradient(circle,rgb(11_31_58/0.35),transparent_72%)] opacity-0 dark:bg-[radial-gradient(circle,rgb(0_0_0/0.6),transparent_72%)]"
+                  className="absolute inset-0 rounded-[2px] bg-[radial-gradient(circle,rgb(var(--c-ink)/0.35),transparent_72%)] opacity-0 dark:bg-[radial-gradient(circle,rgb(0_0_0/0.6),transparent_72%)]"
                 />
                 <div
                   ref={(el) => (faces.current[i] = el)}

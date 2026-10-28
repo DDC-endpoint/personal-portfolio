@@ -6,12 +6,13 @@ import UpcomingBuild from "./UpcomingBuild";
 import { useTyping } from "./useTyping";
 import { usePreview } from "./usePreview";
 import { delayFor, ENTRANCE } from "@/lib/portfolio";
-import { EASE } from "@/lib/motion";
+import { EASE, onReveal } from "@/lib/motion";
 
 // One /portfolio card: a browser frame (status dot, the domain typing in,
 // then the screenshot or, for upcoming work, the build loop) over the
-// number, name, year, tags and blurb. It rises as its row enters, staggered
-// by its column (columnOf, from the grid), and types its address as it lands.
+// number, name, year, tags and blurb. It rises as its row enters (never
+// before the curtain clears), staggered by its column (columnOf, from the
+// grid), and types its address as it lands.
 // The grid decides when it previews (`previewing`); the full-page capture
 // swaps in then, so the page's first load carries only the top shots.
 //
@@ -56,17 +57,23 @@ export default function WorkCard({ project: p, index, view, previewing, columnOf
     const el = rootRef.current;
     if (!el) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setLanded(true);
+    let off = () => {};
     const io = new IntersectionObserver(
       ([e]) => {
         if (!e.isIntersecting) return;
         io.disconnect();
-        setDelay(delayFor(columnOf(el)));
-        setLanded(true);
+        off = onReveal(() => {
+          setDelay(delayFor(columnOf(el)));
+          setLanded(true);
+        });
       },
       { rootMargin: "0px 0px -10% 0px" }
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      off();
+    };
   }, [columnOf]);
 
   // The loops (pulse, build) run only on screen.
@@ -150,7 +157,7 @@ export default function WorkCard({ project: p, index, view, previewing, columnOf
             {live ? "↗" : "…"}
           </span>
         </span>
-        <div data-tags className={`font-mono text-[10px] uppercase tracking-[0.18em] text-ink-faint ${s.tags}`}>
+        <div data-tags className={`font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint ${s.tags}`}>
           {p.tags.map((t) => (
             <span key={t}>{t}</span>
           ))}

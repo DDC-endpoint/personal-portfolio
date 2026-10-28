@@ -68,6 +68,7 @@ export default function Projects() {
   const layoutRef = useRef(null);
   const shown = useRef(null); // the displayed progress, eased after the scroll's
   const lastFrame = useRef(0);
+  const wasOnScreen = useRef(true); // the last frame's: skip writes while it stays off
   const focused = useRef(null);
   const keyboard = useRef(false);
   const raf = useRef(0);
@@ -83,6 +84,9 @@ export default function Projects() {
     const vh = window.innerHeight;
     const t = track.getBoundingClientRect();
     const onScreen = t.bottom > 0 && t.top < vh;
+    const stillOff = !onScreen && !wasOnScreen.current;
+    wasOnScreen.current = onScreen;
+    if (stillOff && mode.current) return;
 
     if (mode.current === "strip") {
       const L = layoutRef.current;

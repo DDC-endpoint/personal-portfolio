@@ -17,10 +17,8 @@ import {
 // the middle panel. Only runs while something moves. The root's data-curtain
 // says where it is: idle, covering, covered or lifting.
 //
-// Split out of the first load, as the veil was: PageTransitions imports it
-// once the browser is idle, or at the first click if that comes sooner.
-
-const ink = "11,31,58"; // the light theme's shadow: the ink token, as rgb
+// Split out of the first load: PageTransitions imports it once the browser
+// is idle, or at the first click if that comes sooner.
 
 export function createCurtain(root) {
   const all = [...root.querySelectorAll("[data-panel]")].map((el) => ({
@@ -58,7 +56,10 @@ export function createCurtain(root) {
     const w = window.innerWidth / panels.length;
     const ww = Math.ceil(w) + 1;
     const top = vh * 0.15, bot = vh * 1.15;
-    const dark = document.documentElement.classList.contains("dark");
+    const root = document.documentElement;
+    const dark = root.classList.contains("dark");
+    // The shadow: the ink token in light mode (--c-ink is "r g b"), black on navy.
+    const shade = dark ? "0 0 0" : getComputedStyle(root).getPropertyValue("--c-ink").trim() || "11 31 58";
     for (const p of panels) {
       const speed = dt > 0 ? (p.prevY - p.y) / dt : 0; // screens a second, upwards positive
       p.prevY = p.y;
@@ -68,10 +69,9 @@ export function createCurtain(root) {
       p.shape.style.clipPath = `path("M0 ${top} Q ${tq} ${ww} ${top} L ${ww} ${bot} Q ${bq} 0 ${bot} Z")`;
       p.level = shadowLevel(p.level, speed, dt);
       const s = shadow(p.level, dark ? "dark" : "light");
-      const base = dark ? "0,0,0" : ink;
-      const parts = [`drop-shadow(0 0 ${s.rest.blur}px rgba(${base},${s.rest.alpha}))`];
+      const parts = [`drop-shadow(0 0 ${s.rest.blur}px rgb(${shade} / ${s.rest.alpha}))`];
       if (s.move.alpha > 0.004) {
-        parts.push(`drop-shadow(0 ${(-Math.sign(speed || 1) * s.move.y).toFixed(1)}px ${s.move.blur.toFixed(1)}px rgba(${base},${s.move.alpha.toFixed(3)}))`);
+        parts.push(`drop-shadow(0 ${(-Math.sign(speed || 1) * s.move.y).toFixed(1)}px ${s.move.blur.toFixed(1)}px rgb(${shade} / ${s.move.alpha.toFixed(3)}))`);
       }
       p.drop.style.filter = parts.join(" ");
       p.top.setAttribute("d", `M0 ${top} Q ${tq} ${ww} ${top}`);

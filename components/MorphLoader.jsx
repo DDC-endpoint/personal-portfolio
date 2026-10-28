@@ -49,7 +49,9 @@ export default function MorphLoader({ onDone }) {
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !shouldPlayIntro()) return;
+    // Reduced motion and forced colours never see it (the curtain is hidden):
+    // don't run it, or spend the session's full load.
+    if (!root || !shouldPlayIntro() || window.matchMedia("(forced-colors: active)").matches) return;
     const kind = (documentKind ??= loadKind(window.sessionStorage));
     root.dataset.kind = kind;
     const full = kind === "full";
@@ -60,7 +62,7 @@ export default function MorphLoader({ onDone }) {
     document.fonts.ready.then(() => (fonts.done = true));
 
     const t0 = performance.now();
-    let last = t0, raf = 0, noiseAt = 0;
+    let last = t0, raf = 0, noiseAt = 0, shown = 0;
     let radii = TARGETS[0].slice(), trail = radii.slice(), target = 1, swapAt = 0.8, t = 0;
     let p = 0, speed = 70, phase = "load", phaseAt = 0;
 
@@ -109,7 +111,10 @@ export default function MorphLoader({ onDone }) {
       if (full) {
         body.setAttribute("d", blobPath(radii, settled ? null : t));
         ghost.setAttribute("d", blobPath(trail, settled ? null : t - 0.25));
-        count.innerHTML = digits(p);
+        if (Math.round(p) !== shown) {
+          shown = Math.round(p);
+          count.innerHTML = digits(p);
+        }
         if (phase !== "load") {
           const rk = Math.min(1, (el - phaseAt) / SETTLE_S.full);
           ring.setAttribute("r", (34 + rk * 16).toFixed(2));

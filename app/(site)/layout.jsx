@@ -80,8 +80,8 @@ export default function RootLayout({ children }) {
         <div className="top-fade" aria-hidden />
         <MotionProvider>
           {children}
-          {/* The page transition's veil: persists across client-side page
-              changes, so it can cover one page and reveal the next. */}
+          {/* The page transition's curtain (and the first-load loader): persists
+              across client-side page changes, so it can cover one page and reveal the next. */}
           <PageTransitions />
         </MotionProvider>
         {/* The site's structured data: the WebSite, Damian and his business
