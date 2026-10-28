@@ -256,6 +256,16 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
 - **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
+## The 404 is server-rendered (2026-10-28)
+
+On the live site, leaving the 404 for Home showed no curtain, and from then on no page change had one (Damian). Cause: with two root layouts, Next can't server-render `(site)/not-found.jsx` behind the `[...notFound]` catch-all, so it sent an empty error shell and React built the page client-side. The layout's pre-paint script never ran, so `<html>` had no `js` (the curtain is `nojs:hidden`) and no `dark` (gate question 7: the 404 was always light).
+
+- **Fix (Damian's pick of two):** `app/global-not-found.jsx`, Next's convention for multiple root layouts (`experimental.globalNotFound`). It renders the `(site)` root layout around the 404 content, so the 404 is server-rendered with the theme, curtain and cursor. The catch-all and `(site)/not-found.jsx` are gone. Rejected: re-adding the classes from a client effect (the 404 would stay a client-rendered error shell).
+- **The link home is a full load (Damian: keep the loader beat).** The 404 is its own document tree, so the curtain covers, Home loads under it, the short loader resolves the name and the curtain lifts. Rejected: a session flag to skip the loader.
+- **The lab's unknown demos** still get the error shell (the lab has no not-found page). Left for later (Damian).
+- **The page title** is "Page not found — Damian De Cruz" (it was Home's). Next adds `noindex`.
+- **Tests:** `e2e/notfound.spec.js` checks the server HTML and the theme, and that the curtain shows leaving the 404 and on the next page change. `e2e/transition.spec.js`'s injected page link moved to the bottom right: next dev's tools button sat over it bottom left, and five tests had been timing out on `main`.
+
 ## Phase 6 gate fixes (2026-10-28)
 
 Damian's first look at the gate:
