@@ -3,16 +3,42 @@ import { useEffect, useRef } from "react";
 import { N, LIFT, falloff, ambient, smoothing, settled, aim } from "@/lib/isoBoard";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
-// The 404 page's Isometric Board (Phase 6, from the lab; maths in
-// lib/isoBoard.js), re-coloured to the site: faces in paper and ivory, rule
-// hairlines, the electric edge light, the shadow in ink. Hovering lifts the
+// The Isometric Board (Phase 6, from the lab; maths in lib/isoBoard.js),
+// re-coloured to the site. On the 404 page (tone "page"): faces in paper and
+// ivory, rule hairlines, the electric edge light, the shadow in ink. On the
+// electric contact cards (tone "glass", Damian's gate pick): translucent
+// ivory faces and hairlines, an ivory edge light, a navy shadow. (The cards
+// are electric in both themes, so "ivory" and "navy" are the same colours in
+// both: the ivory token in light mode is the ink token in dark.) Hovering lifts the
 // tile under the pointer and its neighbours with a Gaussian falloff, and
 // holds while the pointer rests; idle, a slow diagonal wave drifts. On phones
 // a tap lifts the tile under it. Reduced motion: a settled cluster. The loop
 // runs only while the board is on screen. Decorative: hidden from screen
 // readers.
 
-export default function IsoBoard() {
+const TONES = {
+  page: {
+    shade: "bg-[radial-gradient(circle,rgb(var(--c-ink)/0.35),transparent_72%)] dark:bg-[radial-gradient(circle,rgb(0_0_0/0.6),transparent_72%)]",
+    face: "border-rule",
+    fill: ["bg-ivory", "bg-paper"],
+    edge: "bg-[linear-gradient(135deg,rgb(var(--c-electric)/0.3),transparent_55%)] shadow-[inset_0_0_0_1px_rgb(var(--c-electric)/0.8)]",
+  },
+  glass: {
+    shade: "bg-[radial-gradient(circle,rgb(var(--c-ink)/0.5),transparent_72%)] dark:bg-[radial-gradient(circle,rgb(var(--c-ivory)/0.5),transparent_72%)]",
+    face: "border-[rgb(var(--c-ivory)/0.38)] dark:border-[rgb(var(--c-ink)/0.38)]",
+    fill: ["bg-[rgb(var(--c-ivory)/0.12)] dark:bg-[rgb(var(--c-ink)/0.12)]", "bg-[rgb(var(--c-ivory)/0.2)] dark:bg-[rgb(var(--c-ink)/0.2)]"],
+    edge:
+      "bg-[linear-gradient(135deg,rgb(var(--c-ivory)/0.38),transparent_55%)] shadow-[inset_0_0_0_1px_rgb(var(--c-ivory)/0.95)] dark:bg-[linear-gradient(135deg,rgb(var(--c-ink)/0.38),transparent_55%)] dark:shadow-[inset_0_0_0_1px_rgb(var(--c-ink)/0.95)]",
+  },
+};
+
+// `className` sizes the board's box, `gridClassName` the board itself.
+export default function IsoBoard({
+  tone = "page",
+  className = "h-[min(56vw,270px)]",
+  gridClassName = "w-[min(62vw,300px)] gap-[min(0.9vw,5px)]",
+}) {
+  const t = TONES[tone];
   const rootRef = useRef(null);
   const faces = useRef([]);
   const edges = useRef([]);
@@ -76,11 +102,11 @@ export default function IsoBoard() {
   };
 
   return (
-    <div ref={rootRef} aria-hidden="true" data-iso-board className="flex h-[min(56vw,270px)] items-center justify-center">
+    <div ref={rootRef} aria-hidden="true" data-iso-board className={`flex items-center justify-center ${className}`}>
       <div style={{ perspective: "1100px" }}>
         <div
           onPointerLeave={reduced ? undefined : leave}
-          className="grid w-[min(62vw,300px)] grid-cols-5 gap-[min(0.9vw,5px)]"
+          className={`grid grid-cols-5 ${gridClassName}`}
           style={{ aspectRatio: "1 / 1", transform: "rotateX(54deg) rotateZ(45deg)", transformStyle: "preserve-3d" }}
         >
           {Array.from({ length: N * N }, (_, i) => {
@@ -100,18 +126,15 @@ export default function IsoBoard() {
                 {/* the shadow stays on the board, growing as the face lifts */}
                 <span
                   ref={(el) => (shadows.current[i] = el)}
-                  className="absolute inset-0 rounded-[2px] bg-[radial-gradient(circle,rgb(var(--c-ink)/0.35),transparent_72%)] opacity-0 dark:bg-[radial-gradient(circle,rgb(0_0_0/0.6),transparent_72%)]"
+                  className={`absolute inset-0 rounded-[2px] opacity-0 ${t.shade}`}
                 />
                 <div
                   ref={(el) => (faces.current[i] = el)}
                   data-face
-                  className={`absolute inset-0 rounded-[2px] border border-rule will-change-transform ${(r + c) % 2 ? "bg-paper" : "bg-ivory"}`}
+                  className={`absolute inset-0 rounded-[2px] border will-change-transform ${t.face} ${t.fill[(r + c) % 2]}`}
                 >
-                  {/* the electric edge light, written per frame */}
-                  <span
-                    ref={(el) => (edges.current[i] = el)}
-                    className="pointer-events-none absolute inset-0 rounded-[2px] bg-[linear-gradient(135deg,rgb(var(--c-electric)/0.3),transparent_55%)] opacity-0 shadow-[inset_0_0_0_1px_rgb(var(--c-electric)/0.8)]"
-                  />
+                  {/* the edge light, written per frame */}
+                  <span ref={(el) => (edges.current[i] = el)} className={`pointer-events-none absolute inset-0 rounded-[2px] opacity-0 ${t.edge}`} />
                 </div>
               </div>
             );
