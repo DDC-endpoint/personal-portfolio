@@ -209,11 +209,11 @@ test.describe("the curtain", () => {
     await idle(page);
   });
 
-  for (const [from, href, name] of [["/", "/portfolio", "nav"], ["/portfolio", "/services", "footer"], ["/privacy", "/portfolio", "footer"]]) {
+  for (const [from, href, name] of [["/", "/portfolio", "nav"], ["/portfolio", "/services", "nav"], ["/privacy", "/portfolio", "nav"]]) {
     test(`${from} → ${href} by the ${name} transitions`, async ({ page }) => {
       await page.goto(from);
       await settle(page);
-      const link = name === "nav" ? `header nav a[href="${href}"]` : `footer a[href="${href}"]`;
+      const link = `header nav a[href="${href}"]`;
       await transitionTo(page, () => page.evaluate((s) => document.querySelector(s).click(), link), new RegExp(`${href}$`));
     });
   }
@@ -221,7 +221,19 @@ test.describe("the curtain", () => {
 
 // ---- Task 4: clicks, swap, arrival ----------------------------------------
 
-const footerLink = (page, name) => page.getByRole("navigation", { name: "Footer" }).getByRole("link", { name, exact: true });
+// A plain page link, fixed in view on every screen size, for tests that need
+// a real (visible) click: the footer has no page links (Phase 6 gate).
+const PATHS = { Home: "/", Portfolio: "/portfolio", Services: "/services", Privacy: "/privacy" };
+async function pageLink(page, name) {
+  await page.evaluate((href) => {
+    document.querySelector("[data-test-page-link]")?.remove();
+    const a = Object.assign(document.createElement("a"), { href, textContent: "test link" });
+    a.dataset.testPageLink = "";
+    a.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:65;padding:8px;background:white";
+    document.querySelector("main").append(a);
+  }, PATHS[name]);
+  return page.locator("[data-test-page-link]");
+}
 
 // Click → the full sweep → idle on `url`, in the same document, with <main>
 // focused. Returns the click-to-idle time (ms).
@@ -325,13 +337,13 @@ test.describe("transitions", () => {
     expect(Math.abs(top - 80)).toBeLessThan(4);
   });
 
-  test("footer Privacy from Home and from /services", async ({ page }) => {
+  test("a Privacy link from Home and from /services", async ({ page }) => {
     await page.goto("/");
     await settle(page);
-    await transitionTo(page, () => footerLink(page, "Privacy").click(), /\/privacy$/);
+    await transitionTo(page, async () => (await pageLink(page, "Privacy")).click(), /\/privacy$/);
     await page.goto("/services");
     await settle(page);
-    await transitionTo(page, () => footerLink(page, "Privacy").click(), /\/privacy$/);
+    await transitionTo(page, async () => (await pageLink(page, "Privacy")).click(), /\/privacy$/);
   });
 
   test("the 404 page's link home", async ({ page }) => {
@@ -343,7 +355,7 @@ test.describe("transitions", () => {
   test("a modified or middle click is left to the browser", async ({ page, context }) => {
     await page.goto("/");
     await settle(page);
-    const link = footerLink(page, "Services");
+    const link = await pageLink(page, "Services");
     await link.scrollIntoViewIfNeeded();
     const popup = context.waitForEvent("page");
     await link.click({ modifiers: ["Control"] });
@@ -371,7 +383,7 @@ test.describe("transitions", () => {
     await mark(page);
     await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
     await expect(curtain(page)).not.toHaveAttribute("data-curtain", "idle");
-    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await page.evaluate(() => document.querySelector('header nav a[href="/privacy"]').click());
     await idle(page);
     await expect(page).toHaveURL(/\/services$/);
     expect(await page.evaluate(() => history.length)).toBe(before + 1);
@@ -389,7 +401,7 @@ test.describe("transitions", () => {
     await settle(page);
     await mark(page);
     const t0 = Date.now();
-    await footerLink(page, "Privacy").click();
+    await (await pageLink(page, "Privacy")).click();
     await page.waitForURL(/\/privacy$/, { waitUntil: "load", timeout: 15000 });
     await expect.poll(() => page.evaluate(() => window.__marker), { timeout: 15000 }).toBeUndefined();
     expect(Date.now() - t0).toBeGreaterThan(3500);
@@ -399,7 +411,7 @@ test.describe("transitions", () => {
     await page.goto("/");
     await settle(page);
     await mark(page);
-    const home = footerLink(page, "Home");
+    const home = await pageLink(page, "Home");
     await home.scrollIntoViewIfNeeded();
     await page.evaluate(() => { window.__curtain = ["idle"]; });
     await home.click();
@@ -450,7 +462,7 @@ test.describe("first load", () => {
     await record(page);
     await page.goto("/services");
     await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 6000 });
-    await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
+    await page.evaluate(() => { window.__marker = 1; document.querySelector('header nav a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
     await idle(page);
     expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "covered", "lifting", "idle"]);
@@ -461,7 +473,7 @@ test.describe("first load", () => {
   test("a link clicked during the intro's reveal opens right after it", async ({ page }) => {
     await page.goto("/services");
     await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
-    await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
+    await page.evaluate(() => { window.__marker = 1; document.querySelector('header nav a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
     await idle(page);
     expect(await sameDocument(page)).toBe(true);
@@ -595,7 +607,7 @@ test.describe("robustness", () => {
     await page.goto("/");
     await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
     await mark(page);
-    await footerLink(page, "Services").click();
+    await (await pageLink(page, "Services")).click();
     await page.waitForURL(/\/services$/, { timeout: 10000 });
     await expect.poll(() => page.evaluate(() => window.__marker), { timeout: 10000 }).toBeUndefined();
   });
@@ -617,7 +629,7 @@ test.describe("robustness", () => {
       await new Promise((r) => setTimeout(r, 1500));
       return route.continue().catch(() => {});
     });
-    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await page.evaluate(() => document.querySelector('header nav a[href="/privacy"]').click());
     await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
     const t0 = Date.now();
     await page.goBack();
@@ -637,7 +649,7 @@ test.describe("robustness", () => {
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
     await mark(page);
-    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await page.evaluate(() => document.querySelector('header nav a[href="/privacy"]').click());
     await expect(curtain(page)).toHaveAttribute("data-curtain", "covering");
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
@@ -681,7 +693,7 @@ test.describe("robustness", () => {
     });
     await page.goto("/services");
     await settle(page);
-    await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
+    await page.evaluate(() => document.querySelector('header nav a[href="/privacy"]').click());
     await expect(curtain(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
     const size = page.viewportSize();
     await page.setViewportSize({ width: size.height, height: size.width });
@@ -699,10 +711,10 @@ test.describe("robustness", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
-    const home = footerLink(page, "Home");
+    const home = await pageLink(page, "Home");
     await home.scrollIntoViewIfNeeded();
     const y = await page.evaluate(() => {
-      document.querySelector('footer a[href="/"]').click();
+      document.querySelector('header nav a[href="/"]').click();
       return new Promise((r) => requestAnimationFrame(() => r(scrollY)));
     });
     expect(y).toBe(0);
@@ -762,7 +774,7 @@ test.describe("robustness", () => {
     await blockCurtain(page, { delay: 1500 });
     await page.goto("/services");
     await expect(page.locator(".morph-loader")).toHaveCount(1);
-    await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
+    await page.evaluate(() => { window.__marker = 1; document.querySelector('header nav a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 10000 });
     await idle(page);
     expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "covered", "lifting", "idle"]);

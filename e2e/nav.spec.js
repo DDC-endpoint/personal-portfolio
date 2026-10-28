@@ -56,11 +56,10 @@ for (const [path, current] of PAGES) {
     }
   });
 
-  test(`${path}: the footer lists the four pages`, async ({ page }) => {
+  test(`${path}: the footer has no page links (the nav carries them)`, async ({ page }) => {
     await page.goto(path);
-    const links = page.locator("footer nav a");
-    await expect(links).toHaveText(LINKS);
-    expect(await hrefs(links)).toEqual(HREFS);
+    await expect(page.locator("footer")).toContainText("Made by hand, in Colombo.");
+    await expect(page.locator("footer a")).toHaveCount(0);
   });
 }
 

@@ -128,16 +128,15 @@ test.describe("snippet hygiene and alt text", () => {
 
 test.describe("footer and privacy", () => {
   for (const path of ["/", "/services", "/privacy"]) {
-    test(`${path}: footer B with the trading name and links`, async ({ page, isMobile }) => {
+    test(`${path}: footer B with the trading name, no page links`, async ({ page, isMobile }) => {
       await page.goto(path);
       const footer = page.locator("footer");
       await expect(footer).toContainText("© 2026 Damian De Cruz");
       await expect(footer).toContainText("Trading as DDC Web Services");
       await expect(footer).toContainText("Made by hand, in Colombo.");
       await expect(footer).toContainText("v:04 / Always evolving");
-      const links = footer.locator("nav a");
-      await expect(links).toHaveText(["Home", "Portfolio", "Services", "Privacy"]);
-      expect(await links.evaluateAll((els) => els.map((a) => a.getAttribute("href")))).toEqual(["/", "/portfolio", "/services", "/privacy"]);
+      // The nav carries the pages (Damian, Phase 6 gate).
+      await expect(footer.locator("a")).toHaveCount(0);
       // centred on phones; the three columns read left, centre, right on desktop
       const aligns = await footer.locator("[data-footer-col]").evaluateAll((els) => els.map((el) => getComputedStyle(el).textAlign));
       expect(aligns).toEqual(isMobile ? ["center", "center", "center"] : ["left", "center", "right"]);
