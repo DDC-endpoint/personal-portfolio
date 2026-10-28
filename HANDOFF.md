@@ -39,7 +39,7 @@ The lab deliberately does **not** inherit the portfolio's theme — no ivory pal
 
 - `app/(site)/` — the original `layout.jsx`, `page.jsx`, `services/`, `globals.css` (moved via `git mv`, unedited)
 - `app/(lab)/layout.jsx` + `app/(lab)/lab.css` — dark-studio identity: near-black canvas (`--lab-bg`), muted chrome (`--lab-dim`), Syne + IBM Plex Mono, `metadata.robots: { index: false, follow: false }`
-- **Sharp edge:** Next (14 through 16) rejects a root `app/not-found.jsx` when there's no single root layout (multiple root layouts = no shared one to attach it to). The fix: `app/(site)/not-found.jsx` (renders inside the portfolio theme) + `app/(site)/[...notFound]/page.jsx` (a catch-all that calls `notFound()` so any unmatched URL funnels into that boundary). Don't try to add a top-level `app/not-found.jsx` again — it breaks the build with "doesn't have a root layout."
+- **Sharp edge:** Next (14 through 16) rejects a root `app/not-found.jsx` when there's no single root layout (multiple root layouts = no shared one to attach it to). Don't try to add a top-level `app/not-found.jsx` again — it breaks the build with "doesn't have a root layout." **The 404 is `app/global-not-found.jsx`** (with `experimental.globalNotFound` in `next.config.mjs`), which renders the `(site)` root layout around the 404 content, so it's server-rendered with the theme script, curtain and cursor. Until 2026-10-28 it was `app/(site)/not-found.jsx` plus a `[...notFound]` catch-all: Next can't server-render that pair with multiple root layouts, so it sent an empty error shell (`<html id="__next_error__">`) and React built the page client-side. The pre-paint script never ran, so `<html>` had no `js` or `dark`: the 404 was always light, and the curtain (`nojs:hidden`) stayed hidden on every page after it. Don't bring the catch-all back: it matches every URL, so `global-not-found` would never run. The 404 is its own document tree, so its link home is a full load (the curtain covers, Home loads under it, the short loader lifts it). Known gap: the lab host's unknown demos (`/lab/[slug]` → `notFound()`) still get the error shell; the lab has no not-found page.
 
 ### Unlisted mechanics
 - **Not** in `app/sitemap.js`, **not** in any nav (`lib/site.js` `NAV_LINKS` untouched)
@@ -308,14 +308,13 @@ Plan: `docs/v3/plan-phase-1.md`; spec: `docs/v3/design.md` + `docs/v3/hero-portr
 
 ```
 app/
-  not-found.jsx does NOT exist at this level — see (site)/not-found.jsx below (route-group sharp edge)
+  not-found.jsx does NOT exist at this level (route-group sharp edge; see *Stack*)
+  global-not-found.jsx  — the 404 for every unmatched URL: the (site) root layout + the 404 content (needs experimental.globalNotFound)
 
   (site)/                — portfolio root layout group (ivory theme)
     layout.jsx            — metadata, Person + Service JSON-LD, fonts, no-flash theme script, MotionProvider
     page.jsx              — assembles all homepage sections, ClientEnhancements
     globals.css           — :root + .dark token blocks, .top-fade, .grain, .link-line, etc.
-    not-found.jsx          — 404 UI, rendered inside the portfolio theme
-    [...notFound]/page.jsx — catch-all that calls notFound() so unmatched URLs reach the boundary above
     services/
       page.jsx            — /services metadata, OfferCatalog JSON-LD, renders ServicesNav + Services + Footer
 

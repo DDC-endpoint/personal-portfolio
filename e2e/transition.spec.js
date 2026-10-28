@@ -247,14 +247,15 @@ test.describe("the curtain", () => {
 // ---- Task 4: clicks, swap, arrival ----------------------------------------
 
 // A plain page link, fixed in view on every screen size, for tests that need
-// a real (visible) click: the footer has no page links (Phase 6 gate).
+// a real (visible) click: the footer has no page links (Phase 6 gate). Bottom
+// right: next dev's tools button sits bottom left and would take the click.
 const PATHS = { Home: "/", Portfolio: "/portfolio", Services: "/services", Privacy: "/privacy" };
 async function pageLink(page, name) {
   await page.evaluate((href) => {
     document.querySelector("[data-test-page-link]")?.remove();
     const a = Object.assign(document.createElement("a"), { href, textContent: "test link" });
     a.dataset.testPageLink = "";
-    a.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:65;padding:8px;background:white";
+    a.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:65;padding:8px;background:white";
     document.querySelector("main").append(a);
   }, PATHS[name]);
   return page.locator("[data-test-page-link]");
@@ -371,10 +372,18 @@ test.describe("transitions", () => {
     await transitionTo(page, async () => (await pageLink(page, "Privacy")).click(), /\/privacy$/);
   });
 
-  test("the 404 page's link home", async ({ page }) => {
+  // The 404 is its own document (app/global-not-found.jsx), so its link home
+  // can't be client-side: the curtain covers, Home loads under it, and Home's
+  // loader lifts it (Damian, 2026-10-28: keep the loader beat).
+  test("the 404 page's link home covers, then loads Home under the curtain", async ({ page }) => {
     await page.goto("/no-such-page");
     await settle(page);
-    await transitionTo(page, () => page.getByRole("link", { name: "Back to damiandc.com" }).click(), /\/$/);
+    await mark(page);
+    await page.getByRole("link", { name: "Back to damiandc.com" }).click();
+    await expect(curtain(page)).toHaveAttribute("data-curtain", /^cover/, { timeout: 8000 });
+    await page.waitForURL(/\/$/, { waitUntil: "load" });
+    expect(await sameDocument(page)).toBe(false);
+    await settle(page);
   });
 
   test("a modified or middle click is left to the browser", async ({ page, context }) => {

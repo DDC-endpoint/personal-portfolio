@@ -41,7 +41,8 @@ export function proxy(request) {
 
   if (!isLabHost(host)) {
     // The lab lives only on the subdomain — hide the /lab tree on the main
-    // host by rewriting to a path that has no route, yielding the 404 page.
+    // host by rewriting to a path that has no route, yielding the 404 page
+    // (app/global-not-found.jsx).
     // /404 and /_not-found take the same route to reach the styled page.
     if (onLabPath || pathname === "/404" || pathname === "/_not-found") {
       const url = request.nextUrl.clone();
