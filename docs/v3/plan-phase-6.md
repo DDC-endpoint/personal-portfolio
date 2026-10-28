@@ -1,6 +1,6 @@
 # V3 Phase 6 Implementation Plan: pages, curation, the loader and the curtain
 
-> **Status: awaiting Damian's sign-off (2026-10-28).** Every design decision below is his, made from four spikes; see `decisions.md` → "Phase 6 planning". The builder's calls at the end are proposals for him to confirm.
+> **Status: approved by Damian (2026-10-28), with all ten builder's calls; building on `v3-portfolio`.** Every design decision below is his, made from four spikes; see `decisions.md` → "Phase 6 planning". The build stops at a visual gate before anything merges into `v3` (Damian).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (native inline execution, as Phases 1–5) to implement this plan task by task, test-first, then one fresh reviewer for the whole branch. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -226,7 +226,7 @@
 - [ ] One fresh reviewer for the whole branch; fix every finding test-first, minors included.
 - [ ] Visual gate: open the dev pages for Damian.
 
-## Builder's calls (for Damian to confirm)
+## Builder's calls (all confirmed by Damian, 2026-10-28)
 1. **No GSAP on the site.** The curtain runs on `requestAnimationFrame` with the lab's power4 in-out curve, so the site bundle doesn't grow; GSAP stays in the lab.
 2. **"Session" means the browser tab's session** (`sessionStorage`): a new tab or a closed browser gets the full loader again. Private windows or blocked storage always get the full loader.
 3. **Back/Forward:** the page arrives covered and the curtain lifts (no cover phase), as in Phase 5.

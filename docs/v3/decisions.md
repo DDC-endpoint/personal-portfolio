@@ -303,6 +303,7 @@ Damian asked for "a few minor changes before the perf pass", which grew into Pha
 - **A wider sharp zone:** the centred card "looks sharp at a very small point", so depth of field now has a plateau. A card is fully sharp within ±20vw of the centre (0.4 of a card step), then ramps smoothly to full depth of field over the next 0.6 of a step.
 - **No settle:** the strip stays exactly where the visitor stops scrolling (gliding to the nearest card was tried and not chosen).
 - **Phase 6 approved (Damian: "No major changes for now. approved.")**, so the plan is written next: [`plan-phase-6.md`](plan-phase-6.md).
+- **The plan and all ten builder's calls approved (Damian, 2026-10-28).** The build stops at a visual gate before merging into `v3`.
 
 **404 page**
 - **The Isometric Board** (from the lab) goes on the 404 page. Damian skipped the tile-content question: it stays a board, re-coloured to the site.
