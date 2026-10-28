@@ -172,6 +172,31 @@ html.ddc-seen .morph-loader [data-orb],
 .morph-loader[data-kind="short"] [data-orb] { display: none; }
 /* The count's digits are fixed-width, so the number never jitters. */
 .ml-d { display: inline-block; width: 0.5em; text-align: center; }
+/* The loader sits in a box as wide as the middle panel (the panels' 20%, a
+   third below md; see .curtain-panel) and sizes itself from it, so it never
+   crosses a seam, at rest or riding the panel away. On a panel too narrow
+   for the name on one line, the name and the coordinates stack, two lines
+   each. The fixed sizes come first, for browsers without container units. */
+.morph-loader { left: 40%; width: 20%; container-type: inline-size; }
+.morph-loader [data-orb] {
+  width: clamp(150px, 19vw, 240px);
+  width: min(clamp(150px, 19vw, 240px), 76cqi);
+  container-type: inline-size;
+}
+.morph-loader .ml-count { font-size: clamp(44px, 5.2vw, 72px); font-size: 30cqi; }
+.morph-loader [data-name] {
+  font-size: clamp(15px, 1.5vw, 20px);
+  font-size: min(clamp(15px, 1.5vw, 20px), 6.8cqi);
+}
+@container (max-width: 229.98px) {
+  .morph-loader [data-name] { font-size: min(15px, 13cqi); line-height: 1.6; }
+  .morph-loader [data-coords] { line-height: 1.7; }
+  .morph-loader .ml-part { display: block; }
+  .morph-loader .ml-sep { display: none; }
+}
+@media (max-width: 767px) {
+  .morph-loader { left: calc(100% / 3); width: calc(100% / 3); }
+}
 
 /* The page-change curtain (components/transition/): five panels (three
    below md), each a little wider than its share so no seam shows between
@@ -189,6 +214,10 @@ html.ddc-seen .morph-loader [data-orb],
   .curtain-panel[data-panel="2"] { left: calc(100% / 3); }
   .curtain-panel[data-panel="3"] { left: calc(200% / 3); }
 }
+/* Every page keeps the scrollbar's room, so the curtain (fixed, the
+   viewport's width) is as wide on a page too short to scroll, the 404, as on
+   the page it hands over to; without it the panels jumped sideways. */
+html { scrollbar-gutter: stable; }
 .curtain[data-curtain="idle"] { visibility: hidden; }
 .curtain:not([data-curtain="idle"]):not([data-curtain="intro"]):not([data-intro]) { pointer-events: auto; }
 /* The label's dot shows only with a destination. */

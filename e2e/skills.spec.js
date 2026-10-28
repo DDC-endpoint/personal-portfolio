@@ -186,8 +186,10 @@ test("the terminal never overlaps its columns or clips text", async ({ page, isM
 test("the terminal spans the section's full width", async ({ page }) => {
   await page.goto("/");
   const term = await page.locator("[data-terminal]").boundingBox();
-  const vw = page.viewportSize().width;
-  const gutter = vw >= 768 ? 40 : 24;
+  // The page's width: the window less the scrollbar's room (globals.css →
+  // scrollbar-gutter). The breakpoint is the window's.
+  const vw = await page.evaluate(() => document.body.getBoundingClientRect().width);
+  const gutter = page.viewportSize().width >= 768 ? 40 : 24;
   expect(Math.round(term.x)).toBe(gutter);
   expect(Math.round(term.width)).toBe(vw - 2 * gutter);
 });

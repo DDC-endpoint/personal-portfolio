@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useRef } from "react";
-import { N, TARGETS, LOAD, blobPath, stepCount, decodeText, loadKind } from "@/lib/loader";
+import { Fragment, useEffect, useRef } from "react";
+import { N, TARGETS, LOAD, blobPath, stepCount, decodeText, splitParts, loadKind } from "@/lib/loader";
 import { shouldPlayIntro } from "@/lib/motion";
 
 // The morph loader (docs/v3/plan-phase-6.md → "The morph loader"), on the
@@ -17,23 +17,48 @@ import { shouldPlayIntro } from "@/lib/motion";
 // then `onDone` lifts the curtain. A short load (later loads in the session):
 // only the name and coordinates resolve, in about 0.4 s.
 //
+// It sits in a box as wide as the middle panel and sizes itself from it
+// (globals.css → .morph-loader), so it never crosses a seam: on a narrow
+// panel the name and the coordinates stack, two lines each.
+//
 // Hidden from screen readers: the hero carries the name.
 
-const NAME = "DAMIAN DE CRUZ";
-const COORDS = "N 6.9271° / E 79.8612°";
+// Each part is its own span, so a narrow panel can stack them; joined with
+// spaces, they read as one line.
+const NAME = ["DAMIAN", "DE CRUZ"];
+const COORDS = ["N 6.9271°", "/", "E 79.8612°"];
+const NAME_TEXT = NAME.join(" ");
+const COORDS_TEXT = COORDS.join(" ");
 const SETTLE_S = { full: 0.42, short: 0.12 };
 const SHORT = { min: 0.25, max: 0.5 };
 const NOISE_MS = 55;
 
 // The server's frame (and the first client render's): deterministic.
 const seeded = ((i) => () => ((i = (i * 1103515245 + 12345) & 0x7fffffff) % 1000) / 1000)(42);
-const FIRST = { name: decodeText(NAME, 0, seeded), coords: decodeText(COORDS, 0, seeded), blob: blobPath(TARGETS[0], null) };
+const FIRST = {
+  name: splitParts(decodeText(NAME_TEXT, 0, seeded), NAME),
+  coords: splitParts(decodeText(COORDS_TEXT, 0, seeded), COORDS),
+  blob: blobPath(TARGETS[0], null),
+};
+
+// Write a decoded text into its parts' spans.
+const fill = (spans, text, parts) => splitParts(text, parts).forEach((s, i) => (spans[i].textContent = s));
 
 const digits = (p) =>
   String(Math.round(p))
     .split("")
     .map((d) => `<span class="ml-d">${d}</span>`)
     .join("");
+
+// The parts with a space between them; `sep` is the slash, dropped when they
+// stack.
+const Parts = ({ parts, sep }) =>
+  parts.map((s, i) => (
+    <Fragment key={i}>
+      {i > 0 && " "}
+      <span className={i === sep ? "ml-part ml-sep" : "ml-part"}>{s}</span>
+    </Fragment>
+  ));
 
 // One decision per document: an effect that runs twice (React's dev double
 // mount) must not read the flag it has just set.
@@ -57,7 +82,8 @@ export default function MorphLoader({ onDone }) {
     const full = kind === "full";
     const q = (sel) => root.querySelector(sel);
     const body = q("[data-blob]"), ghost = q("[data-ghost]"), ring = q("[data-ring]");
-    const count = q("[data-count]"), name = q("[data-name]"), coords = q("[data-coords]");
+    const count = q("[data-count]");
+    const name = [...root.querySelectorAll("[data-name] .ml-part")], coords = [...root.querySelectorAll("[data-coords] .ml-part")];
     const fonts = { done: false };
     document.fonts.ready.then(() => (fonts.done = true));
 
@@ -124,8 +150,8 @@ export default function MorphLoader({ onDone }) {
       if (now - noiseAt > NOISE_MS || settled) {
         noiseAt = now;
         const k = full ? p / 100 : Math.min(1, el / SHORT.min);
-        name.textContent = decodeText(NAME, settled ? 1 : k);
-        coords.textContent = decodeText(COORDS, settled ? 1 : Math.max(0, (k - 0.3) / 0.7));
+        fill(name, decodeText(NAME_TEXT, settled ? 1 : k), NAME);
+        fill(coords, decodeText(COORDS_TEXT, settled ? 1 : Math.max(0, (k - 0.3) / 0.7)), COORDS);
       }
       if (phase !== "done") raf = requestAnimationFrame(frame);
     };
@@ -134,25 +160,27 @@ export default function MorphLoader({ onDone }) {
   }, []);
 
   return (
-    <div ref={rootRef} data-nosnippet="" className="morph-loader absolute inset-0 grid place-content-center justify-items-center gap-[22px]">
-      <div data-orb className="relative aspect-square w-[clamp(150px,19vw,240px)]">
+    <div ref={rootRef} data-nosnippet="" className="morph-loader absolute inset-y-0 grid place-content-center justify-items-center gap-[22px]">
+      <div data-orb className="relative aspect-square">
         <svg viewBox="0 0 100 100" className="absolute -inset-[10%] h-[120%] w-[120%] overflow-visible">
           <path data-ghost d={FIRST.blob} className="fill-none stroke-electric opacity-[0.32] [stroke-width:0.8]" />
           <path data-blob d={FIRST.blob} className="fill-electric/[0.07] stroke-electric [stroke-width:1.3]" />
           <circle data-ring cx="50" cy="50" r="34" className="fill-none stroke-electric opacity-0 [stroke-width:0.9]" />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center font-display text-[clamp(44px,5.2vw,72px)] italic leading-none text-ink">
+        <div className="ml-count absolute inset-0 flex items-center justify-center font-display italic leading-none text-ink">
           <span data-count>
             <span className="ml-d">0</span>
           </span>
           <sup className="ml-1 self-start mt-[38%] font-mono text-[11px] not-italic tracking-[0.1em] text-ink-faint">%</sup>
         </div>
       </div>
-      <div data-name className="whitespace-pre font-mono text-[clamp(15px,1.5vw,20px)] font-normal tracking-[0.32em] text-ink">
-        {FIRST.name}
+      {/* The left padding matches the tracking, which also trails the last
+          letter, so the letters themselves are centred. */}
+      <div data-name className="whitespace-nowrap pl-[0.32em] text-center font-mono font-normal tracking-[0.32em] text-ink">
+        <Parts parts={FIRST.name} />
       </div>
-      <div data-coords className="-mt-3 whitespace-pre font-mono text-[11px] tracking-[0.22em] text-ink-faint">
-        {FIRST.coords}
+      <div data-coords className="-mt-3 whitespace-nowrap pl-[0.22em] text-center font-mono text-[11px] tracking-[0.22em] text-ink-faint">
+        <Parts parts={FIRST.coords} sep={1} />
       </div>
     </div>
   );
