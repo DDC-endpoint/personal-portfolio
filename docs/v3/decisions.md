@@ -256,6 +256,75 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
 - **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
+## Phase 6 planning (2026-10-28)
+
+Damian asked for "a few minor changes before the perf pass", which grew into Phase 6: a `/portfolio` page, a four-page nav, a carousel strip on Home, the Isometric Board on the 404 page, and a new loader and page transition. The performance pass moves after it. Answers from four spike pages, all in `spike/` (`strip-carousel.html`, `portfolio-page.html`, `loader-curtain.html`):
+
+**Pages and nav**
+- **Four pages in the nav:** Home, Portfolio, Services, Privacy, with the current page marked. The in-page anchors (About, Work, Timeline, Résumé, Contact; and `/services`' Pricing, Process, Work, FAQ) are dropped: sections are reached by scrolling. One shared nav on every page; `ServicesNav` goes.
+- **The logo reads "DDC / Damian De Cruz"** (was "DDC / Portfolio ’26"), so it isn't confused with the Portfolio page.
+- **Buttons removed:** the hero's SERVICES button (desktop and the full-width phone one), the Services button in the mobile menu, and `/services`' Portfolio button. The hero is the name, the portrait and the lede.
+
+**Home § 04 Selected Work**
+- **Five sites and the end card:** Aloys Travels, Danella De Cruz, Spades Solutions, Kahatagaha Graphite, Personal Dashboard. This Portfolio and the two upcoming cards move to `/portfolio` only.
+- **Carousel rhythm (variant B):** one card centred at a time, the previous half off the left edge, the next half in from the right, gliding continuously along the 12° path. The strip ends with the end card dead centre and card 05 half out.
+- **Cards at 40vw** (were 45vw), capped by height as before.
+- **Depth of field:** cards away from the centre shrink (up to 10%), dim, blur (up to about 5 px) and lose some colour.
+- **Scroll smoothing on:** the strip eases after the scroll position instead of tracking it rigidly.
+- **The skeleton → screenshot decode stays** as it is.
+- Compared and not chosen: A (only the end changes), C (dwell + glide), D (depth tunnel), E (a mix of B, C and D).
+- A small "All work →" link to `/portfolio` sits beside the section intro.
+
+**`/portfolio`**
+- **A compact hero (~45vh):** the count (live / on the way), a one-line title "All work.", one lede line, the filter chips and the view toggle. The first grid row peeks above the fold on desktop.
+- **The grid:** every website, live and upcoming, newest first. Chosen over an editorial index and a staggered gallery.
+- **Filter chips:** All, Client, Concept, Personal, In progress, with counts.
+- **View Morph (from the lab):** a Grid | List toggle; every card glides between tile and row form instead of cutting, and filter changes glide the same way.
+- `/services`' "See the full portfolio" and the home strip link here.
+
+**More answers (2026-10-28)**
+- **Order on `/portfolio`, newest first (Damian):** Aloys Travels, Danella De Cruz, Spades Solutions, Kahatagaha Graphite, This Portfolio, Personal Dashboard; then the upcoming Interact District 3220 and ai-studio.
+- **Home strip order, strongest first (Damian):** Aloys, Danella, Kahatagaha, Spades, Dashboard, then the end card.
+- **Categories (as in the demo):** Client: Aloys, Danella, Spades, Interact 3220. Concept: Kahatagaha. Personal: Dashboard, This Portfolio, ai-studio. In progress: Interact 3220 and ai-studio, which also count under their own category.
+- **Home § 04 intro:** "Five favourites from a growing shelf. The rest, and what's on the way, is on the portfolio page." with "All work →" beside it.
+- **The carousel's centred card is the active one** on every device: it's the sharp card, and it's the one that decodes. A resting pointer, a scroll and a Tab all agree; Tab brings the next card to the centre. (Was: the card under the pointer.)
+- **Depth of field on phones is dim + shrink only,** with no blur (the costliest effect on a phone). Desktops get all three.
+- **List view rows:** thumbnail, name, tags, year, ↗ (no blurb).
+- **`/portfolio` animations (Damian picked these from a list):** a scroll-through preview (resting on a card, or on phones the card nearest the centre, slowly scrolls its full-page screenshot inside the frame and eases back; needs full-page captures); the address bar types the domain as each card decodes; upcoming cards loop a slow skeleton build (paused off-screen); each grid row rises in as it enters, with a capped stagger, and its cards decode as they land; live sites get a slowly breathing green dot in the address bar (upcoming: a static grey dot). Not chosen: a sliding filter chip, an odometer count, depth of field on the grid.
+
+**From the `/portfolio` mock (Damian, 2026-10-28)**
+- **No decode on `/portfolio`:** the cards rise in already showing their screenshots ("leave them as is"). The address bar still types as each card lands.
+- **The scroll-through preview is slower, "more browsable":** 1.5× the mock's first timing, so 3.9 s minimum and 13.5 s maximum to reach the bottom, a 1.35 s hold, 2.1 s back up.
+- **Clicking a card opens the live site** in a new tab; This Portfolio goes to Home (with the curtain); upcoming cards aren't links. Same as the home strip.
+- **Grid tiles keep the one-line description.**
+- Damian asked to see Home with his curation (`spike/home-curation.html`) before approving the phase.
+
+**From the home mock (Damian, 2026-10-28)**
+- **A wider sharp zone:** the centred card "looks sharp at a very small point", so depth of field now has a plateau. A card is fully sharp within ±20vw of the centre (0.4 of a card step), then ramps smoothly to full depth of field over the next 0.6 of a step.
+- **No settle:** the strip stays exactly where the visitor stops scrolling (gliding to the nearest card was tried and not chosen).
+- **Phase 6 approved (Damian: "No major changes for now. approved.")**, so the plan is written next: [`plan-phase-6.md`](plan-phase-6.md).
+
+**404 page**
+- **The Isometric Board** (from the lab) goes on the 404 page. Damian skipped the tile-content question: it stays a board, re-coloured to the site.
+
+**First load: the morph loader (replaces the IntroStamp halo and the glyph field)**
+- **The name under the blob:** a morphing SVG blob at the centre with the count inside it (Instrument Serif italic, fixed-width digits), "DAMIAN DE CRUZ" decoding under it in **regular-weight** JetBrains Mono (Damian: not bold), and the coordinates under that. A ghost outline trails the morph; at 100% the blob settles into a circle and one thin ring pulses out.
+- **The count follows real readiness:** it can't pass 96 until the page is ready (the fonts, and on Home the portrait) and 1.2 s have gone; it always finishes by 2.5 s.
+- **It leaves with the curtain:** the loader sits on the curtain's panels and rides the middle panel away when they lift. No tension while it counts (the panels hold still).
+- **Full first, short after:** a visitor's first load in a session gets the full loader. Reloads and later direct loads skip the blob and count: the name resolves on the panels and the curtain lifts. **Lab speed throughout (Damian: "keep these timings"), so a reload takes about 1.5 s.**
+
+**Page changes: the curtain (replaces the glyph sweep)**
+- **Panels in the page colour, two tones:** ivory and mist (`#EEF4FD`) in light mode, navy and navy-2 in dark mode. Five panels; three on phones.
+- **Centre-out:** the middle panel moves first, then its neighbours, then the outer two.
+- **Liquid edges with the edge light:** each panel's edges curve with its speed (the trailing edge hangs as it reveals the page), and a 1 px electric line along the moving edges glints with speed: invisible at rest, brightest at full speed. (Damian first said no light, then chose it from the mock: "Yes, edge light on".)
+- **Shadow: always (Damian: the first mock's shadow was "abrupt", absent at rest and suddenly there when lifting).** A soft shadow sits on the panels' seams from the first frame (light 10%, dark 38%, 14 px blur), and a moving shadow on the trailing side grows and fades smoothly with each panel's speed (light up to 16%, dark 45%). Strength as in the mock.
+- **Lab timing:** in 0.7 s, hold 0.22 s, out 0.85 s, power4 in-out. With the centre-out stagger, a page change takes about 2.7 s (cover 0.94 + hold 0.22 + lift 1.09).
+- **The destination's name rides the middle panel** in small vertical mono with an electric dot. A large serif word split across the panels was tried and not chosen.
+
+**Entrances after the lift**
+- **Home's name rises and the portrait plays its current wave on every arrival:** first load, reload or page change. This reverses Phase 5's "the hero is already in place on arrival".
+- **They start as the panels clear,** while the last panels are still leaving, so there's no empty beat.
+
 ## Phase 5 planning (2026-10-27)
 
 Damian's answers while planning the page transition ([`plan-phase-5.md`](plan-phase-5.md)):

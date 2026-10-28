@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio page spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  Phase 6 spike (2026-10-28): /portfolio as Damian chose it. A compact hero,
+  the grid with filters and a Grid | List morph, and the animations he picked:
+  scroll-through preview, address bar typing, upcoming build loop, row-by-row
+  entrance (no decode: Damian), live pulse. Serve with `node docs/v3/spike/serve.cjs`
+  and open http://localhost:3200/portfolio-page.html. Needs proj/ and
+  proj/full/ (full-page captures; see README).
+-->
+<style>
+  :root {
+    --ivory: #F6F6F1; --paper: #FBFBF7; --ink: #0B1F3A; --ink-soft: #16315A; --ink-faint: #5A6B82;
+    --electric: #2563EB; --sky: #DBEAFE; --mist: #EEF4FD; --rule: #D9DEE6; --live: #22C55E;
+    --ease: cubic-bezier(.22, 1, .36, 1);
+  }
+  :root[data-theme="dark"] {
+    --ivory: #0B1F3A; --paper: #112646; --ink: #F6F6F1; --ink-soft: #A2B4D0; --ink-faint: #8EA1C0;
+    --electric: #3B82F6; --sky: #1E3A6E; --mist: #132B50; --rule: #24406B;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--ivory); }
+  body { background: var(--ivory); color: var(--ink); font-family: Manrope, system-ui, sans-serif; overflow-x: clip; transition: background .3s, color .3s; }
+  ::selection { background: var(--electric); color: #fff; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--electric); outline-offset: 3px; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+
+  /* Nav (the new four-page nav) */
+  .nav { position: fixed; inset: 0 0 auto 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; padding: 24px 40px; mix-blend-mode: multiply; }
+  :root[data-theme="dark"] .nav { mix-blend-mode: screen; }
+  .nav nav { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 32px; }
+  .nav nav a { position: relative; padding-bottom: 4px; }
+  .nav nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .5s var(--ease); }
+  .nav nav a:hover::after, .nav nav a[aria-current]::after { transform: scaleX(1); transform-origin: left; }
+  .nav nav a[aria-current] { color: var(--electric); }
+  .avail { color: var(--ink-faint); display: inline-flex; gap: 8px; align-items: center; }
+  .avail i { width: 6px; height: 6px; border-radius: 50%; background: var(--live); }
+
+  /* Hero (~45vh) */
+  .hero { min-height: 45vh; padding: 19vh 40px 5vh; display: grid; gap: 22px; align-content: end; }
+  .count { color: var(--ink-faint); }
+  .count b { color: var(--electric); font-weight: 500; }
+  .hero h1 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: clamp(64px, 8.5vw, 6rem); line-height: .9; letter-spacing: -0.03em; }
+  .hero h1 .mask { display: block; overflow: hidden; padding-bottom: .06em; }
+  .hero h1 .mask > span { display: inline-block; transform: translateY(105%); animation: rise 1s .15s var(--ease) forwards; }
+  .hero h1 em { color: var(--electric); }
+  .hero p { color: var(--ink-soft); font-size: 17px; line-height: 1.55; max-width: 46ch; }
+  .controls { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 8px; }
+  .hero .count, .hero p, .controls { opacity: 0; animation: fadeup .8s var(--ease) forwards; }
+  .hero p { animation-delay: .4s; } .controls { animation-delay: .55s; } .hero .count { animation-delay: .1s; }
+  @keyframes rise { to { transform: none; } }
+  @keyframes fadeup { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--rule); background: transparent; padding: 8px 12px; cursor: pointer; display: inline-flex; gap: 7px; align-items: baseline; transition: background .25s, color .25s, border-color .25s; }
+  .chip sup { font-size: 9px; color: var(--ink-faint); }
+  .chip:hover { border-color: var(--ink-faint); }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--ivory); border-color: var(--ink); }
+  .chip[aria-pressed="true"] sup { color: inherit; opacity: .6; }
+  .view { display: inline-flex; border: 1px solid var(--rule); }
+  .view button { border: 0; background: transparent; padding: 8px 12px; cursor: pointer; }
+  .view button[aria-pressed="true"] { background: var(--ink); color: var(--ivory); }
+
+  /* Work: grid and list */
+  .work { padding: 4vh 40px 8vh; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9vh 2.6vw; }
+  .card { position: relative; display: grid; gap: 14px; align-content: start; }
+  .card > a.cover { position: absolute; inset: 0; z-index: 2; }
+  .frame { background: var(--paper); border: 1px solid var(--rule); overflow: hidden; box-shadow: 0 26px 50px -34px rgba(11,31,58,.45); transform-origin: 0 0; }
+  .chrome { height: 30px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-bottom: 1px solid var(--rule); }
+  .dots { display: flex; gap: 5px; } .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--rule); }
+  .addr { flex: 1; min-width: 0; height: 18px; border-radius: 4px; background: var(--mist); color: var(--ink-faint); display: flex; align-items: center; gap: 7px; padding: 0 8px; font: 10px "JetBrains Mono", monospace; white-space: nowrap; overflow: hidden; }
+  .addr .typed { overflow: hidden; text-overflow: ellipsis; }
+  .addr .caret { width: 5px; height: 10px; background: var(--electric); flex: none; animation: blink 1s steps(1) infinite; }
+  .addr .caret.done { animation: blink 1s steps(1) 2 forwards; }
+  @keyframes blink { 50% { opacity: 0; } 100% { opacity: 0; } }
+  .status { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--rule); }
+  .status.live { background: var(--live); animation: breathe 2.6s ease-in-out infinite; animation-play-state: paused; }
+  .onscreen .status.live { animation-play-state: running; }
+  @keyframes breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.45); opacity: 1; } 50% { box-shadow: 0 0 0 4px rgba(34,197,94,0); opacity: .7; } }
+  .viewport { position: relative; aspect-ratio: 1440 / 900; overflow: hidden; background: var(--mist); }
+  .viewport img { position: absolute; left: 0; top: 0; width: 100%; height: auto; will-change: transform; }
+  .viewport img.top { height: 100%; object-fit: cover; object-position: top; }
+  .meta { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: baseline; }
+  .meta .n { color: var(--electric); }
+  .meta h3 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: clamp(26px, 2.3vw, 36px); line-height: 1; }
+  .meta .yr { color: var(--ink-faint); }
+  .meta .tags { grid-column: 2 / -1; color: var(--ink-faint); display: flex; gap: 12px; flex-wrap: wrap; }
+  .meta .blurb { grid-column: 2 / -1; color: var(--ink-soft); font-size: 14.5px; line-height: 1.5; margin-top: 4px; max-width: 44ch; }
+  .meta .arrow { display: inline-block; transition: transform .4s var(--ease); }
+  .card:hover .meta .arrow { transform: translate(3px, -3px); }
+
+  /* Entrance (row by row) */
+  .card.pre { opacity: 0; transform: translateY(44px); }
+  .card.enter { transition: opacity .9s var(--ease), transform 1s var(--ease); }
+
+  /* Upcoming: the skeleton builds itself on a loop */
+  .build { position: absolute; inset: 0; padding: 7% 8%; display: grid; grid-template-rows: auto auto auto 1fr; gap: 6%; }
+  .build i { display: block; background: var(--rule); border-radius: 3px; transform-origin: left center; }
+  .build .navbar { display: flex; justify-content: space-between; } .build .navbar i { height: 8px; width: 18%; } .build .navbar i + i { width: 34%; }
+  .build .h1 { height: 16px; width: 64%; } .build .h2 { height: 16px; width: 42%; margin-top: -3%; }
+  .build .blocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6%; } .build .blocks i { height: 100%; min-height: 26px; }
+  .build .loading { position: absolute; left: 8%; bottom: 8%; color: var(--ink-faint); }
+  .build i { animation: lay 5.2s var(--ease) infinite; animation-play-state: paused; animation-delay: calc(var(--k) * .16s); }
+  .onscreen .build i { animation-play-state: running; }
+  @keyframes lay {
+    0% { transform: scaleX(0); opacity: 1; }
+    16%, 70% { transform: scaleX(1); opacity: 1; }
+    82%, 100% { transform: scaleX(1); opacity: 0; }
+  }
+
+  /* List view */
+  .work.list { grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--rule); }
+  .work.list .card { grid-template-columns: 132px minmax(0, 1fr); align-items: center; gap: 24px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  .work.list .frame { box-shadow: none; }
+  .work.list .chrome { height: 0; border: 0; overflow: hidden; }
+  .work.list .meta { grid-template-columns: 44px minmax(0, 1fr) 280px 70px; align-items: baseline; }
+  .work.list .meta h3 { font-size: clamp(28px, 3vw, 44px); }
+  .work.list .meta .tags { grid-column: 3; grid-row: 1; flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
+  .work.list .meta .tags span + span { display: none; } /* one tag per row keeps rows on one line */
+  .work.list .meta .yr { grid-column: 4; grid-row: 1; justify-self: end; }
+  .work.list .meta .blurb { display: none; }
+  .work.list .card:hover h3 { color: var(--electric); }
+
+  /* End card */
+  .end { margin: 2vh 40px 12vh; border: 1px solid var(--rule); background: radial-gradient(ellipse at 50% 20%, var(--sky), transparent 60%), var(--paper); }
+  .end .body { padding: 9vh 6vw; display: grid; justify-items: center; gap: 22px; text-align: center; }
+  .end h2 { font-family: "Instrument Serif", serif; font-weight: 400; font-style: italic; font-size: clamp(44px, 6vw, 6rem); line-height: .95; }
+  .cta { background: var(--electric); color: #fff; padding: 12px 22px; display: inline-flex; gap: 10px; }
+  .cta span { transition: transform .4s var(--ease); } .cta:hover span { transform: translateX(3px); }
+
+  /* Spike controls */
+  .ui { position: fixed; z-index: 100; right: 16px; bottom: 16px; display: flex; gap: 6px; }
+  .ui button { border: 1px solid var(--rule); background: var(--paper); padding: 7px 10px; cursor: pointer; }
+  .ui button[aria-pressed="true"] { background: var(--electric); color: #fff; border-color: var(--electric); }
+
+  @media (max-width: 1023px) { .work { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 767px) {
+    .nav { padding: 20px; } .nav nav, .avail { display: none; }
+    .hero { padding: 16vh 20px 4vh; } .work { padding: 3vh 20px 6vh; grid-template-columns: 1fr; gap: 7vh; }
+    .work.list .card { grid-template-columns: 88px minmax(0, 1fr); gap: 16px; }
+    .work.list .meta { grid-template-columns: 30px minmax(0, 1fr) auto; } .work.list .meta .tags { display: none; } .work.list .meta .yr { grid-column: 3; }
+    .end { margin: 2vh 20px 10vh; }
+  }
+  .reduced *, .reduced *::before, .reduced *::after { animation: none !important; transition: none !important; }
+  .reduced .card.pre { opacity: 1; transform: none; }
+  .reduced .hero h1 .mask > span { transform: none; } .reduced .hero .count, .reduced .hero p, .reduced .controls { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header class="nav mono">
+  <a href="#"><span style="opacity:.5">DDC</span> / Damian De Cruz</a>
+  <nav><a href="#">Home</a><a href="#" aria-current="page">Portfolio</a><a href="#">Services</a><a href="#">Privacy</a></nav>
+  <span class="avail"><i></i>Available · 2026</span>
+</header>
+
+<main>
+  <section class="hero">
+    <span class="count mono"><b>06</b> live · <b>02</b> on the way</span>
+    <h1><span class="mask"><span>All <em>work.</em></span></span></h1>
+    <p>Client sites, concepts and my own tools, newest first.</p>
+    <div class="controls">
+      <div class="filters mono" id="filters" role="group" aria-label="Filter the work"></div>
+      <div class="view mono" role="group" aria-label="View"><button data-view="grid" aria-pressed="true">Grid</button><button data-view="list" aria-pressed="false">List</button></div>
+    </div>
+  </section>
+
+  <section class="work" id="work" aria-label="All work"></section>
+
+  <section class="end">
+    <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="addr"><span class="typed" data-type="your-site.com"></span><span class="caret"></span></div></div>
+    <div class="body">
+      <h2>Your project next.</h2>
+      <a class="cta mono" href="#">Start a project <span>→</span></a>
+    </div>
+  </section>
+</main>
+
+<div class="ui mono">
+  <button id="replay">Replay entrance</button>
+  <button id="reduced" aria-pressed="false">Reduced motion</button>
+  <button id="theme" aria-pressed="false">Dark</button>
+</div>
+
+<script>
+const PROJECTS = [
+  { n: "01", slug: "aloys-travels", title: "Aloys Travels", domain: "aloys-travels.com", cats: ["client"], tags: ["Client Work", "Travel"], blurb: "Website for a travel company: clean booking flows and a design that sells the journey." },
+  { n: "02", slug: "danella-de-cruz", title: "Danella De Cruz", domain: "danelladc.com", cats: ["client"], tags: ["Next.js", "Music"], blurb: "Portfolio and booking site for a Colombo cover artist: her music, story and schedule on one clean stage." },
+  { n: "03", slug: "spades-solutions", title: "Spades Solutions", domain: "enderguardian25.github.io/spades-solutions", cats: ["client"], tags: ["Client design · not launched", "Business"], blurb: "Website for a growing solutions company, built to look sharp and turn visitors into enquiries." },
+  { n: "04", slug: "kahatagaha-graphite", title: "Kahatagaha Graphite", domain: "enderguardian25.github.io/kgll-website", cats: ["concept"], tags: ["Concept", "Design"], blurb: "Two homepage concepts for a crystalline graphite producer, one dark and technical, one light and editorial." },
+  { n: "05", slug: "portfolio", title: "This Portfolio", domain: "damiandc.com", cats: ["personal"], tags: ["Next.js", "Framer Motion"], blurb: "The site you're on, kept as a living journal of my work.", self: true, noFull: true },
+  { n: "06", slug: "personal-dashboard", title: "Personal Dashboard", domain: "enderguardian25.github.io/personal-dashboard", cats: ["personal"], tags: ["Static Site", "GitHub Pages"], blurb: "A self-updating homepage I open every morning, with RSS feeds, a reading queue and quick links." },
+  { n: "07", slug: null, title: "Interact District 3220", domain: "interactdistrict3220.org", cats: ["client", "upcoming"], tags: ["Client Work"], blurb: "New website for Interact District 3220, in progress." },
+  { n: "08", slug: null, title: "ai-studio", domain: "ai-studio", cats: ["personal", "upcoming"], tags: ["In the works"], blurb: "In the works · 2026." },
+];
+const FILTERS = [["all", "All"], ["client", "Client"], ["concept", "Concept"], ["personal", "Personal"], ["upcoming", "In progress"]];
+const reducedMQ = matchMedia("(prefers-reduced-motion: reduce)");
+let reduced = reducedMQ.matches;
+const R = () => reduced;
+const FINE = matchMedia("(hover: hover) and (pointer: fine)");
+
+// ── Markup ──────────────────────────────────────────────────────────────
+const work = document.getElementById("work");
+function frame(p) {
+  const status = `<span class="status ${p.slug ? "live" : ""}" title="${p.slug ? "Live" : "In progress"}"></span>`;
+  const view = p.slug
+    ? (p.noFull ? `<img class="top" src="proj/${p.slug}.webp" alt="">` : `<img data-full src="proj/full/${p.slug}.webp" alt="">`)
+    : `<div class="build"><div class="navbar"><i style="--k:0"></i><i style="--k:1"></i></div><i class="h1" style="--k:2"></i><i class="h2" style="--k:3"></i><div class="blocks"><i style="--k:4"></i><i style="--k:5"></i><i style="--k:6"></i></div><span class="loading mono">loading… 2026 →</span></div>`;
+  return `<div class="frame" data-flip="size"><div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="addr">${status}<span class="typed" data-type="${p.domain}"></span><span class="caret"></span></div></div><div class="viewport">${view}</div></div>`;
+}
+work.innerHTML = PROJECTS.map((p, i) => `
+  <article class="card pre" data-i="${i}" data-cats="${p.cats.join(" ")}">
+    ${p.slug ? `<a class="cover" href="${p.self ? "#" : "#"}" aria-label="${p.title}${p.self ? " (home)" : ", opens in a new tab"}"></a>` : ""}
+    ${frame(p)}
+    <div class="meta" data-flip="pos">
+      <span class="n mono">${p.n}</span><h3>${p.title}</h3><span class="yr mono">2026 <span class="arrow">${p.slug ? "↗" : "…"}</span></span>
+      <div class="tags mono">${p.tags.map((t) => `<span>${t}</span>`).join("")}</div>
+      <p class="blurb">${p.blurb}</p>
+    </div>
+  </article>`).join("");
+const cards = [...work.querySelectorAll(".card")];
+
+// ── Address bar typing ──────────────────────────────────────────────────
+function type(el, delay = 0) {
+  const text = el.dataset.type, caret = el.nextElementSibling;
+  if (R()) { el.textContent = text; caret?.classList.add("done"); return; }
+  el.textContent = ""; caret?.classList.remove("done");
+  let i = 0;
+  setTimeout(function tick() {
+    el.textContent = text.slice(0, ++i);
+    if (i < text.length) setTimeout(tick, 22 + Math.random() * 26);
+    else caret?.classList.add("done");
+  }, delay);
+}
+
+// ── Row-by-row entrance: a row rises as it enters; its cards stagger (capped)
+// and each types its address as it lands.
+function columns() { return getComputedStyle(work).gridTemplateColumns.split(" ").length; }
+function arrive(card, col) {
+  const delay = Math.min(col, 3) * 110;
+  card.style.transitionDelay = `${delay}ms`;
+  card.classList.add("enter");
+  card.classList.remove("pre");
+  // Damian: the cards rise showing their screenshots, with no decode.
+  type(card.querySelector(".typed"), delay + 380);
+}
+let io;
+function observeEntrance() {
+  io?.disconnect();
+  io = new IntersectionObserver((es) => {
+    const cols = columns();
+    es.filter((e) => e.isIntersecting).forEach((e) => {
+      const visible = cards.filter((c) => c.style.display !== "none");
+      const col = work.classList.contains("list") ? 0 : visible.indexOf(e.target) % cols;
+      arrive(e.target, col);
+      io.unobserve(e.target);
+    });
+  }, { rootMargin: "0px 0px -10% 0px" });
+  cards.forEach((c) => io.observe(c));
+}
+// Loops (pulse, build) run only on screen.
+const onscreen = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("onscreen", e.isIntersecting)));
+cards.forEach((c) => onscreen.observe(c));
+
+// ── Scroll-through preview: resting on a card scrolls its full page inside
+// the frame, holds at the bottom, then eases back. Time-driven once started,
+// so a resting pointer keeps it going. Phones: the card nearest the centre,
+// once scrolling has settled.
+const easeIO = (t) => (t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+const runs = new Map();
+function preview(card, on) {
+  const img = card.querySelector("img[data-full]"); if (!img || R()) return;
+  const vp = img.parentElement;
+  const run = runs.get(card) || { y: 0, raf: 0 };
+  runs.set(card, run);
+  cancelAnimationFrame(run.raf);
+  const travel = Math.max(0, img.offsetHeight - vp.clientHeight);
+  if (on && travel < 8) return;
+  const from = run.y;
+  const plan = on
+    ? [{ to: -travel, ms: Math.min(13500, Math.max(3900, travel * 13.5)) }, { to: -travel, ms: 1350 }, { to: 0, ms: 2100 }]
+    : [{ to: 0, ms: Math.max(380, Math.abs(from) * .8) }];
+  let seg = 0, s0 = performance.now(), segFrom = from;
+  const step = (now) => {
+    const p = plan[seg], k = Math.min(1, (now - s0) / p.ms);
+    run.y = segFrom + (p.to - segFrom) * easeIO(k);
+    img.style.transform = `translate3d(0, ${run.y.toFixed(1)}px, 0)`;
+    if (k >= 1) { seg++; s0 = now; segFrom = run.y; if (seg >= plan.length) return; }
+    run.raf = requestAnimationFrame(step);
+  };
+  run.raf = requestAnimationFrame(step);
+}
+let hovered = null;
+work.addEventListener("pointerover", (e) => {
+  if (!FINE.matches) return;
+  const c = e.target.closest(".card"); if (c === hovered) return;
+  if (hovered) preview(hovered, false);
+  hovered = c; if (c) preview(c, true);
+});
+work.addEventListener("pointerleave", () => { if (hovered) preview(hovered, false); hovered = null; });
+work.addEventListener("focusin", (e) => { const c = e.target.closest(".card"); if (c) preview(c, true); });
+work.addEventListener("focusout", (e) => { const c = e.target.closest(".card"); if (c) preview(c, false); });
+let settle = 0, phoneCard = null;
+addEventListener("scroll", () => {
+  if (FINE.matches) return;
+  clearTimeout(settle);
+  settle = setTimeout(() => {
+    let best = null, bd = 1e9;
+    cards.filter((c) => c.style.display !== "none").forEach((c) => { const r = c.getBoundingClientRect(); const d = Math.abs(r.top + r.height / 2 - innerHeight / 2); if (d < bd) { bd = d; best = c; } });
+    if (best !== phoneCard) { if (phoneCard) preview(phoneCard, false); phoneCard = best; if (best) preview(best, true); }
+  }, 450);
+}, { passive: true });
+
+// ── FLIP: filters and the Grid | List morph glide instead of cutting.
+// Frames FLIP with scale (their pictures can stretch mid-flight); text blocks
+// translate only, so glyphs never squash (as View Morph's layout="position").
+function flip(change) {
+  const parts = [...work.querySelectorAll("[data-flip]")];
+  const before = new Map(parts.map((el) => [el, el.getBoundingClientRect()]));
+  change();
+  if (R()) return;
+  parts.forEach((el, i) => {
+    const a = before.get(el), b = el.getBoundingClientRect();
+    if (!b.width || !a.width) return;
+    const dx = a.left - b.left, dy = a.top - b.top;
+    const sx = a.width / b.width, sy = a.height / b.height;
+    const size = el.dataset.flip === "size";
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && (!size || (Math.abs(sx - 1) < .01 && Math.abs(sy - 1) < .01))) return;
+    const idx = +el.closest(".card").dataset.i;
+    el.animate(
+      [{ transform: size ? `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` : `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+      { duration: 620, delay: Math.min(idx, 7) * 28, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "backwards" }
+    );
+  });
+}
+
+// Filters
+let filter = "all";
+const filtersEl = document.getElementById("filters");
+filtersEl.innerHTML = FILTERS.map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${k === filter}">${l}<sup>${k === "all" ? PROJECTS.length : PROJECTS.filter((p) => p.cats.includes(k)).length}</sup></button>`).join("");
+filtersEl.addEventListener("click", (e) => {
+  const b = e.target.closest(".chip"); if (!b || b.dataset.f === filter) return;
+  filter = b.dataset.f;
+  filtersEl.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  const show = (c) => filter === "all" || c.dataset.cats.split(" ").includes(filter);
+  const leaving = cards.filter((c) => c.style.display !== "none" && !show(c));
+  const coming = cards.filter((c) => c.style.display === "none" && show(c));
+  const apply = () => flip(() => {
+    leaving.forEach((c) => (c.style.display = "none"));
+    coming.forEach((c) => { c.style.display = ""; });
+  });
+  if (R() || !leaving.length) { apply(); coming.forEach((c) => fadeIn(c)); return; }
+  Promise.all(leaving.map((c) => c.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.97)" }], { duration: 180, easing: "ease-in" }).finished))
+    .then(() => { apply(); coming.forEach((c) => fadeIn(c)); });
+});
+function fadeIn(c) {
+  if (R()) return;
+  c.animate([{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "none" }], { duration: 520, delay: 120, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "backwards" });
+}
+
+// Grid | List
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+  const list = b.dataset.view === "list";
+  if (work.classList.contains("list") === list) return;
+  document.querySelectorAll("[data-view]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  cards.forEach((c) => runs.get(c) && preview(c, false));
+  flip(() => work.classList.toggle("list", list));
+}));
+
+// ── Spike controls ──────────────────────────────────────────────────────
+document.getElementById("replay").addEventListener("click", () => location.reload());
+document.getElementById("reduced").addEventListener("click", (e) => {
+  reduced = !reduced; document.documentElement.classList.toggle("reduced", reduced);
+  e.currentTarget.setAttribute("aria-pressed", String(reduced));
+  if (reduced) cards.forEach((c) => { c.classList.remove("pre"); c.querySelectorAll(".typed").forEach((t) => type(t)); });
+});
+document.getElementById("theme").addEventListener("click", (e) => {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  e.currentTarget.setAttribute("aria-pressed", String(dark));
+});
+if (reduced) document.documentElement.classList.add("reduced");
+document.querySelectorAll(".end .typed").forEach((t) => {
+  new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { type(t, 200); o.disconnect(); } })).observe(t);
+});
+document.fonts.ready.then(observeEntrance);
+</script>
+</body>
+</html>

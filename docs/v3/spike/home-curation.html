@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home curation spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  Phase 6 spike (2026-10-28): Home as Damian curated it. The four-page nav,
+  the hero without the SERVICES button, and § 04 Selected Work as a carousel
+  (variant B) of his five sites in his order, 40vw cards, depth of field,
+  scroll smoothing, the centred card decoding from its real hand-traced
+  skeleton (home-skeletons.js, rendered from components/projects/skeletons.jsx)
+  into its screenshot. Serve with `node docs/v3/spike/serve.cjs` and open
+  http://localhost:3200/home-curation.html. Needs proj/ (see README).
+-->
+<style>
+  :root {
+    --ivory: #F6F6F1; --paper: #FBFBF7; --ink: #0B1F3A; --ink-soft: #16315A; --ink-faint: #5A6B82;
+    --electric: #2563EB; --sky: #DBEAFE; --mist: #EEF4FD; --rule: #D9DEE6; --live: #22C55E;
+    --ease: cubic-bezier(.22, 1, .36, 1);
+  }
+  :root[data-theme="dark"] {
+    --ivory: #0B1F3A; --paper: #112646; --ink: #F6F6F1; --ink-soft: #A2B4D0; --ink-faint: #8EA1C0;
+    --electric: #3B82F6; --sky: #1E3A6E; --mist: #132B50; --rule: #24406B;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--ivory); }
+  body { background: var(--ivory); color: var(--ink); font-family: Manrope, system-ui, sans-serif; overflow-x: clip; transition: background .3s, color .3s; }
+  ::selection { background: var(--electric); color: #fff; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .link-line { position: relative; }
+  .link-line::after { content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 1px; background: currentColor; transform: scaleX(1); transform-origin: left; transition: transform .5s var(--ease); }
+  .link-line:hover::after { transform: scaleX(0); transform-origin: right; }
+
+  /* Skeleton token classes (as Tailwind generates them on the site) */
+  .fill-none { fill: none; }
+  .fill-paper { fill: var(--paper); }
+  .fill-electric\/20 { fill: color-mix(in srgb, var(--electric) 20%, transparent); }
+  .fill-electric\/10 { fill: color-mix(in srgb, var(--electric) 10%, transparent); }
+  .stroke-electric\/40 { stroke: color-mix(in srgb, var(--electric) 40%, transparent); }
+  .fill-ink\/25 { fill: color-mix(in srgb, var(--ink) 25%, transparent); }
+  .fill-electric\/45 { fill: color-mix(in srgb, var(--electric) 45%, transparent); }
+  .fill-electric\/35 { fill: color-mix(in srgb, var(--electric) 35%, transparent); }
+  .stroke-ink\/40 { stroke: color-mix(in srgb, var(--ink) 40%, transparent); }
+  .fill-ink\/40 { fill: color-mix(in srgb, var(--ink) 40%, transparent); }
+  .fill-ink\/12 { fill: color-mix(in srgb, var(--ink) 12%, transparent); }
+  .fill-ink\/18 { fill: color-mix(in srgb, var(--ink) 18%, transparent); }
+  .stroke-electric\/35 { stroke: color-mix(in srgb, var(--electric) 35%, transparent); }
+  .fill-ink\/45 { fill: color-mix(in srgb, var(--ink) 45%, transparent); }
+  .fill-ink\/30 { fill: color-mix(in srgb, var(--ink) 30%, transparent); }
+  .fill-ink\/15 { fill: color-mix(in srgb, var(--ink) 15%, transparent); }
+  .fill-ink\/10 { fill: color-mix(in srgb, var(--ink) 10%, transparent); }
+  .fill-electric\/8 { fill: color-mix(in srgb, var(--electric) 8%, transparent); }
+  .fill-ink\/8 { fill: color-mix(in srgb, var(--ink) 8%, transparent); }
+  .fill-electric\/40 { fill: color-mix(in srgb, var(--electric) 40%, transparent); }
+
+  /* Nav */
+  .nav { position: fixed; inset: 0 0 auto 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; padding: 24px 40px; mix-blend-mode: multiply; }
+  :root[data-theme="dark"] .nav { mix-blend-mode: screen; }
+  .nav nav { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 32px; }
+  .nav nav a { position: relative; padding-bottom: 4px; }
+  .nav nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .5s var(--ease); }
+  .nav nav a:hover::after, .nav nav a[aria-current]::after { transform: scaleX(1); transform-origin: left; }
+  .nav nav a[aria-current] { color: var(--electric); }
+  .avail { color: var(--ink-faint); display: inline-flex; gap: 8px; align-items: center; }
+  .avail i { width: 6px; height: 6px; border-radius: 50%; background: var(--live); }
+
+  /* Hero (no SERVICES button) */
+  .hero { min-height: 100vh; position: relative; overflow: hidden; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(64px); pointer-events: none; }
+  .hero h1 { font-family: "Instrument Serif", serif; font-weight: 400; text-transform: uppercase; font-size: 13.5vw; line-height: .82; letter-spacing: -0.04em; padding: 30vh 40px 0; position: relative; z-index: 1; }
+  .hero h1 em { color: var(--electric); }
+  .hero .rise { display: block; overflow: hidden; padding-bottom: .04em; }
+  .hero .rise > span { display: inline-block; transform: translateY(110%); animation: rise 1s var(--ease) forwards; }
+  .hero .rise + .rise > span { animation-delay: .15s; }
+  @keyframes rise { to { transform: none; } }
+  .hero .coords { position: absolute; top: 112px; left: 40px; color: var(--ink-soft); line-height: 1.7; }
+  .hero .index { position: absolute; top: 112px; right: 40px; color: var(--ink-soft); line-height: 1.7; text-align: right; }
+  .hero .lede { position: absolute; left: 40px; bottom: 9vh; max-width: 32rem; font-size: 19px; line-height: 1.4; color: var(--ink-soft); z-index: 1; }
+  .hero .lede em { font-family: "Instrument Serif", serif; color: var(--ink); }
+  .stage { position: absolute; right: calc(40px + 5vw); bottom: 0; width: min(40vw, 72vh, calc((100vh - 190px) * .8)); aspect-ratio: 4 / 5; }
+  .stage canvas { width: 100%; height: 100%; display: block; }
+
+  /* § 04 Selected Work */
+  .work { border-top: 1px solid var(--rule); }
+  .work .head { display: grid; grid-template-columns: 3fr 9fr; gap: 24px; padding: 176px 40px 0; }
+  .label { color: var(--ink-faint); }
+  .work h2 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: clamp(48px, 5.4vw, 72px); line-height: .95; letter-spacing: -0.02em; }
+  .work h2 em { color: var(--electric); }
+  .intro { margin-top: 24px; display: flex; align-items: baseline; gap: 28px; flex-wrap: wrap; }
+  .intro p { max-width: 36rem; font-size: 18px; line-height: 1.55; color: var(--ink-soft); }
+  .intro a { color: var(--electric); white-space: nowrap; }
+  .intro a span { display: inline-block; transition: transform .5s var(--ease); } .intro a:hover span { transform: translateX(4px); }
+
+  .track { position: relative; margin-top: 96px; }
+  .sticky { position: sticky; top: 0; height: 100vh; overflow: clip; }
+  .card { position: absolute; left: 0; top: 0; transform-origin: 50% 40%; will-change: transform, filter, opacity; }
+  .frame { background: var(--paper); border: 1px solid var(--rule); overflow: hidden; box-shadow: 0 30px 60px -36px rgba(11,31,58,.45); }
+  .chrome { height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--rule); }
+  .dots { display: flex; gap: 6px; } .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); }
+  .addr { flex: 1; min-width: 0; height: 20px; border-radius: 4px; background: var(--mist); color: var(--ink-faint); display: flex; align-items: center; padding: 0 10px; font: 10.5px "JetBrains Mono", monospace; white-space: nowrap; overflow: hidden; }
+  .shot { position: relative; aspect-ratio: 1440 / 900; overflow: hidden; }
+  .shot svg, .shot img, .shot canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .shot img { object-fit: cover; object-position: top; opacity: 0; }
+  .card[data-state="shot"] .shot img, .card[data-state="decoding"] .shot img, .card[data-state="dissolving"] .shot img { opacity: 1; }
+  .meta { height: 96px; padding-top: 14px; display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-content: start; }
+  .meta .n { color: var(--electric); padding-top: 6px; }
+  .meta h3 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: 30px; line-height: 1; }
+  .meta .sub { grid-column: 2; margin-top: 8px; color: var(--ink-faint); display: flex; gap: 14px; flex-wrap: wrap; transition: opacity .35s, transform .35s; }
+  .meta .blurb { grid-column: 2; margin-top: 6px; font-size: 14px; line-height: 1.45; color: var(--ink-soft); max-width: 46ch; transition: opacity .35s; }
+  .card:not(.is-active) .meta .sub, .card:not(.is-active) .meta .blurb { opacity: 0; }
+  .end .blank { aspect-ratio: 1440 / 900; display: grid; place-content: center; justify-items: center; gap: 22px; background: radial-gradient(circle at 50% 40%, var(--sky), transparent 65%), var(--paper); }
+  .end h4 { font-family: "Instrument Serif", serif; font-weight: 400; font-style: italic; font-size: clamp(30px, 3.4vw, 54px); }
+  .cta { background: var(--electric); color: #fff; padding: 11px 20px; display: inline-flex; gap: 10px; }
+  .caret { display: inline-block; width: 6px; height: 12px; background: var(--electric); margin-left: 2px; animation: blink 1s steps(1) infinite; vertical-align: -1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+  /* Stack (phones) and list (reduced motion): plain flow */
+  .flat .sticky { position: static; height: auto; overflow: visible; }
+  .stack { display: flex; flex-direction: column; gap: 96px; padding: 0 40px 176px; }
+  .stack .card { position: relative; width: min(48rem, 100%) !important; margin-left: 25%; }
+  .next { height: 60vh; display: grid; place-content: center; color: var(--ink-faint); border-top: 1px solid var(--rule); }
+
+  /* Phones: vertical stack, dim + shrink, no blur */
+  @media (max-width: 767px) {
+    .nav { padding: 20px; } .nav nav, .avail { display: none; }
+    .hero h1 { font-size: 17vw; padding: 22vh 20px 0; }
+    .stage { position: relative; right: auto; margin: 6vh auto 0; width: min(86vw, 60vh); }
+    .hero .lede { position: static; padding: 4vh 20px 8vh; } .hero .coords, .hero .index { display: none; }
+    .work .head { grid-template-columns: 1fr; padding: 120px 20px 0; }
+    .track { margin-top: 56px; }
+    .stack { gap: 64px; padding: 0 16px 120px; }
+    .stack .card { width: 86% !important; margin-left: 0; }
+    .stack .card:nth-child(even) { margin-left: auto; }
+  }
+  .ui { position: fixed; z-index: 100; right: 16px; bottom: 16px; display: flex; gap: 6px; }
+  .ui button { font: 500 10px "JetBrains Mono", monospace; letter-spacing: .12em; text-transform: uppercase; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); padding: 7px 10px; cursor: pointer; }
+  .dofui { display: flex; align-items: center; gap: 8px; font: 500 10px "JetBrains Mono", monospace; letter-spacing: .12em; text-transform: uppercase; background: var(--paper); border: 1px solid var(--rule); padding: 0 10px; color: var(--ink); }
+  .dofui input { width: 110px; accent-color: var(--electric); }
+  .ui button[aria-pressed="true"] { background: var(--electric); color: #fff; border-color: var(--electric); }
+</style>
+<script src="home-skeletons.js"></script>
+</head>
+<body>
+
+<header class="nav mono">
+  <a href="#"><span style="opacity:.5">DDC</span> / Damian De Cruz</a>
+  <nav><a href="#" aria-current="page">Home</a><a href="portfolio-page.html">Portfolio</a><a href="#">Services</a><a href="#">Privacy</a></nav>
+  <span class="avail"><i></i>Available · 2026</span>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="blob" style="width:60vw;height:60vw;right:-8vw;top:-10vw;background:var(--sky);opacity:.7"></div>
+    <div class="blob" style="width:40vw;height:40vw;left:-10vw;top:33%;background:var(--mist)"></div>
+    <div class="coords mono">N 6.9271° / E 79.8612°<br><span style="color:var(--ink-faint)">Colombo · Sri Lanka</span></div>
+    <div class="index mono">(001)<br><span style="color:var(--ink-faint)">Index / Landing</span></div>
+    <h1><span class="rise"><span>Damian</span></span><span class="rise"><span><em>De&nbsp;</em>Cruz.</span></span></h1>
+    <div class="stage"><canvas id="portrait"></canvas></div>
+    <p class="lede">In my second year of <em>BSc (Hons) Computer Science</em> at the Informatics Institute of Technology, Colombo, the University of Westminster’s campus in Sri Lanka.</p>
+  </section>
+
+  <section class="work" id="work">
+    <div class="head">
+      <div><span class="label mono">§ 04 — Selected Work</span></div>
+      <div>
+        <h2>A small but <em>growing</em> shelf.</h2>
+        <div class="intro">
+          <p>Five favourites from a growing shelf. The rest, and what’s on the way, is on the portfolio page.</p>
+          <a class="mono link-line" href="portfolio-page.html">All work <span>→</span></a>
+        </div>
+      </div>
+    </div>
+    <div class="track" id="track"><div class="sticky"><div id="strip"></div></div></div>
+  </section>
+
+  <section class="next mono">§ 05 Timeline follows…</section>
+</main>
+
+<div class="ui">
+  <label class="dofui">Sharp zone <b id="zoneOut"></b><input type="range" id="zone" min="0" max="45" step="5" value="40"></label>
+  <button id="settle" aria-pressed="false">Settle off</button>
+  <button id="reduced" aria-pressed="false">Reduced motion</button>
+  <button id="theme" aria-pressed="false">Dark</button>
+</div>
+
+<script>
+// Damian's five, strongest first, then the end card.
+const PROJECTS = [
+  { n: "01", slug: "aloys-travels", sk: "aloys", title: "Aloys Travels", domain: "aloys-travels.com", tags: ["Client Work", "Travel", "Design"], blurb: "Website for a travel company: clean booking flows and a design that sells the journey." },
+  { n: "02", slug: "danella-de-cruz", sk: "danella", title: "Danella De Cruz", domain: "danelladc.com", tags: ["Next.js", "Client Work", "Music"], blurb: "Portfolio and booking site for a Colombo cover artist, putting her music, story and performance schedule on one clean stage." },
+  { n: "03", slug: "kahatagaha-graphite", sk: "kahatagaha", title: "Kahatagaha Graphite", domain: "enderguardian25.github.io/kgll-website", tags: ["HTML/CSS/JS", "Concept", "Design"], blurb: "Two homepage concepts for a Sri Lankan crystalline graphite producer, one dark and technical, one light and editorial." },
+  { n: "04", slug: "spades-solutions", sk: "spades", title: "Spades Solutions", domain: "enderguardian25.github.io/spades-solutions", tags: ["Client design · not launched", "Business", "Design"], blurb: "Website for a growing solutions company, built to look sharp and turn visitors into enquiries." },
+  { n: "05", slug: "personal-dashboard", sk: "dashboard", title: "Personal Dashboard", domain: "enderguardian25.github.io/personal-dashboard", tags: ["HTML/CSS/JS", "Static Site", "GitHub Pages"], blurb: "A self-updating homepage I open every morning, with RSS feeds, a reading queue and quick links." },
+];
+const N = PROJECTS.length; // index of the end card
+const TAN = Math.tan(12 * Math.PI / 180), SHOT = 900 / 1440, CHROME = 34, LABEL = 96, PIN_SCREENS = 3;
+const strip = document.getElementById("strip"), track = document.getElementById("track");
+let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+strip.innerHTML = PROJECTS.map((p, i) => `
+  <article class="card" data-state="skeleton" data-i="${i}">
+    <div class="frame"><div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="addr">${p.domain}</div></div>
+      <div class="shot">${SKELETONS[p.sk]}<img src="proj/${p.slug}.webp" alt=""><canvas></canvas></div></div>
+    <div class="meta"><span class="n mono">${p.n}</span><h3>${p.title}</h3>
+      <div class="sub mono">${p.tags.map((t) => `<span>${t}</span>`).join("")}<span style="color:var(--electric)">Visit ↗</span></div>
+      <p class="blurb">${p.blurb}</p></div>
+  </article>`).join("") + `
+  <article class="card end" data-end>
+    <div class="frame"><div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="addr"><span id="endType"></span><span class="caret"></span></div></div>
+      <div class="blank"><h4>Your project next.</h4><a class="cta mono" href="#">Start a project <span>→</span></a></div></div>
+  </article>`;
+const cards = [...strip.children];
+
+// ── Decode: the centred card goes skeleton → noise → screenshot (700 ms) and
+// dissolves back 600 ms after it stops being active (450 ms), as on the site.
+const NOISE = "▖▗▘▙▚▛▜▝▞▟#%&*+=/\\<>{}[]01";
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v);
+function run(card, dir) {
+  const cv = card.querySelector("canvas"); if (!cv) return;
+  const b = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  const w = cv.offsetWidth, h = cv.offsetHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cs = 12, cols = Math.ceil(w / cs), rows = Math.ceil(h / cs), cells = [];
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) cells.push({ x, y, t: (x / cols) * .45 + (y / rows) * .2 + Math.random() * .35 });
+  const paper = css("--paper"), electric = css("--electric");
+  ctx.font = `${cs - 1}px "JetBrains Mono", monospace`; ctx.textBaseline = "top";
+  const ms = dir === "in" ? 700 : 450, t0 = performance.now(), token = (card._tok = (card._tok || 0) + 1);
+  card.dataset.state = dir === "in" ? "decoding" : "dissolving";
+  const step = (now) => {
+    if (card._tok !== token) return;
+    const k = (now - t0) / ms;
+    ctx.clearRect(0, 0, w, h);
+    let left = 0;
+    for (const c of cells) {
+      const covered = dir === "in" ? k < c.t : k >= 1 - c.t; // in: cells clear; out: cells fill
+      if (!covered) continue; left++;
+      ctx.fillStyle = paper; ctx.fillRect(c.x * cs, c.y * cs, cs, cs);
+      const edge = dir === "in" ? c.t - k : k - (1 - c.t);
+      if (edge < .25) { ctx.fillStyle = electric; ctx.fillText(NOISE[(Math.random() * NOISE.length) | 0], c.x * cs + 1, c.y * cs); }
+    }
+    if (k < 1) requestAnimationFrame(step);
+    else { ctx.clearRect(0, 0, w, h); card.dataset.state = dir === "in" ? "shot" : "skeleton"; }
+  };
+  requestAnimationFrame(step);
+}
+let active = -1;
+function setActive(i) {
+  if (i === active) return;
+  const prev = active; active = i;
+  cards.forEach((c, j) => c.classList.toggle("is-active", j === i));
+  if (prev >= 0 && prev < N) { const c = cards[prev]; clearTimeout(c._out); c._out = setTimeout(() => { if (active !== prev && c.dataset.state !== "skeleton") run(c, "out"); }, 600); }
+  if (i >= 0 && i < N) { const c = cards[i]; clearTimeout(c._out); if (c.dataset.state === "skeleton" || c.dataset.state === "dissolving") run(c, "in"); }
+  if (i === N) typeEnd();
+}
+let typed = false;
+function typeEnd() {
+  if (typed) return; typed = true;
+  const el = document.getElementById("endType"), text = "your-site.com"; let k = 0;
+  (function tick() { el.textContent = text.slice(0, ++k); if (k < text.length) setTimeout(tick, 70); })();
+}
+
+// ── Layout: carousel (B) on desktop, a stack on phones, a plain list for reduced motion
+let L = null, mode = "";
+function layout() {
+  const vw = document.documentElement.clientWidth, vh = innerHeight;
+  mode = reduced ? "list" : vw >= 768 ? "strip" : "stack";
+  strip.className = mode === "strip" ? "" : "stack";
+  track.classList.toggle("flat", mode !== "strip");
+  if (mode !== "strip") {
+    track.style.height = ""; L = null;
+    cards.forEach((c) => { c.style.cssText = ""; });
+    if (mode === "list") typeEnd();
+    if (mode === "list") { cards.forEach((c) => { c.classList.add("is-active"); if (c.dataset.state !== undefined && c.dataset.state !== "shot") c.dataset.state = "shot"; }); }
+    return;
+  }
+  const cardW = Math.min(.40 * vw, (.488 * vh) / SHOT);
+  const cardH = CHROME + cardW * SHOT + LABEL;
+  L = { vw, vh, cardW, cardH, pitch: vw / 2 };
+  track.style.height = `${(1 + PIN_SCREENS) * 100}vh`;
+  cards.forEach((c) => { c.style.width = `${cardW}px`; c.style.position = "absolute"; });
+}
+
+// Scroll progress, smoothed: the strip eases after the scroll position.
+let shown = null, raf = 0;
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const smooth = (t) => t * t * (3 - 2 * t);
+// One step = the distance between two card centres (half the screen width).
+const DOF = { zone: .4, ramp: .6, settle: false }; // Damian: ±20vw, no settle
+function progress() { const r = track.getBoundingClientRect(); return clamp01(-r.top / (r.height - innerHeight)); }
+function frame() {
+  raf = 0;
+  if (mode === "strip") {
+    const target = progress();
+    shown = shown === null ? target : shown + (target - shown) * .14;
+    if (Math.abs(target - shown) < .0004) shown = target;
+    const { vw, vh, cardW, cardH, pitch } = L, f = shown * N;
+    const sx = vw / 2 - cardW / 2 - f * pitch;
+    const sy = vh / 2 - cardH / 2 - (sx + cardW / 2 - vw / 2) * TAN;
+    let best = 0, bd = 1e9;
+    cards.forEach((c, i) => {
+      const left = sx + i * pitch, top = sy - i * pitch * TAN;
+      const d = Math.abs(left + cardW / 2 - vw / 2) / pitch; // distance from the centre, in steps
+      if (d < bd) { bd = d; best = i; }
+      // Sharp plateau (Damian: "sharp at a very small point"): fully sharp while
+      // the card is within ZONE steps of the centre, then a smooth ramp to full
+      // depth of field over RAMP steps; a little more blur past one step.
+      const k = smooth(clamp01((d - DOF.zone) / DOF.ramp));
+      const blur = k * 3.2 + clamp01((d - 1) / .5) * 1.6;
+      c.style.transform = `translate3d(${left}px, ${top}px, 0) scale(${1 - k * .1})`;
+      c.style.opacity = 1 - k * .32 - clamp01((d - 1) / .5) * .16;
+      c.style.filter = blur > .05 ? `blur(${blur.toFixed(2)}px) saturate(${1 - k * .35})` : "none";
+      c.style.zIndex = 100 - Math.round(d * 10);
+    });
+    setActive(bd < .5 ? best : -1);
+    if (shown !== target) schedule();
+  } else if (mode === "stack") {
+    // Phones: the card nearest the centre is active; the rest dim and shrink (no blur).
+    let best = -1, bd = 1e9;
+    cards.forEach((c, i) => {
+      const r = c.getBoundingClientRect(), d = Math.abs(r.top + r.height / 2 - innerHeight / 2) / innerHeight;
+      if (d < bd) { bd = d; best = i; }
+      const k = Math.min(1, d * 1.6);
+      c.style.transform = `scale(${1 - k * .08})`; c.style.opacity = 1 - k * .4;
+    });
+    setActive(bd < .5 ? best : -1);
+  }
+}
+const schedule = () => { if (!raf) raf = requestAnimationFrame(frame); };
+addEventListener("scroll", schedule, { passive: true });
+// Settle: once scrolling stops inside the pin, glide to the nearest card.
+let idle = 0, settling = false;
+addEventListener("scroll", () => {
+  if (mode !== "strip" || !DOF.settle) return;
+  clearTimeout(idle);
+  if (settling) return;
+  idle = setTimeout(() => {
+    const p = progress(); if (p <= 0 || p >= 1) return;
+    const target = Math.round(p * N) / N; if (Math.abs(target - p) < .004) return;
+    const t = track.offsetTop + target * (track.offsetHeight - innerHeight);
+    settling = true; scrollTo({ top: t, behavior: "smooth" });
+    setTimeout(() => (settling = false), 700);
+  }, 220);
+}, { passive: true });
+addEventListener("resize", () => { layout(); shown = null; schedule(); });
+
+// ── Hero portrait: a static ASCII render of public/hero/portrait.webp (stand-in)
+(function portrait() {
+  const cv = document.getElementById("portrait"), img = new Image();
+  img.src = "proj/portrait.webp";
+  img.onload = () => {
+    const cols = 64, rows = 80, off = document.createElement("canvas"); off.width = cols; off.height = rows;
+    const o = off.getContext("2d"); o.drawImage(img, 0, 0, cols, rows);
+    let data; try { data = o.getImageData(0, 0, cols, rows).data; } catch { return; }
+    const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+    cv.width = r.width * dpr; cv.height = r.height * dpr;
+    const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cw = r.width / cols, ch = r.height / rows, RAMP = " .:-=+*#%@";
+    ctx.font = `700 ${ch * 1.05}px "JetBrains Mono", monospace`; ctx.textBaseline = "top"; ctx.textAlign = "center"; ctx.fillStyle = css("--electric");
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const k = (y * cols + x) * 4, a = data[k + 3] / 255, lum = (data[k] * .3 + data[k + 1] * .59 + data[k + 2] * .11) / 255, v = a * (1 - lum * .75);
+      if (v >= .08) ctx.fillText(RAMP[Math.min(9, Math.floor(v * 10))], x * cw + cw / 2, y * ch);
+    }
+  };
+})();
+
+// ── Controls
+const zone = document.getElementById("zone"), zoneOut = document.getElementById("zoneOut");
+const showZone = () => (zoneOut.textContent = `±${Math.round(DOF.zone * 50)}vw`); // a step is 50vw
+zone.addEventListener("input", () => { DOF.zone = zone.value / 100; showZone(); schedule(); }); showZone();
+document.getElementById("settle").addEventListener("click", (e) => {
+  DOF.settle = !DOF.settle; e.currentTarget.setAttribute("aria-pressed", String(DOF.settle)); e.currentTarget.textContent = DOF.settle ? "Settle on" : "Settle off";
+});
+document.getElementById("reduced").addEventListener("click", (e) => {
+  reduced = !reduced; e.currentTarget.setAttribute("aria-pressed", String(reduced));
+  layout(); shown = null; schedule();
+});
+document.getElementById("theme").addEventListener("click", (e) => {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light"; e.currentTarget.setAttribute("aria-pressed", String(dark));
+});
+document.fonts.ready.then(() => { layout(); schedule(); });
+</script>
+</body>
+</html>

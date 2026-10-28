@@ -1,5 +1,5 @@
 const http = require('http'), fs = require('fs'), path = require('path');
-const root = __dirname, types = { '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.js': 'text/javascript' };
+const root = __dirname, types = { '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.js': 'text/javascript', '.webp': 'image/webp' };
 http.createServer((req, res) => {
   const p = path.join(root, decodeURIComponent(req.url.split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url.split('?')[0]));
   if (!p.startsWith(root) || !fs.existsSync(p)) { res.writeHead(404); return res.end(); }

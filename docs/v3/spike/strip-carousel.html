@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selected Work · strip demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ivory: #F6F6F1; --paper: #FBFBF7; --ink: #0B1F3A; --ink-soft: #16315A;
+    --ink-faint: #5A6B82; --electric: #2563EB; --sky: #DBEAFE; --mist: #EEF4FD; --rule: #D9DEE6;
+  }
+  :root[data-theme="dark"] {
+    --ivory: #0B1F3A; --paper: #112646; --ink: #F6F6F1; --ink-soft: #A2B4D0;
+    --ink-faint: #8EA1C0; --electric: #3B82F6; --sky: #1E3A6E; --mist: #132B50; --rule: #24406B;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--ivory); }
+  body { background: var(--ivory); color: var(--ink); font-family: Manrope, system-ui, sans-serif; transition: background .4s, color .4s; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .display { font-family: "Instrument Serif", serif; }
+
+  /* Controls */
+  .panel {
+    position: fixed; top: 16px; right: 16px; z-index: 100; width: 300px;
+    background: var(--paper); border: 1px solid var(--rule); padding: 14px; display: grid; gap: 12px;
+    box-shadow: 0 10px 40px -20px rgba(11,31,58,.35);
+  }
+  .panel h2 { font-size: 10px; }
+  .variants { display: grid; gap: 6px; }
+  .variants button {
+    text-align: left; border: 1px solid var(--rule); background: transparent; color: var(--ink);
+    padding: 8px 10px; cursor: pointer; display: grid; gap: 2px;
+  }
+  .variants button b { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  .variants button span { font-size: 11.5px; color: var(--ink-faint); line-height: 1.35; }
+  .variants button[aria-pressed="true"] { border-color: var(--electric); background: var(--mist); }
+  .variants button[aria-pressed="true"] b { color: var(--electric); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .row label { font-size: 12px; }
+  .row input[type=range] { width: 120px; accent-color: var(--electric); }
+  .toggle { border: 1px solid var(--rule); background: transparent; color: var(--ink); padding: 5px 9px; cursor: pointer; }
+  .toggle[aria-pressed="true"] { background: var(--electric); color: #fff; border-color: var(--electric); }
+  .hide-panel { position: fixed; bottom: 16px; right: 16px; z-index: 101; }
+
+  /* Page */
+  .intro { min-height: 70vh; display: grid; align-content: end; padding: 0 6vw 8vh; gap: 18px; }
+  .intro .label { color: var(--ink-faint); }
+  .intro h1 { font-size: clamp(56px, 9vw, 150px); line-height: .9; letter-spacing: -0.04em; font-weight: 400; }
+  .intro h1 i { color: var(--electric); }
+  .intro-row { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; flex-wrap: wrap; max-width: 1200px; }
+  .intro p { max-width: 520px; font-size: 17px; line-height: 1.55; color: var(--ink-soft); }
+  .all-link { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--electric); padding-bottom: 3px; white-space: nowrap; }
+  .all-link:hover { color: var(--electric); }
+
+  .track { position: relative; }
+  .sticky { position: sticky; top: 0; height: 100vh; overflow: clip; }
+  .strip { position: absolute; left: 0; top: 0; will-change: transform; }
+
+  .card { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; will-change: transform, filter, opacity; }
+  .frame { background: var(--paper); border: 1px solid var(--rule); box-shadow: 0 30px 60px -35px rgba(11,31,58,.45); overflow: hidden; }
+  .chrome { height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--rule); }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); display: block; }
+  .addr { flex: 1; height: 20px; border-radius: 4px; background: var(--mist); color: var(--ink-faint); display: flex; align-items: center; padding: 0 10px; font-family: "JetBrains Mono", monospace; font-size: 10.5px; overflow: hidden; white-space: nowrap; }
+  .shot { display: block; width: 100%; aspect-ratio: 1440 / 900; object-fit: cover; object-position: top; background: var(--mist); }
+  .meta { height: 96px; padding-top: 14px; display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-content: start; }
+  .meta .n { color: var(--electric); padding-top: 6px; }
+  .meta h3 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: 30px; line-height: 1; }
+  .meta .sub { grid-column: 2; margin-top: 8px; color: var(--ink-faint); display: flex; gap: 14px; transition: opacity .35s, transform .35s; }
+  .card:not(.is-active) .meta .sub { opacity: 0; transform: translateY(-4px); }
+
+  .end .blank { aspect-ratio: 1440 / 900; display: grid; place-content: center; justify-items: center; gap: 22px; background:
+    radial-gradient(circle at 50% 40%, var(--sky), transparent 65%), var(--paper); }
+  .end .blank h4 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: clamp(30px, 3.4vw, 54px); font-style: italic; }
+  .end .cta { background: var(--electric); color: #fff; padding: 11px 20px; text-decoration: none; display: inline-flex; gap: 10px; }
+  .caret { display: inline-block; width: 6px; height: 12px; background: var(--electric); margin-left: 2px; animation: blink 1s steps(1) infinite; vertical-align: -1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .hud { position: absolute; left: 6vw; bottom: 5vh; color: var(--ink-faint); display: flex; gap: 18px; }
+  .hud b { color: var(--electric); font-weight: 500; }
+  .outro { height: 80vh; display: grid; place-content: center; color: var(--ink-faint); }
+  .note { position: absolute; left: 6vw; top: 5vh; color: var(--ink-faint); max-width: 440px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <h2 class="mono">Strip demo · pick a variant</h2>
+  <div class="variants" id="variants">
+    <button data-v="E"><b>E · Carousel + dwell + tunnel (your mix)</b><span>B's layout (neighbours half on, half off), C's parking beat and D's depth: the next card waits smaller and further back, and the last one swells toward you as it leaves.</span></button>
+    <button data-v="A"><b>A · Only the end changes</b><span>Moves like today (leading card at the left). It finishes with "Start" dead centre and 05 half off the left edge.</span></button>
+    <button data-v="B"><b>B · Carousel rhythm</b><span>Always one card centred, the previous one half out on the left and the next half in on the right. Continuous glide.</span></button>
+    <button data-v="C"><b>C · Dwell + glide (suggestion)</b><span>Same layout as B, but each card parks in the centre for a beat of scroll, then glides on. Easier to read each site.</span></button>
+    <button data-v="D"><b>D · Depth tunnel (suggestion)</b><span>Upcoming cards wait smaller and further back up the diagonal. Past cards fly toward you and fade. Depth of field matters most here.</span></button>
+  </div>
+  <div class="row"><label>Depth of field</label><button class="toggle mono" id="dof" aria-pressed="true">On</button></div>
+  <div class="row"><label>Dwell <span id="dwellOut"></span></label><input type="range" id="dwell" min="0" max="60" step="5" value="40"></div>
+  <div class="row"><label>Scroll smoothing</label><button class="toggle mono" id="smooth" aria-pressed="true">On</button></div>
+  <div class="row"><label>Card width <span id="sizeOut"></span></label><input type="range" id="size" min="34" max="45" step="1" value="40"></div>
+  <div class="row"><label>Theme</label><button class="toggle mono" id="theme" aria-pressed="false">Dark</button></div>
+  <div class="row"><label style="color:var(--ink-faint);font-size:11px">Today: 45vw (55vh cap). Demo default: 40vw (49vh cap).</label></div>
+</div>
+<button class="toggle mono hide-panel" id="hidePanel">Hide panel</button>
+
+<section class="intro">
+  <div class="label mono">§ 04 &nbsp;Selected Work</div>
+  <h1 class="display">Selected <i>work</i></h1>
+  <div class="intro-row">
+    <p>Five sites out in the world. The full shelf, with everything else I've built, lives on the portfolio page.</p>
+    <a class="all-link mono" href="#">All work →</a>
+  </div>
+</section>
+
+<section class="track" id="track">
+  <div class="sticky" id="sticky">
+    <div class="note mono" id="note"></div>
+    <div class="strip" id="strip"></div>
+    <div class="hud mono"><span id="hudStep"></span><span id="hudP"></span></div>
+  </div>
+</section>
+
+<section class="outro mono">§ 05 Timeline follows…</section>
+
+<script>
+const PROJECTS = [
+  { slug: "aloys-travels", title: "Aloys Travels", domain: "aloys-travels.com", tags: ["Client Work", "Travel"] },
+  { slug: "danella-de-cruz", title: "Danella De Cruz", domain: "danelladc.com", tags: ["Next.js", "Music"] },
+  { slug: "spades-solutions", title: "Spades Solutions", domain: "enderguardian25.github.io/spades-solutions", tags: ["Client design", "Business"] },
+  { slug: "kahatagaha-graphite", title: "Kahatagaha Graphite", domain: "enderguardian25.github.io/kgll-website", tags: ["Concept", "Design"] },
+  { slug: "personal-dashboard", title: "Personal Dashboard", domain: "enderguardian25.github.io/personal-dashboard", tags: ["Static Site", "GitHub Pages"] },
+];
+const N = PROJECTS.length; // end card index
+const TAN = Math.tan(12 * Math.PI / 180);
+const SHOT = 900 / 1440, CHROME = 34, LABEL = 96;
+const SCREENS = { A: 3, B: 3, C: 4, D: 3, E: 4 };
+
+const strip = document.getElementById("strip");
+const track = document.getElementById("track");
+const cards = [];
+
+PROJECTS.forEach((p, i) => {
+  const el = document.createElement("article");
+  el.className = "card";
+  el.innerHTML = `
+    <div class="frame">
+      <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="addr">${p.domain}</div></div>
+      <img class="shot" src="proj/${p.slug}.webp" alt="">
+    </div>
+    <div class="meta">
+      <span class="n mono">0${i + 1}</span>
+      <h3>${p.title}</h3>
+      <div class="sub mono">${p.tags.map(t => `<span>${t}</span>`).join("")}<span style="color:var(--electric)">Visit ↗</span></div>
+    </div>`;
+  strip.appendChild(el); cards.push(el);
+});
+{
+  const el = document.createElement("article");
+  el.className = "card end";
+  el.innerHTML = `
+    <div class="frame">
+      <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="addr">your-site.com<span class="caret"></span></div></div>
+      <div class="blank"><h4>Your project next.</h4><a class="cta mono" href="#">Start a project <span>→</span></a></div>
+    </div>
+    <div class="meta"><span class="n mono">→</span><h3>Start your site</h3><div class="sub mono"><span>Usually live in 2–3 days</span></div></div>`;
+  strip.appendChild(el); cards.push(el);
+}
+
+const state = { v: (location.hash.slice(1) || "B").toUpperCase(), dof: true, size: 40, dwell: 0.4, smooth: true };
+if (!SCREENS[state.v]) state.v = "B";
+
+const NOTES = {
+  A: "A · strip slides as today; the finish is re-aimed so the end card lands dead centre.",
+  B: "B · the centre of the screen is the focus point; neighbours sit half on, half off.",
+  C: "C · each card holds centre for ~45% of its scroll step, then eases to the next.",
+  D: "D · cards wait back along the path and come forward; passed cards fly past you.",
+  E: "E · carousel slots, a parking beat on each card, and depth: next waits back, last swells and fades.",
+};
+
+let L;
+function layout() {
+  const vw = innerWidth, vh = innerHeight;
+  const cardW = Math.min(state.size / 100 * vw, (state.size / 100 * 1.22 * vh) / SHOT);
+  const shotH = cardW * SHOT, cardH = CHROME + shotH + LABEL;
+  const pitchA = cardW + 0.06 * vw;
+  const pitchB = vw / 2; // neighbours' centres on the screen edges: half off, half on
+  L = { vw, vh, cardW, cardH, pitchA, pitchB };
+  cards.forEach(c => { c.style.width = cardW + "px"; });
+  track.style.height = (100 * (1 + SCREENS[state.v])) + "vh";
+  document.getElementById("note").textContent = NOTES[state.v];
+}
+
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+function progress() {
+  const r = track.getBoundingClientRect();
+  return clamp01(-r.top / (r.height - innerHeight));
+}
+
+// Continuous "focus index": which card is at the focus point (0..N).
+function focusIndex(p) {
+  if (state.v === "C" || state.v === "E") {
+    const s = p * N, k = Math.min(N - 1, Math.floor(s)), t = s - k, d = state.dwell;
+    return p >= 1 ? N : k + easeInOut(clamp01((t - d / 2) / (1 - d)));
+  }
+  return p * N;
+}
+
+let shown = null; // smoothed progress
+function render() {
+  const target = progress();
+  if (shown === null || !state.smooth) shown = target;
+  else shown += (target - shown) * 0.14;
+  if (Math.abs(target - shown) < 0.0004) shown = target;
+  const p = shown;
+  const { vw, vh, cardW, cardH, pitchA, pitchB } = L;
+  const f = focusIndex(p);
+  let active = Math.round(f);
+
+  if (state.v === "E") {
+    strip.style.transform = "none";
+    cards.forEach((c, i) => {
+      const r = i - f; // >0 next, <0 passed
+      const x = r * 0.5 * vw; // carousel slots: neighbours' centres on the screen edges
+      const y = -x * TAN;
+      const s = r >= 0 ? 1 - 0.14 * Math.min(r, 2.5) : 1 - 0.2 * r;
+      const o = r >= 0 ? clamp01(1 - 0.3 * r) : clamp01(1 + r * 0.6);
+      const d = Math.abs(r);
+      const blur = state.dof ? Math.min(d, 2) * 3.2 : 0;
+      c.style.transform = `translate(${vw / 2 + x - cardW / 2}px, ${vh / 2 + y - cardH / 2}px) scale(${s})`;
+      c.style.opacity = o;
+      c.style.filter = blur ? `blur(${blur.toFixed(2)}px) saturate(${1 - Math.min(d, 1) * .35})` : "none";
+      c.style.zIndex = r < 0 ? 150 + Math.round(r * 10) : 100 - Math.round(r * 10);
+      c.style.pointerEvents = o < .2 ? "none" : "";
+      c.classList.toggle("is-active", d < .5);
+    });
+  } else if (state.v === "D") {
+    strip.style.transform = "none";
+    cards.forEach((c, i) => {
+      const r = i - f; // >0 waiting, <0 passed
+      let x, y, s, o;
+      if (r >= 0) {
+        x = r * 0.26 * vw; y = -r * 0.26 * vw * TAN;
+        s = Math.max(0.35, 1 - 0.2 * r); o = clamp01(1.4 - 0.35 * r);
+      } else {
+        x = r * 0.55 * vw; y = -r * 0.55 * vw * TAN * 1.6;
+        s = 1 - 0.45 * r; o = clamp01(1 + r * 1.25);
+      }
+      const cx = vw / 2 + x - cardW / 2, cy = vh / 2 + y - cardH / 2;
+      const d = Math.abs(r);
+      const blur = state.dof ? Math.min(d, 2.5) * 3.2 : 0;
+      c.style.transform = `translate(${cx}px, ${cy}px) scale(${s})`;
+      c.style.opacity = o;
+      c.style.filter = blur ? `blur(${blur.toFixed(2)}px) saturate(${1 - Math.min(d, 1) * .35})` : "none";
+      c.style.zIndex = r < 0 ? 200 : 100 - Math.round(r * 10);
+      c.style.pointerEvents = o < .2 ? "none" : "";
+      c.classList.toggle("is-active", d < .5);
+    });
+  } else {
+    const pitch = state.v === "A" ? pitchA : pitchB;
+    let sx; // strip x: left edge of card 0
+    if (state.v === "A") {
+      const start = 0.08 * vw;
+      const end = vw / 2 - N * pitch - cardW / 2;
+      sx = start + (end - start) * p;
+    } else {
+      sx = vw / 2 - cardW / 2 - f * pitch;
+    }
+    // The path runs through the screen centre at 12°, rising to the right.
+    const sy = vh / 2 - cardH / 2 - (sx + cardW / 2 - vw / 2) * TAN;
+    strip.style.transform = `translate(${sx}px, ${sy}px)`;
+    let best = 1e9;
+    cards.forEach((c, i) => {
+      const left = i * pitch, top = -i * pitch * TAN;
+      const cx = sx + left + cardW / 2;
+      const d = Math.abs(cx - vw / 2) / pitch; // distance from focus, in steps
+      if (d < best) { best = d; active = i; }
+      const k = state.dof ? Math.min(d, 1) : 0;
+      const blur = state.dof ? Math.min(d, 1.5) * 3.2 : 0;
+      c.style.transform = `translate(${left}px, ${top}px) scale(${1 - k * 0.1})`;
+      c.style.opacity = state.dof ? 1 - Math.min(d, 1.5) * 0.32 : 1;
+      c.style.filter = blur ? `blur(${blur.toFixed(2)}px) saturate(${1 - k * .35})` : "none";
+      c.style.zIndex = 100 - Math.round(d * 10);
+      c.classList.toggle("is-active", d < .5);
+    });
+  }
+  document.getElementById("hudStep").innerHTML = `<b>${active === N ? "→" : "0" + (active + 1)}</b> / 0${N} + start`;
+  document.getElementById("hudP").textContent = `scroll ${(p * 100).toFixed(0)}%`;
+  if (shown !== target) schedule();
+}
+
+let raf = 0;
+const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
+addEventListener("scroll", schedule, { passive: true });
+addEventListener("resize", () => { layout(); render(); });
+
+// Controls
+const vButtons = [...document.querySelectorAll("#variants button")];
+function setVariant(v) {
+  const before = progress();
+  state.v = v; location.hash = v;
+  vButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+  layout();
+  // keep the reader at the same relative spot in the strip
+  if (before > 0 && before < 1) scrollTo(0, track.offsetTop + before * (track.offsetHeight - innerHeight));
+  render();
+}
+vButtons.forEach(b => b.addEventListener("click", () => setVariant(b.dataset.v)));
+const dofBtn = document.getElementById("dof");
+dofBtn.addEventListener("click", () => { state.dof = !state.dof; dofBtn.setAttribute("aria-pressed", state.dof); dofBtn.textContent = state.dof ? "On" : "Off"; render(); });
+const dwell = document.getElementById("dwell"), dwellOut = document.getElementById("dwellOut");
+const showDwell = () => (dwellOut.textContent = `(${Math.round(state.dwell * 100)}% · C, E)`);
+dwell.addEventListener("input", () => { state.dwell = dwell.value / 100; showDwell(); render(); });
+showDwell();
+const smoothBtn = document.getElementById("smooth");
+smoothBtn.addEventListener("click", () => { state.smooth = !state.smooth; smoothBtn.setAttribute("aria-pressed", state.smooth); smoothBtn.textContent = state.smooth ? "On" : "Off"; render(); });
+const size = document.getElementById("size"), sizeOut = document.getElementById("sizeOut");
+size.addEventListener("input", () => { state.size = +size.value; sizeOut.textContent = `(${state.size}vw)`; layout(); render(); });
+sizeOut.textContent = `(${state.size}vw)`;
+const themeBtn = document.getElementById("theme");
+themeBtn.addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  themeBtn.setAttribute("aria-pressed", dark);
+});
+document.getElementById("hidePanel").addEventListener("click", e => {
+  const p = document.getElementById("panel"); const hidden = p.style.display === "none";
+  p.style.display = hidden ? "" : "none"; e.target.textContent = hidden ? "Hide panel" : "Show panel";
+});
+
+addEventListener("hashchange", () => {
+  const v = location.hash.slice(1).toUpperCase();
+  if (SCREENS[v] && v !== state.v) setVariant(v);
+});
+setVariant(state.v);
+</script>
+</body>
+</html>
