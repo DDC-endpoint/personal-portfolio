@@ -195,15 +195,30 @@ html:not(.js) .intro-stamp { display: none !important; }
   animation-delay: calc(var(--i) * -173ms);
 }
 
-/* Page transition veil (components/transition/): invisible while idle, so it
-   never paints over the page; while it runs it takes every click, so nothing
-   lands on the page underneath. */
-.page-veil[data-veil="idle"] { visibility: hidden; }
-.page-veil:not([data-veil="idle"]) { pointer-events: auto; }
+/* The page-change curtain (components/transition/): five panels (three
+   below md), each a little wider than its share so no seam shows between
+   them. Invisible while idle, so it never paints over the page; while it
+   runs it takes every click, so nothing lands on the page underneath. */
+.curtain-panel { position: absolute; top: -15vh; height: 130vh; width: calc(20% + 1px); transform: translate3d(0, 130vh, 0); will-change: transform; }
+.curtain-panel[data-panel="1"] { left: 20%; }
+.curtain-panel[data-panel="2"] { left: 40%; }
+.curtain-panel[data-panel="3"] { left: 60%; }
+.curtain-panel[data-panel="4"] { left: 80%; }
+@media (max-width: 767px) {
+  .curtain-panel { width: calc(100% / 3 + 1px); }
+  .curtain-panel[data-panel="0"], .curtain-panel[data-panel="4"] { display: none; }
+  .curtain-panel[data-panel="1"] { left: 0; }
+  .curtain-panel[data-panel="2"] { left: calc(100% / 3); }
+  .curtain-panel[data-panel="3"] { left: calc(200% / 3); }
+}
+.curtain[data-curtain="idle"] { visibility: hidden; }
+.curtain:not([data-curtain="idle"]) { pointer-events: auto; }
+/* The label's dot shows only with a destination. */
+[data-label]:empty + span { display: none; }
 /* The first-load intro lets the pointer through, as the old curtain did, so
    a hover under a resting mouse works the moment the page shows. Links
    between pages still wait (the controller is busy). */
-.page-veil[data-intro] { pointer-events: none; }
+.curtain[data-intro] { pointer-events: none; }
 /* After a page change, focus moves to <main> so Tab starts at the top of the
    new page; it isn't a control, so it never shows a focus ring. */
 main[tabindex="-1"]:focus-visible { outline: none; }

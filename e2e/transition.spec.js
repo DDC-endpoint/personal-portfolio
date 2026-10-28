@@ -1,26 +1,27 @@
 import { test, expect } from "@playwright/test";
 import { trackErrors } from "./helpers";
 
-// The page transition (docs/v3/plan-phase-5.md). Every assertion waits on
-// data-veil / data-state, never on a fixed sleep.
+// The page transition (docs/v3/plan-phase-5.md; the curtain from Phase 6).
+// Every assertion waits on data-curtain / data-state, never on a fixed sleep.
 
-const veil = (page) => page.locator("[data-veil]");
+const veil = (page) => page.locator("[data-curtain]");
+const panels = (page) => page.locator("[data-curtain] [data-panel]");
 const portrait = (page) => page.locator("[data-portrait]");
 
-// Records every data-veil and portrait data-state from the first paint, and
+// Records every data-curtain and portrait data-state from the first paint, and
 // whether the curtain was ever in the DOM after the transition started.
 async function record(page) {
   await page.addInitScript(() => {
     window.__veil = [];
     window.__portrait = [];
     const log = () => {
-      const v = document.querySelector("[data-veil]")?.getAttribute("data-veil");
+      const v = document.querySelector("[data-curtain]")?.getAttribute("data-curtain");
       if (v && window.__veil.at(-1) !== v) window.__veil.push(v);
       const p = document.querySelector("[data-portrait]")?.getAttribute("data-state");
       if (p && window.__portrait.at(-1) !== p) window.__portrait.push(p);
       if (window.__started && document.querySelector(".intro-stamp")) window.__curtainAfter = true;
     };
-    new MutationObserver(log).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-veil", "data-state"] });
+    new MutationObserver(log).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-curtain", "data-state"] });
   });
 }
 
@@ -29,7 +30,7 @@ async function record(page) {
 async function settle(page) {
   await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 6000 });
   await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 15000 });
-  await expect(page.locator("[data-veil]")).toHaveAttribute("data-veil", "idle", { timeout: 8000 });
+  await expect(page.locator("[data-curtain]")).toHaveAttribute("data-curtain", "idle", { timeout: 8000 });
   await page.evaluate(() => { window.__veil = ["idle"]; });
 }
 
@@ -54,7 +55,7 @@ const addLink = (page, href) =>
     document.querySelector("main").prepend(a);
   }, href);
 
-const idle = (page) => expect(veil(page)).toHaveAttribute("data-veil", "idle", { timeout: 8000 });
+const idle = (page) => expect(veil(page)).toHaveAttribute("data-curtain", "idle", { timeout: 8000 });
 
 test.describe("arriving on Home", () => {
   test("from /services: no curtain, no wave, the hero already in place", async ({ page }) => {
@@ -66,12 +67,12 @@ test.describe("arriving on Home", () => {
     // The hero's state the moment the reveal starts.
     await page.evaluate(() => {
       new MutationObserver(() => {
-        if (document.querySelector("[data-veil]")?.dataset.veil !== "revealing" || window.__heroAtReveal) return;
+        if (document.querySelector("[data-curtain]")?.dataset.curtain !== "lifting" || window.__heroAtReveal) return;
         const word = document.querySelector("#top h1 span.inline-block");
         if (!word) return;
         const s = getComputedStyle(word);
         window.__heroAtReveal = { transform: s.transform, opacity: s.opacity };
-      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-veil"] });
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-curtain"] });
     });
     await clickPortfolio(page);
     await expect(page).toHaveURL(/\/$/);
@@ -92,9 +93,9 @@ test.describe("arriving on Home", () => {
 test.describe("the veil at rest", () => {
   test("is in the server HTML, idle, hidden from screen readers and clicks", async ({ page, request }) => {
     const html = await (await request.get("/services")).text();
-    expect(html).toMatch(/<canvas[^>]*data-veil="idle"/);
+    expect(html).toMatch(/<div[^>]*data-curtain="idle"/);
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-veil", "idle");
+    await expect(veil(page)).toHaveAttribute("data-curtain", "idle");
     await expect(veil(page)).toHaveAttribute("aria-hidden", "true");
     expect(await veil(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   });
@@ -110,6 +111,113 @@ test.describe("the veil at rest", () => {
   });
 });
 
+// ---- The curtain (Phase 6) -------------------------------------------------
+
+test.describe("the curtain", () => {
+  test.beforeEach(({ page }) => record(page));
+  // Records, per panel, when its transform first changes after the click,
+  // and the URL and label at full cover.
+  async function watch(page) {
+    await page.evaluate(() => {
+      window.__moved = {};
+      const t0 = performance.now();
+      new MutationObserver((ms) => {
+        for (const m of ms) {
+          const el = m.target.closest?.("[data-panel]");
+          if (el && m.attributeName === "style" && el === m.target && window.__moved[el.dataset.panel] === undefined) {
+            window.__moved[el.dataset.panel] = performance.now() - t0;
+          }
+          if (m.attributeName === "data-curtain" && m.target.dataset.curtain === "covered" && !window.__atCover) {
+            window.__atCover = { url: location.pathname, label: document.querySelector("[data-label]").textContent };
+          }
+          if (m.attributeName === "data-curtain" && m.target.dataset.curtain === "lifting") window.__lifted = window.__lifted ?? {};
+        }
+      }).observe(document.querySelector("[data-curtain]"), { subtree: true, attributes: true, attributeFilter: ["style", "data-curtain"] });
+    });
+  }
+  // A panel's top edge, sampled every frame, to see when each one starts to rise.
+  async function startOrder(page, phase) {
+    return page.evaluate(
+      (phase) =>
+        new Promise((resolve) => {
+          const first = {};
+          const els = [...document.querySelectorAll("[data-curtain] [data-panel]")].filter((el) => getComputedStyle(el).display !== "none");
+          const at = els.map((el) => el.getBoundingClientRect().top);
+          const t0 = performance.now();
+          const tick = () => {
+            els.forEach((el, i) => {
+              if (first[el.dataset.panel] === undefined && Math.abs(el.getBoundingClientRect().top - at[i]) > 2) first[el.dataset.panel] = performance.now() - t0;
+            });
+            if (document.querySelector("[data-curtain]").dataset.curtain !== phase || performance.now() - t0 > 3000) resolve(first);
+            else requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }),
+      phase
+    );
+  }
+
+  test("covers centre-out, names the destination, swaps at full cover, lifts centre-out", async ({ page, isMobile }) => {
+    await page.goto("/services");
+    await settle(page);
+    await watch(page);
+    const covering = page.evaluate(() => new Promise((r) => {
+      const c = document.querySelector("[data-curtain]");
+      new MutationObserver((_, o) => c.dataset.curtain === "covering" && (o.disconnect(), r())).observe(c, { attributes: true });
+    }));
+    await page.evaluate(() => document.querySelector('header nav a[href="/portfolio"]').click());
+    await covering;
+    const cover = await startOrder(page, "covering");
+    const ids = isMobile ? ["1", "2", "3"] : ["0", "1", "2", "3", "4"];
+    for (const id of ids) expect(cover[id]).toBeDefined();
+    // The middle panel moves first; the outer ones last.
+    expect(cover["2"]).toBeLessThan(cover["1"]);
+    expect(cover["2"]).toBeLessThan(cover["3"]);
+    if (!isMobile) {
+      expect(cover["1"]).toBeLessThan(cover["0"]);
+      expect(cover["3"]).toBeLessThan(cover["4"]);
+    }
+    await expect(veil(page)).toHaveAttribute("data-curtain", /covered|lifting/, { timeout: 4000 });
+    const at = await page.evaluate(() => window.__atCover);
+    expect(at).toEqual({ url: "/services", label: "Portfolio" });
+    await expect(veil(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
+    const lift = await startOrder(page, "lifting");
+    expect(lift["2"]).toBeLessThan(lift["1"]);
+    expect(lift["2"]).toBeLessThan(lift["3"]);
+    await idle(page);
+    await expect(page).toHaveURL(/\/portfolio$/);
+  });
+
+  test("the resting shadow is there before any panel moves; panels are ivory and mist", async ({ page, isMobile }) => {
+    await page.goto("/services");
+    await settle(page);
+    const first = page.evaluate(() => new Promise((r) => {
+      const c = document.querySelector("[data-curtain]");
+      new MutationObserver((_, o) => {
+        if (c.dataset.curtain !== "covering") return;
+        o.disconnect();
+        const drops = [...c.querySelectorAll("[data-panel]")].filter((el) => getComputedStyle(el).display !== "none").map((el) => getComputedStyle(el.querySelector("[data-drop]")).filter);
+        const shapes = [...c.querySelectorAll("[data-shape]")].map((el) => getComputedStyle(el).backgroundColor);
+        r({ drops, shapes });
+      }).observe(c, { attributes: true });
+    }));
+    await page.evaluate(() => document.querySelector('header nav a[href="/privacy"]').click());
+    const { drops, shapes } = await first;
+    for (const d of drops) expect(d).toMatch(/drop-shadow\(rgba\(11, 31, 58, 0\.1\) 0px 0px 14px\)/);
+    expect(shapes.slice(0, 2)).toEqual(["rgb(246, 246, 241)", "rgb(238, 244, 253)"]);
+    await idle(page);
+  });
+
+  for (const [from, href, name] of [["/", "/portfolio", "nav"], ["/portfolio", "/services", "footer"], ["/privacy", "/portfolio", "footer"]]) {
+    test(`${from} → ${href} by the ${name} transitions`, async ({ page }) => {
+      await page.goto(from);
+      await settle(page);
+      const link = name === "nav" ? `header nav a[href="${href}"]` : `footer a[href="${href}"]`;
+      await transitionTo(page, () => page.evaluate((s) => document.querySelector(s).click(), link), new RegExp(`${href}$`));
+    });
+  }
+});
+
 // ---- Task 4: clicks, swap, arrival ----------------------------------------
 
 const footerLink = (page, name) => page.getByRole("navigation", { name: "Footer" }).getByRole("link", { name, exact: true });
@@ -119,13 +227,13 @@ const footerLink = (page, name) => page.getByRole("navigation", { name: "Footer"
 async function transitionTo(page, click, url) {
   await mark(page);
   await page.evaluate(() => {
-    window.__veil = [document.querySelector("[data-veil]").dataset.veil];
+    window.__veil = [document.querySelector("[data-curtain]").dataset.curtain];
     window.__t0 = performance.now();
   });
   await click();
   await expect(page).toHaveURL(url);
   await idle(page);
-  expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covering", "covered", "revealing", "idle"]);
+  expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covering", "covered", "lifting", "idle"]);
   expect(await sameDocument(page)).toBe(true);
   expect(await page.evaluate(() => document.activeElement === document.querySelector("main"))).toBe(true);
   return page.evaluate(() => window.__idleAt - window.__t0);
@@ -136,11 +244,11 @@ test.describe("transitions", () => {
     await record(page);
     await page.addInitScript(() => {
       new MutationObserver(() => {
-        const v = document.querySelector("[data-veil]")?.dataset.veil;
+        const v = document.querySelector("[data-curtain]")?.dataset.curtain;
       if (v === "idle") window.__idleAt = performance.now();
       if (v === "covered" && !window.__coveredAt) window.__coveredAt = performance.now();
-      if (v === "revealing" && !window.__revealingAt) window.__revealingAt = performance.now();
-      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-veil"] });
+      if (v === "lifting" && !window.__revealingAt) window.__revealingAt = performance.now();
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-curtain"] });
     });
   });
 
@@ -150,7 +258,7 @@ test.describe("transitions", () => {
   test.describe("timing", () => {
     test.describe.configure({ retries: 2 });
 
-    test("Home → /services by the nav, at the top: a 0.52 s cover and a 0.64 s reveal", async ({ page }) => {
+    test("Home → /services by the nav, at the top: a 0.94 s cover and a 1.09 s lift", async ({ page }) => {
       const errors = trackErrors(page);
       await page.goto("/");
       await settle(page);
@@ -162,11 +270,12 @@ test.describe("transitions", () => {
         cover: window.__coveredAt - window.__t0,
         reveal: window.__idleAt - window.__revealingAt,
       }));
-      expect(cover).toBeGreaterThan(480);
-      expect(cover).toBeLessThan(900);
-      expect(reveal).toBeGreaterThan(600);
-      expect(reveal).toBeLessThan(1000);
-      expect(total).toBeGreaterThan(1200);
+      // Phones have three panels, so one stagger less each way (0.12 s).
+      expect(cover).toBeGreaterThan(780);
+      expect(cover).toBeLessThan(1400);
+      expect(reveal).toBeGreaterThan(900);
+      expect(reveal).toBeLessThan(1500);
+      expect(total).toBeGreaterThan(1900);
       expect(errors).toEqual([]);
     });
   });
@@ -241,7 +350,7 @@ test.describe("transitions", () => {
     const before = await page.evaluate(() => history.length);
     await mark(page);
     await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
-    await expect(veil(page)).not.toHaveAttribute("data-veil", "idle");
+    await expect(veil(page)).not.toHaveAttribute("data-curtain", "idle");
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
     await idle(page);
     await expect(page).toHaveURL(/\/services$/);
@@ -295,7 +404,7 @@ test.describe("first load", () => {
         await load();
         await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 6000 });
         await idle(page);
-        expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+        expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "lifting", "idle"]);
       }
     });
   }
@@ -304,10 +413,10 @@ test.describe("first load", () => {
     await record(page);
     await page.addInitScript(() => {
       new MutationObserver(() => {
-        if (document.querySelector("[data-veil]")?.dataset.veil !== "revealing" || window.__heroAtReveal) return;
+        if (document.querySelector("[data-curtain]")?.dataset.curtain !== "lifting" || window.__heroAtReveal) return;
         const word = document.querySelector("#top h1 span.inline-block");
         if (word) window.__heroAtReveal = getComputedStyle(word).transform;
-      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-veil"] });
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-curtain"] });
     });
     await page.goto("/");
     await expect(portrait(page)).toHaveAttribute("data-state", "wave", { timeout: 10000 });
@@ -320,18 +429,18 @@ test.describe("first load", () => {
   test("a link clicked during the intro opens once the stamp is done, under the same cover", async ({ page }) => {
     await record(page);
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 6000 });
+    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 6000 });
     await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/);
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "lifting", "idle"]);
     expect(await sameDocument(page)).toBe(true);
     expect(await page.evaluate(() => scrollY)).toBe(0);
   });
 
   test("a link clicked during the intro's reveal opens right after it", async ({ page }) => {
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-veil", "revealing", { timeout: 6000 });
+    await expect(veil(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 6000 });
     await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
     await idle(page);
@@ -340,7 +449,7 @@ test.describe("first load", () => {
 
   test("the intro lets the pointer through, as the curtain did", async ({ page }) => {
     await page.goto("/services");
-    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 6000 });
+    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 6000 });
     expect(await veil(page).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   });
 
@@ -376,7 +485,7 @@ test.describe("back and forward", () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "lifting", "idle"]);
     expect(await sameDocument(page)).toBe(true);
     expect(Math.abs((await page.evaluate(() => scrollY)) - y)).toBeLessThan(80);
     await expect(page.locator(".intro-stamp")).toHaveCount(0);
@@ -386,7 +495,7 @@ test.describe("back and forward", () => {
     await page.goForward();
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "lifting", "idle"]);
     expect(await page.evaluate(() => scrollY)).toBe(0);
     expect(await sameDocument(page)).toBe(true);
     expect(errors).toEqual([]);
@@ -448,12 +557,12 @@ test.describe("details", () => {
 
 // ---- Review fixes ------------------------------------------------------------
 
-// Aborts (or delays) the veil's code chunk: the only one naming its "revealing" state.
+// Aborts (or delays) the veil's code chunk: the only one naming its "lifting" state.
 async function blockVeil(page, { delay } = {}) {
   await page.route("**/_next/static/chunks/**", async (route) => {
     const res = await route.fetch();
     const body = await res.text();
-    if (!body.includes('"revealing"')) return route.fulfill({ response: res, body });
+    if (!body.includes('"lifting"')) return route.fulfill({ response: res, body });
     if (delay === undefined) return route.abort();
     await new Promise((r) => setTimeout(r, delay));
     return route.fulfill({ response: res, body });
@@ -489,7 +598,7 @@ test.describe("robustness", () => {
       return route.continue().catch(() => {});
     });
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
-    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 4000 });
+    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
     const t0 = Date.now();
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
@@ -509,7 +618,7 @@ test.describe("robustness", () => {
     await idle(page);
     await mark(page);
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
-    await expect(veil(page)).toHaveAttribute("data-veil", "covering");
+    await expect(veil(page)).toHaveAttribute("data-curtain", "covering");
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await idle(page);
@@ -522,23 +631,29 @@ test.describe("robustness", () => {
     await page.goto("/");
     await settle(page);
     await page.evaluate(() => document.querySelector('header nav a[href="/services"]').click());
-    await expect(veil(page)).toHaveAttribute("data-veil", "covering");
+    await expect(veil(page)).toHaveAttribute("data-curtain", "covering");
     const { width, height } = page.viewportSize();
     const [x, y] = [width / 2, height / 2];
-    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.hasAttribute("data-veil"), [x, y]);
+    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.hasAttribute("data-curtain"), [x, y]);
     expect(hit).toBe(true);
     await page.mouse.click(x, y);
     await idle(page);
     await expect(page).toHaveURL(/\/services$/);
   });
 
-  test("the canvas gives its memory back when idle", async ({ page }) => {
+  test("idle, the panels are parked below the screen and hidden", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
-    expect(await veil(page).evaluate((c) => c.width * c.height)).toBe(0);
+    expect(await veil(page).evaluate((el) => getComputedStyle(el).visibility)).toBe("hidden");
+    const tops = await panels(page).evaluateAll((els) =>
+      els.filter((el) => getComputedStyle(el).display !== "none").map((el) => el.getBoundingClientRect().top)
+    );
+    for (const top of tops) {
+      expect(top).toBeGreaterThan(await page.evaluate(() => innerHeight));
+    }
   });
 
-  test("a resize while covered redraws the grid at the new size", async ({ page }) => {
+  test("a resize while covered keeps the screen covered", async ({ page }) => {
     await page.route(/\/privacy/, async (route) => {
       if (!route.request().headers()["rsc"]) return route.continue();
       await new Promise((r) => setTimeout(r, 1200));
@@ -547,10 +662,16 @@ test.describe("robustness", () => {
     await page.goto("/services");
     await settle(page);
     await page.evaluate(() => document.querySelector('footer a[href="/privacy"]').click());
-    await expect(veil(page)).toHaveAttribute("data-veil", "covered", { timeout: 4000 });
+    await expect(veil(page)).toHaveAttribute("data-curtain", "covered", { timeout: 4000 });
     const size = page.viewportSize();
     await page.setViewportSize({ width: size.height, height: size.width });
-    await expect.poll(() => veil(page).evaluate((c) => Math.round(c.width / (c.height / innerHeight)) - innerWidth)).toBe(0);
+    const covered = () =>
+      page.evaluate(() =>
+        [[4, 4], [innerWidth - 4, 4], [innerWidth / 2, innerHeight / 2], [4, innerHeight - 4], [innerWidth - 4, innerHeight - 4]].every(([x, y]) =>
+          document.elementFromPoint(x, y)?.closest("[data-curtain]")
+        )
+      );
+    await expect.poll(covered).toBe(true);
     await idle(page);
   });
 
@@ -588,7 +709,7 @@ test.describe("robustness", () => {
     await page.evaluate(() => { window.__marker = 1; document.querySelector('footer a[href="/privacy"]').click(); });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 10000 });
     await idle(page);
-    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "revealing", "idle"]);
+    expect(await page.evaluate(() => window.__veil)).toEqual(["idle", "covered", "lifting", "idle"]);
     expect(await sameDocument(page)).toBe(true);
   });
 });
@@ -623,32 +744,6 @@ test.describe("the stamp (gate changes)", () => {
     await expect(stamp).toHaveAttribute("data-shimmer", "");
     await expect.poll(() => stamp.evaluate((s) => getComputedStyle(s).backgroundImage)).toContain("radial-gradient");
     await expect.poll(() => stamp.evaluate((s) => s.querySelector("[data-ch]").getAnimations().length)).toBeGreaterThan(0);
-  });
-
-  test("if the veil arrives late, the reveal still waits for the glyphs to bloom out", async ({ page }) => {
-    // Find the veil's chunk on a first visit, then delay only that request:
-    // proxying every chunk would make hydration itself late.
-    let veilUrl;
-    page.on("response", async (res) => {
-      if (res.url().includes("/_next/static/chunks/") && (await res.text().catch(() => "")).includes('"revealing"')) veilUrl = res.url();
-    });
-    await page.goto("/services");
-    await expect.poll(() => veilUrl, { timeout: 10000 }).toBeTruthy();
-    await page.route(veilUrl, async (route) => {
-      await new Promise((r) => setTimeout(r, 450));
-      return route.continue();
-    });
-    await page.addInitScript(() => {
-      new MutationObserver(() => {
-        if (document.querySelector(".intro-stamp[data-glyphs]") && !window.__glyphsAt) window.__glyphsAt = performance.now();
-        if (document.querySelector("[data-veil]")?.dataset.veil === "revealing" && !window.__revealAt) window.__revealAt = performance.now();
-      }).observe(document, { subtree: true, attributes: true, childList: true });
-    });
-    await page.goto("/services");
-    await expect(page.locator(".intro-stamp")).toHaveCount(0, { timeout: 8000 });
-    await idle(page);
-    const gap = await page.evaluate(() => window.__revealAt - window.__glyphsAt);
-    expect(gap).toBeGreaterThanOrEqual(380);
   });
 
   test("once the decode starts, the shimmer stops", async ({ page }) => {
