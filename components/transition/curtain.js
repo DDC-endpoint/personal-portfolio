@@ -50,18 +50,17 @@ export function createCurtain(root) {
 
   const setState = (s) => (root.dataset.curtain = s);
 
-  // Five panels from md, three below (the outer two sit out).
+  let unit = 0; // the px the panels' edges are placed in (see layout)
+  let shade = "", shadeDark = null; // the shadow's colour, read per theme
+
+  // Five panels from md, three below (the outer two sit out). Measured once
+  // per move and on resize, never per frame: a layout read while the next
+  // page is being built forces a layout of the half-built page (140 ms on a
+  // mid-range phone), and the curtain stalls.
   const layout = () => {
     width = root.clientWidth;
     const count = panelCount(window.innerWidth);
     panels = count === all.length ? all : all.slice(1, all.length - 1);
-  };
-  const mid = () => panels[Math.floor(panels.length / 2)];
-
-  function draw(dt) {
-    const vh = window.innerHeight;
-    const w = width / panels.length; // as the CSS's panels
-    const ww = Math.ceil(w) + 1;
     // The edges sit 15% in from the panel's top and bottom. The panel is
     // 130vh tall, and on a phone a vh is the largest viewport (the URL bar
     // hidden) while innerHeight is the current one: measured from
@@ -70,15 +69,31 @@ export function createCurtain(root) {
     // the curtain (Android Chrome, 2026-10-29). So they come from the panel's
     // own height; where that agrees with innerHeight (desktop) the exact
     // innerHeight numbers are kept.
+    const vh = window.innerHeight;
     const cssVh = panels[0].el.getBoundingClientRect().height / 1.3;
-    const unit = Math.abs(cssVh - vh) < 1 ? vh : cssVh;
+    unit = Math.abs(cssVh - vh) < 1 ? vh : cssVh;
+  };
+  const mid = () => panels[Math.floor(panels.length / 2)];
+
+  // The shadow: the ink token in light mode (--c-ink is "r g b"), black on
+  // navy. A computed-style read mid-swap forces a style pass, so it's read
+  // only when the theme changes.
+  const shadeFor = (dark) => {
+    if (dark !== shadeDark) {
+      shadeDark = dark;
+      shade = dark ? "0 0 0" : getComputedStyle(document.documentElement).getPropertyValue("--c-ink").trim() || "11 31 58";
+    }
+    return shade;
+  };
+
+  function draw(dt) {
+    const vh = window.innerHeight;
+    const w = width / panels.length; // as the CSS's panels
+    const ww = Math.ceil(w) + 1;
     const top = unit * 0.15, bot = unit * 1.15;
-    const root = document.documentElement;
-    const dark = root.classList.contains("dark");
-    // The shadow: the ink token in light mode (--c-ink is "r g b"), black on navy.
+    const dark = document.documentElement.classList.contains("dark");
     const theme = dark ? "dark" : "light";
-    const shade = dark ? "0 0 0" : getComputedStyle(root).getPropertyValue("--c-ink").trim() || "11 31 58";
-    const rest = restFilter(theme, shade);
+    const rest = restFilter(theme, shadeFor(dark));
     for (const p of panels) {
       const speed = dt > 0 ? (p.prevY - p.y) / dt : 0; // screens a second, upwards positive
       p.prevY = p.y;

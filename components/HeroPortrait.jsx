@@ -99,6 +99,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     H = r.height;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
+    fontSet = false; // a resize resets the context's state
     lensCv.width = canvas.width;
     lensCv.height = canvas.height;
     cols = c;
@@ -156,13 +157,21 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     }
   }
 
+  // The context keeps its font between frames; setting it parses the family
+  // list each time (measured at a frame's worth of script on a mid-range
+  // phone over a page change), so it's set only after a resize or the
+  // lens's readout changed it.
+  let fontSet = false;
   function blitRest() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (rest?.width && rest.height) ctx.drawImage(rest, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    setFont(ctx);
+    if (!fontSet) {
+      setFont(ctx);
+      fontSet = true;
+    }
   }
 
   // Idle: scan band every 6 s (cells in it draw one step denser at up to 0.3
@@ -273,6 +282,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     ctx.globalAlpha = 0.8 * lens.s;
     ctx.fillStyle = css(faint);
     ctx.font = `400 9px ${family}`;
+    fontSet = false;
     ctx.fillText(`x ${Math.round(lens.x)} · y ${Math.round(lens.y)}`, lens.x + LENS_R * 0.72, lens.y + LENS_R * 0.78);
     ctx.globalAlpha = 1;
   }
