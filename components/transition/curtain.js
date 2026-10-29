@@ -7,7 +7,8 @@ import {
   bulge,
   edgeLight,
   shadowLevel,
-  shadow,
+  restFilter,
+  trail,
   clearAt,
 } from "@/lib/curtain";
 
@@ -25,6 +26,8 @@ export function createCurtain(root) {
     el,
     drop: el.querySelector("[data-drop]"),
     shape: el.querySelector("[data-shape]"),
+    trail: el.querySelector("[data-trail]"),
+    trailShape: el.querySelector("[data-trail-shape]"),
     edges: el.querySelector("[data-edges]"),
     top: el.querySelector("[data-edge-top]"),
     bottom: el.querySelector("[data-edge-bottom]"),
@@ -35,6 +38,8 @@ export function createCurtain(root) {
     t0: 0,
     dur: 1,
     level: 0,
+    filter: "", // the resting shadow last written: rewritten only on a theme change
+    blur: -1, // the trail's blur last written
   }));
   const rider = root.querySelector("[data-rider]");
   const label = root.querySelector("[data-label]");
@@ -61,21 +66,29 @@ export function createCurtain(root) {
     const root = document.documentElement;
     const dark = root.classList.contains("dark");
     // The shadow: the ink token in light mode (--c-ink is "r g b"), black on navy.
+    const theme = dark ? "dark" : "light";
     const shade = dark ? "0 0 0" : getComputedStyle(root).getPropertyValue("--c-ink").trim() || "11 31 58";
+    const rest = restFilter(theme, shade);
     for (const p of panels) {
       const speed = dt > 0 ? (p.prevY - p.y) / dt : 0; // screens a second, upwards positive
       p.prevY = p.y;
       p.el.style.transform = `translate3d(0, ${(p.y * vh).toFixed(2)}px, 0)`;
       const b = bulge(speed, vh, w);
       const tq = `${ww / 2} ${(top - 2 * b).toFixed(2)}`, bq = `${ww / 2} ${(bot + 2 * b).toFixed(2)}`;
-      p.shape.style.clipPath = `path("M0 ${top} Q ${tq} ${ww} ${top} L ${ww} ${bot} Q ${bq} 0 ${bot} Z")`;
+      const clip = `path("M0 ${top} Q ${tq} ${ww} ${top} L ${ww} ${bot} Q ${bq} 0 ${bot} Z")`;
+      p.shape.style.clipPath = clip;
+      // The resting shadow: one constant filter, written only when it changes.
+      if (p.filter !== rest) p.drop.style.filter = p.filter = rest;
+      // The moving shadow: a blurred copy of the shape behind the panel. Its
+      // offset and opacity change per frame; its blur only when it steps.
       p.level = shadowLevel(p.level, speed, dt);
-      const s = shadow(p.level, dark ? "dark" : "light");
-      const parts = [`drop-shadow(0 0 ${s.rest.blur}px rgb(${shade} / ${s.rest.alpha}))`];
-      if (s.move.alpha > 0.004) {
-        parts.push(`drop-shadow(0 ${(-Math.sign(speed || 1) * s.move.y).toFixed(1)}px ${s.move.blur.toFixed(1)}px rgb(${shade} / ${s.move.alpha.toFixed(3)}))`);
+      const t = trail(p.level, speed, theme);
+      p.trail.style.opacity = t.opacity.toFixed(3);
+      if (t.opacity > 0) {
+        p.trailShape.style.clipPath = clip;
+        p.trail.style.transform = `translate3d(0, ${t.y.toFixed(1)}px, 0)`;
+        if (t.blur !== p.blur) p.trail.style.filter = `blur(${(p.blur = t.blur)}px)`;
       }
-      p.drop.style.filter = parts.join(" ");
       p.top.setAttribute("d", `M0 ${top} Q ${tq} ${ww} ${top}`);
       p.bottom.setAttribute("d", `M0 ${bot} Q ${bq} ${ww} ${bot}`);
       p.edges.style.opacity = String(edgeLight(speed));

@@ -55,6 +55,10 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   let idleStart = performance.now();
   let waveStart = performance.now();
   let waving = wave, waveStarted = false;
+  // Before its wave the skeleton is still (time holds at −1), so the loop
+  // draws it once, not every frame under the curtain; a new rest canvas (a
+  // resize or a theme change) draws it again.
+  let stillDrawn = false;
   let raf = 0, running = false, onScreen = true, destroyed = false, layoutToken = 0;
 
   const setFont = (c) => {
@@ -135,6 +139,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   }
 
   function buildRest() {
+    stillDrawn = false;
     rest = document.createElement("canvas");
     rest.width = canvas.width;
     rest.height = canvas.height;
@@ -278,7 +283,16 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
       // phase rather than −∞, where the skeleton's alpha is NaN (ignored by
       // the canvas) and the finished glyphs would show through.
       const t = Math.max(-1, (now - waveStart) / 1000);
-      if (t >= 0 && !waveStarted) {
+      // Still before the wave: nothing moves. The lens waits for the reveal
+      // too (drawLens), so there's nothing else to draw.
+      if (t < 0) {
+        if (!stillDrawn) {
+          drawWave(-1);
+          stillDrawn = true;
+        }
+        return;
+      }
+      if (!waveStarted) {
         waveStarted = true;
         onWaveStart();
       }
@@ -435,7 +449,12 @@ export default function HeroPortrait({ className = "" }) {
       if (!r.ok) throw new Error(`portrait ${r.status}`);
       return r.blob();
     });
-    Promise.all([blob, blob.then((b) => createImageBitmap(b)), document.fonts.load(`700 6px ${family}`)])
+    // A face that can't load must not stop the portrait: next/font's fallback
+    // face is src: local(Arial), which Android doesn't have, and then
+    // fonts.load() rejects for the whole list (every Android phone showed a
+    // blank stage). The canvas falls back down the family list on its own.
+    const font = document.fonts.load(`700 6px ${family}`).catch(() => []);
+    Promise.all([blob, blob.then((b) => createImageBitmap(b)), font])
       .then(async ([b, photo]) => {
         if (cancelled) {
           photo.close();

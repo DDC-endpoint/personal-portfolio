@@ -17,7 +17,19 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 5**: page transition (every page) and the first-load reveal | **Done and merged into `v3` (2026-10-28), and `v3` pushed to `origin`.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b) and his gate fixes (`decisions.md` → "Phase 5 gate changes"). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
 | **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Done and merged into `v3` (2026-10-28), then merged to `main` by PR #4 (`da83fc0`, 2026-10-28); `v3` was fast-forwarded to the same commit and pushed** (Damian approved the gate after five late fixes: the nav underline, the lens under the curtain, the progress bar, the cursor behind the curtain, the nav's entrance). See "What Phase 6 built" and `decisions.md` → "Phase 6 gate fixes". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
 
-### The next step (resume here): deploy, the post-deploy checks, then the performance pass
+### Resume here (2026-10-29): the performance and mobile pass on `perf/curtain-portrait`
+
+**Read [`perf-2026-10-29.md`](perf-2026-10-29.md) first.** Damian reported lag on lower-end laptops, a blank hero portrait on Android, and loader trouble on slow connections. The session ran on a second, lower-end laptop and ended mid-way when he moved machines. Branch `perf/curtain-portrait` (off `main` at `c9bcb49`) is pushed, **not merged, not deployed**. **Damian's rule: a lag-only fix; nothing in the design or the animations may change.**
+
+- **Android blank portrait: root cause found, fix and e2e test on the branch.** next/font's fallback face is `src: local(Arial)`; Android has no Arial, so `document.fonts.load()` rejected and the portrait went to `error` (no label). Still to confirm on a real phone after the deploy.
+- **Curtain lag: cause measured, fix on the branch.** Its per-frame `drop-shadow` changes re-blurred every panel each frame (16-22 dropped frames a page change on Iris Xe). Now a constant resting shadow plus a blurred copy for the moving one, with the same numbers. The final version still needs a re-measure and a frame-by-frame visual comparison with `main`.
+- **The portrait canvas is the main cost** of the first load (~35-40 fps) and of arriving on Home (~45-50 fps). One no-visual-change fix is on the branch (the pre-wave skeleton drawn once, not every frame; unmeasured); batching `drawWave` is planned.
+- **Slow connections:** analysed, nothing built (preload the portrait and the curtain chunk, cache header, an HTTP/2 check).
+- **e2e on that machine:** 6 portrait/loader/lens failures are the same on `main`; 9 `transition.spec` failures still need a `main` baseline on the same machine before merging.
+
+The deploy and post-deploy checks below were overtaken: V3 was deployed (CI auto-deploys on a push to `main` since `a7e6968`), and the fixes in item 11 shipped by PRs #5 and #6.
+
+### Earlier next step: deploy, the post-deploy checks, then the performance pass
 
 **State (2026-10-28):** PR #4 (`v3` → `main`) is merged as `da83fc0`, and `v3` was fast-forwarded to it, so `main` and `v3` are the same commit, both pushed. Merging doesn't deploy: V3 goes live when Damian runs the deploy on the server (HANDOFF → *Deploying*). After that, run the checks in "After the merge to `main`". Unit tests (193) pass; every e2e spec touched by the gate fixes passes. Before the merge, the whole range was scanned for personal data (net diff and every commit, including since-deleted images): no IPs, secrets or extra emails, and no EXIF, XMP or IPTC on any image.
 

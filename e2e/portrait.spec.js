@@ -29,6 +29,24 @@ test("portrait draws and labels itself", async ({ page }) => {
   expect((await paint(page)).n).toBeGreaterThan(1000);
 });
 
+// Android has no Arial, so next/font's fallback face for the mono
+// (src: local(Arial)) can't load there, and document.fonts.load() rejects
+// for the whole family list. The portrait stayed blank, with no label, on
+// every Android phone (2026-10-29). A face that can't load must not stop it.
+test("a fallback font face that can't load still draws the portrait", async ({ page }) => {
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent = '@font-face{font-family:"JetBrains Mono Fallback";font-weight:700;src:local("No Such Font Anywhere")}';
+      document.head.appendChild(style);
+    });
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
+  await expect(page.locator("[data-portrait-label]")).toHaveText(/^PORTRAIT · \d+ × \d+ CELLS$/i);
+  expect((await paint(page)).n).toBeGreaterThan(1000);
+});
+
 test("image failure leaves hero intact", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));

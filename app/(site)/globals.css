@@ -203,6 +203,9 @@ html.ddc-seen .morph-loader [data-orb],
    them. Invisible while idle, so it never paints over the page; while it
    runs it takes every click, so nothing lands on the page underneath. */
 .curtain-panel { position: absolute; top: -15vh; height: 130vh; width: calc(20% + 1px); transform: translate3d(0, 130vh, 0); will-change: transform; }
+/* The moving shadow (lib/curtain.js → trail): invisible at rest; the engine
+   draws it while a panel moves. */
+.curtain-trail { opacity: 0; }
 .curtain-panel[data-panel="1"] { left: 20%; }
 .curtain-panel[data-panel="2"] { left: 40%; }
 .curtain-panel[data-panel="3"] { left: 60%; }

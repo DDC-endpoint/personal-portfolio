@@ -16,6 +16,12 @@ const Curtain = forwardRef(function Curtain(props, ref) {
     <div ref={ref} data-curtain="intro" aria-hidden="true" className="curtain fixed inset-0 z-[120] pointer-events-none nojs:hidden">
       {Array.from({ length: PANELS }, (_, i) => (
         <div key={i} data-panel={i} className="curtain-panel">
+          {/* The moving shadow: a blurred copy of the panel's shape behind it
+              (lib/curtain.js → trail). Its blur is fixed; the engine moves
+              only its offset and opacity, which stay cheap. */}
+          <div data-trail className="curtain-trail absolute inset-0">
+            <div data-trail-shape className="absolute inset-0 bg-ink dark:bg-black" />
+          </div>
           <div data-drop className="absolute inset-0">
             <div data-shape className={`absolute inset-0 overflow-hidden ${i % 2 ? "bg-mist" : "bg-ivory"}`}>
               <div className="absolute inset-y-0 left-0 w-px bg-rule opacity-55" />

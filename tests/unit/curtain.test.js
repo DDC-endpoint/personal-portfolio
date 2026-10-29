@@ -9,6 +9,8 @@ import {
   edgeLight,
   shadowLevel,
   shadow,
+  restFilter,
+  trail,
   coverTime,
   liftTime,
   totalChange,
@@ -73,6 +75,38 @@ test("shadow: always a resting part; the moving part rises smoothly from 0", () 
     prev = a;
   }
   expect(shadow(0.001, "light").move.alpha).toBeLessThan(0.02);
+});
+
+// A filter whose parameters change every frame re-blurs the whole panel every
+// frame (measured: 16-22 dropped frames a page change on an Iris Xe laptop).
+// So the resting shadow is one constant filter, and the moving one is a
+// blurred copy of the panel's shape: the same shadow, but its offset and
+// opacity move cheaply and its blur changes only a few times a move.
+test("the resting shadow is one constant filter per theme", () => {
+  expect(restFilter("light", "11 31 58")).toBe("drop-shadow(0 0 14px rgb(11 31 58 / 0.1))");
+  expect(restFilter("dark", "0 0 0")).toBe("drop-shadow(0 0 14px rgb(0 0 0 / 0.38))");
+});
+
+test("the moving shadow: the drop-shadow it replaces, drawn as a blurred copy", () => {
+  // At rest: invisible, not offset.
+  expect(trail(0, 0, "light")).toEqual({ opacity: 0, y: 0, blur: 0 });
+  // A drop-shadow's blur radius b is a Gaussian of deviation b / 2, which is
+  // what blur() takes. Whole pixels, so the filter changes a few times a move
+  // rather than every frame.
+  for (const m of [0.3, 0.6, 1]) {
+    const { blur } = trail(m, 3, "light");
+    expect(Number.isInteger(blur)).toBe(true);
+    expect(Math.abs(blur - shadow(m, "light").move.blur / 2)).toBeLessThanOrEqual(0.5);
+  }
+  // As the drop-shadow it replaces: the same strength, and the same offset
+  // (against the direction of travel; speed is upwards positive).
+  const up = trail(1, 3, "light"), down = trail(1, -3, "light");
+  expect(up.opacity).toBeCloseTo(shadow(1, "light").move.alpha, 9);
+  expect(up.y).toBeCloseTo(-shadow(1, "light").move.y, 9);
+  expect(down.y).toBeCloseTo(shadow(1, "light").move.y, 9);
+  expect(trail(1, 3, "dark").opacity).toBeCloseTo(0.45, 9);
+  // Below the visible threshold it is off, so a resting curtain draws nothing.
+  expect(trail(0.0001, 3, "light").opacity).toBe(0);
 });
 
 test("shadowLevel follows the speed smoothly", () => {

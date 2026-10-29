@@ -23,6 +23,10 @@ The `.gitignore` already excludes `assets/private/`, `assets/photography-origina
 
 The V3 redesign (Phases 1–6) is merged to `main` (PR #4, `da83fc0`, 2026-10-28), and `v3` sits at the same commit; both are pushed. **Resuming V3 work (the performance pass, the open gate questions)? Start at `docs/v3/README.md`**: it holds the status, the next step, the testing procedure and how Damian likes to work. Remaining V3 work branches off `v3`, merges into `v3`, and reaches `main` by PR.
 
+## Performance and mobile pass (in progress)
+
+**Resuming the lag / Android-portrait / slow-loader work? Start at `docs/v3/perf-2026-10-29.md`.** Branch `perf/curtain-portrait` (pushed, not merged). Damian's rule: a lag-only fix, so nothing in the design or the animations may change; prove "looks the same" with frame-matched screenshots or pixel diffs, not by reasoning. A push to `main` auto-deploys the live site, so merge by PR only after the e2e comparison with `main` and the visual checks in that doc. Probe scripts are in `docs/v3/perf-probes/`. Their `headed` mode opens a visible browser window on the user's screen, so ask before using it.
+
 ## Build / verify
 
 - Dev: `npm run dev` (http://localhost:3000). Use `lab.localhost:3000` to exercise the lab subdomain locally.
