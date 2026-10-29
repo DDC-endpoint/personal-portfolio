@@ -3,25 +3,39 @@ import {
   EXTENT,
   panelCount,
   delayOf,
-  ease,
   bulge,
   edgeLight,
-  shadowLevel,
   restFilter,
   trail,
   clearAt,
+  sampleMove,
 } from "@/lib/curtain";
 
 // The curtain's engine: it drives the panels Curtain.jsx renders (in the
-// server HTML, idle and hidden). Each frame writes a panel's position, its
-// edges' curve (a clip-path), the edge light and the shadow; the label rides
-// the middle panel. Only runs while something moves. The root's data-curtain
-// says where it is: idle, covering, covered or lifting.
+// server HTML, idle and hidden). A move works out every frame in advance
+// (lib/curtain.js → sampleMove: a panel's position, its edges' curve, the
+// edge light and the shadow, on a fixed grid) and hands them to the Web
+// Animations API, so the compositor carries the panels through a stall of
+// the main thread. Until 2026-10-29 each frame was computed as it came and
+// written to the DOM, and when the next page's mount held the main thread
+// (150-300 ms on a mid-range phone) the panels froze with it (Damian: "lag
+// free regardless of the device"). The label rides the middle panel. The
+// root's data-curtain says where it is: idle, covering, covered or lifting.
+//
+// What the compositor runs on its own: the panels' transforms, the shape's
+// clip-path (Chrome composites a path() animation whose commands match from
+// frame to frame, which these do), the trail's opacity and transform and the
+// edge light's opacity. The trail's blur steps (a few a move) and the edge
+// light's curves (SVG `d`) are keyframed too, but the main thread applies
+// them, so a stall holds them for its length: a blur a pixel off, a glint
+// a frame behind.
 //
 // PageTransitions builds it when the intro plays, otherwise once the browser
 // is idle, or at the first click if that comes sooner. It ships with the
 // first-load bundle: as its own chunk, imported after hydration, it cost a
 // round trip before the first load could lift (2026-10-29).
+
+const STEP = 1 / 120; // the sample grid, seconds
 
 export function createCurtain(root) {
   const all = [...root.querySelectorAll("[data-panel]")].map((el) => ({
@@ -34,26 +48,22 @@ export function createCurtain(root) {
     top: el.querySelector("[data-edge-top]"),
     bottom: el.querySelector("[data-edge-bottom]"),
     y: EXTENT, // in screens: EXTENT below, 0 covering, −EXTENT above
-    prevY: EXTENT,
-    from: EXTENT,
-    to: EXTENT,
-    t0: 0,
-    dur: 1,
-    level: 0,
+    level: 0, // the moving shadow's level, carried from move to move
     filter: "", // the resting shadow last written: rewritten only on a theme change
-    blur: -1, // the trail's blur last written
+    anims: [], // the running move's animations
+    samples: null, // the running move's samples, for a resize
   }));
   const rider = root.querySelector("[data-rider]");
   const label = root.querySelector("[data-label]");
   let panels = all;
   let width = 0; // the curtain's: the viewport less the scrollbar's room
-  let raf = 0, last = 0, gen = 0, destroyed = false;
-  let settle = null; // resolves the current move
-
-  const setState = (s) => (root.dataset.curtain = s);
-
   let unit = 0; // the px the panels' edges are placed in (see layout)
   let shade = "", shadeDark = null; // the shadow's colour, read per theme
+  let gen = 0, destroyed = false;
+  let riderAnim = null;
+  let moving = null; // the running move: { to, dur, t0 (document time, ms) }
+
+  const setState = (s) => (root.dataset.curtain = s);
 
   // Five panels from md, three below (the outer two sit out). Measured once
   // per move and on resize, never per frame: a layout read while the next
@@ -88,88 +98,153 @@ export function createCurtain(root) {
     return shade;
   };
 
-  function draw(dt) {
+  // What one sample of a move looks like on a panel, as style values.
+  function frame(s, theme) {
     const vh = window.innerHeight;
     const w = width / panels.length; // as the CSS's panels
     const ww = Math.ceil(w) + 1;
     const top = unit * 0.15, bot = unit * 1.15;
-    const dark = document.documentElement.classList.contains("dark");
-    const theme = dark ? "dark" : "light";
-    const rest = restFilter(theme, shadeFor(dark));
-    for (const p of panels) {
-      const speed = dt > 0 ? (p.prevY - p.y) / dt : 0; // screens a second, upwards positive
-      p.prevY = p.y;
-      p.el.style.transform = `translate3d(0, ${(p.y * vh).toFixed(2)}px, 0)`;
-      const b = bulge(speed, vh, w);
-      const tq = `${ww / 2} ${(top - 2 * b).toFixed(2)}`, bq = `${ww / 2} ${(bot + 2 * b).toFixed(2)}`;
-      const clip = `path("M0 ${top} Q ${tq} ${ww} ${top} L ${ww} ${bot} Q ${bq} 0 ${bot} Z")`;
-      p.shape.style.clipPath = clip;
-      // The resting shadow: one constant filter, written only when it changes.
-      if (p.filter !== rest) p.drop.style.filter = p.filter = rest;
-      // The moving shadow: a blurred copy of the shape behind the panel. Its
-      // offset and opacity change per frame; its blur only when it steps.
-      p.level = shadowLevel(p.level, speed, dt);
-      const t = trail(p.level, speed, theme);
-      p.trail.style.opacity = t.opacity.toFixed(3);
-      if (t.opacity > 0) {
-        p.trailShape.style.clipPath = clip;
-        p.trail.style.transform = `translate3d(0, ${t.y.toFixed(1)}px, 0)`;
-        if (t.blur !== p.blur) p.trail.style.filter = `blur(${(p.blur = t.blur)}px)`;
-      }
-      p.top.setAttribute("d", `M0 ${top} Q ${tq} ${ww} ${top}`);
-      p.bottom.setAttribute("d", `M0 ${bot} Q ${bq} ${ww} ${bot}`);
-      p.edges.style.opacity = String(edgeLight(speed));
-    }
-    rider.style.transform = `translate3d(0, ${(mid().y * vh).toFixed(2)}px, 0)`;
+    const b = bulge(s.speed, vh, w);
+    const tq = `${ww / 2} ${(top - 2 * b).toFixed(2)}`, bq = `${ww / 2} ${(bot + 2 * b).toFixed(2)}`;
+    const t = trail(s.level, s.speed, theme);
+    return {
+      transform: `translate3d(0, ${(s.y * vh).toFixed(2)}px, 0)`,
+      clip: `path("M0 ${top} Q ${tq} ${ww} ${top} L ${ww} ${bot} Q ${bq} 0 ${bot} Z")`,
+      trailOpacity: t.opacity.toFixed(3),
+      trailTransform: `translate3d(0, ${t.y.toFixed(1)}px, 0)`,
+      trailBlur: t.blur,
+      topD: `M0 ${top} Q ${tq} ${ww} ${top}`,
+      bottomD: `M0 ${bot} Q ${bq} ${ww} ${bot}`,
+      edges: String(edgeLight(s.speed)),
+    };
   }
 
-  function step(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    let moving = false;
-    for (const p of panels) {
-      if (now < p.t0) moving = true;
-      else if (p.y !== p.to) {
-        const k = Math.min(1, (now - p.t0) / p.dur);
-        p.y = p.from + (p.to - p.from) * ease(k);
-        if (k < 1) moving = true;
-      }
+  const theme = () => (document.documentElement.classList.contains("dark") ? "dark" : "light");
+
+  // A still frame, written as inline styles (the resting place, full cover,
+  // and the end of every move).
+  function paint(p, s, th) {
+    const f = frame(s, th);
+    p.el.style.transform = f.transform;
+    p.shape.style.clipPath = f.clip;
+    const rest = restFilter(th, shadeFor(th === "dark"));
+    if (p.filter !== rest) p.drop.style.filter = p.filter = rest;
+    p.trail.style.opacity = f.trailOpacity;
+    if (s.level > 0) {
+      p.trailShape.style.clipPath = f.clip;
+      p.trail.style.transform = f.trailTransform;
+      p.trail.style.filter = `blur(${f.trailBlur}px)`;
     }
-    draw(dt);
-    // One still frame after the move, so the edges settle flat and dark.
-    if (moving || panels.some((p) => p.prevY !== p.y)) raf = requestAnimationFrame(step);
-    else {
-      raf = 0;
-      draw(0);
-      const done = settle;
-      settle = null;
-      done?.();
-    }
+    p.top.setAttribute("d", f.topD);
+    p.bottom.setAttribute("d", f.bottomD);
+    p.edges.style.opacity = f.edges;
   }
+  function paintAll() {
+    const th = theme();
+    for (const p of panels) paint(p, { y: p.y, speed: 0, level: p.level }, th);
+    rider.style.transform = `translate3d(0, ${(mid().y * window.innerHeight).toFixed(2)}px, 0)`;
+  }
+
+  // The move's keyframes for one panel, from its samples, and their
+  // animations. `delay` in ms. The trail's blur gets step keyframes (its
+  // value only where it changes), the rest run linearly between samples.
+  function animatePanel(p, samples, delay, th) {
+    const dur = samples.at(-1).t * 1000;
+    const offset = (s) => (dur > 0 ? (s.t * 1000) / dur : 1);
+    const frames = samples.map((s) => ({ offset: offset(s), ...frame(s, th) }));
+    const opts = { duration: dur, delay, fill: "both", easing: "linear" };
+    const anims = [
+      p.el.animate(frames.map((f) => ({ offset: f.offset, transform: f.transform })), opts),
+      p.shape.animate(frames.map((f) => ({ offset: f.offset, clipPath: f.clip })), opts),
+      p.trailShape.animate(frames.map((f) => ({ offset: f.offset, clipPath: f.clip })), opts),
+      p.trail.animate(frames.map((f) => ({ offset: f.offset, opacity: f.trailOpacity, transform: f.trailTransform })), opts),
+      p.edges.animate(frames.map((f) => ({ offset: f.offset, opacity: f.edges })), opts),
+      p.top.animate(frames.map((f) => ({ offset: f.offset, d: `path("${f.topD}")` })), opts),
+      p.bottom.animate(frames.map((f) => ({ offset: f.offset, d: `path("${f.bottomD}")` })), opts),
+    ];
+    const blurs = [];
+    for (const f of frames) {
+      if (!blurs.length || blurs.at(-1).blur !== f.trailBlur) blurs.push({ offset: f.offset, blur: f.trailBlur });
+    }
+    blurs.push({ offset: 1, blur: blurs.at(-1).blur });
+    anims.push(p.trail.animate(blurs.map((b) => ({ offset: b.offset, filter: `blur(${b.blur}px)`, easing: "step-end" })), opts));
+    const rest = restFilter(th, shadeFor(th === "dark"));
+    if (p.filter !== rest) p.drop.style.filter = p.filter = rest;
+    return anims;
+  }
+
+  const stop = () => {
+    for (const p of all) {
+      for (const a of p.anims) a.cancel();
+      p.anims = [];
+      p.samples = null;
+    }
+    riderAnim?.cancel();
+    riderAnim = null;
+    moving = null;
+  };
 
   // Move every panel to `to` (screens) over `dur` seconds, centre-out.
+  // Resolves once every panel has arrived (or at once if called off).
   function move(to, dur) {
-    const now = performance.now();
+    stop();
+    const th = theme();
+    const my = gen;
+    moving = { to, dur, t0: document.timeline.currentTime };
+    const vh = window.innerHeight;
+    const done = [];
     panels.forEach((p, i) => {
-      p.from = p.y;
-      p.to = to;
-      p.t0 = now + delayOf(i, panels.length) * 1000;
-      p.dur = dur * 1000;
+      p.samples = sampleMove(p.y, to, dur, p.level, STEP);
+      p.anims = animatePanel(p, p.samples, delayOf(i, panels.length) * 1000, th);
+      done.push(...p.anims.map((a) => a.finished));
     });
-    cancelAnimationFrame(raf);
-    last = now;
-    raf = requestAnimationFrame(step);
-    return new Promise((resolve) => (settle = resolve));
+    const m = mid();
+    riderAnim = rider.animate(
+      m.samples.map((s) => ({ offset: s.t / dur, transform: `translate3d(0, ${(s.y * vh).toFixed(2)}px, 0)` })),
+      { duration: dur * 1000, delay: delayOf(panels.indexOf(m), panels.length) * 1000, fill: "both", easing: "linear" },
+    );
+    done.push(riderAnim.finished);
+    return Promise.all(done).then(
+      () => {
+        if (destroyed || my !== gen) return;
+        for (const p of panels) {
+          p.y = to;
+          p.level = p.samples.at(-1).level;
+        }
+        // The still frame, as inline styles; then the animations go.
+        stop();
+        paintAll();
+      },
+      () => {}, // cancelled: a newer move or destroy took over
+    );
   }
 
   const place = (y) => {
-    for (const p of all) p.y = p.prevY = p.from = p.to = y;
+    for (const p of all) p.y = y;
   };
 
+  // A resize mid-move rebuilds the animations for the new sizes and sets
+  // them back to the move's clock.
   const onResize = () => {
     if (root.dataset.curtain === "idle") return;
     layout();
-    draw(0);
+    if (!moving) return paintAll();
+    const { to, dur, t0 } = moving;
+    const th = theme();
+    const vh = window.innerHeight;
+    for (const p of all) for (const a of p.anims) a.cancel();
+    riderAnim?.cancel();
+    panels.forEach((p, i) => {
+      if (!p.samples) p.samples = sampleMove(p.y, to, dur, p.level, STEP);
+      p.anims = animatePanel(p, p.samples, delayOf(i, panels.length) * 1000, th);
+      for (const a of p.anims) a.startTime = t0;
+    });
+    const m = mid();
+    riderAnim = rider.animate(
+      m.samples.map((s) => ({ offset: s.t / dur, transform: `translate3d(0, ${(s.y * vh).toFixed(2)}px, 0)` })),
+      { duration: dur * 1000, delay: delayOf(panels.indexOf(m), panels.length) * 1000, fill: "both", easing: "linear" },
+    );
+    riderAnim.startTime = t0;
   };
   window.addEventListener("resize", onResize);
 
@@ -177,12 +252,12 @@ export function createCurtain(root) {
     // Rise from below and cover the page. Resolves once it's fully covered.
     async cover(name = "") {
       const my = ++gen;
-      cancelAnimationFrame(raf);
+      stop();
       layout();
       label.textContent = name;
       place(EXTENT);
       setState("covering");
-      draw(0);
+      paintAll();
       await move(0, TIMING.in);
       if (destroyed || my !== gen) return;
       setState("covered");
@@ -190,12 +265,11 @@ export function createCurtain(root) {
     // Fully covered at once (Back and Forward, the first load).
     coverNow(name = "") {
       ++gen;
-      cancelAnimationFrame(raf);
-      settle = null;
+      stop();
       layout();
       label.textContent = name;
       place(0);
-      draw(0);
+      paintAll();
       setState("covered");
     },
     // Carry on upwards and reveal the page. `onClear` runs as the page shows
@@ -216,7 +290,7 @@ export function createCurtain(root) {
     destroy() {
       destroyed = true;
       ++gen;
-      cancelAnimationFrame(raf);
+      stop();
       window.removeEventListener("resize", onResize);
     },
   };
