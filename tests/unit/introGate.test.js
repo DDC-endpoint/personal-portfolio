@@ -1,4 +1,4 @@
-import { shouldPlayIntro, resetIntroDecision, whenRevealed, onReveal, markRevealed, coverStarts, isRevealed } from "@/lib/motion";
+import { shouldPlayIntro, resetIntroDecision, whenRevealed, onReveal, onCover, markRevealed, coverStarts, isRevealed } from "@/lib/motion";
 
 function stubWindow({ reduced = false } = {}) {
   globalThis.window = { matchMedia: (q) => ({ matches: reduced && q.includes("reduce") }) };
@@ -65,6 +65,17 @@ describe("the reveal (entrances wait for the curtain to clear)", () => {
     markRevealed(); // a second call for the same arrival does nothing new
     await tick();
     expect(seen).toEqual(["a"]);
+  });
+
+  test("onCover fires at each full cover until called off", () => {
+    const seen = [];
+    const off = onCover(() => seen.push("c"));
+    coverStarts();
+    coverStarts();
+    expect(seen).toEqual(["c", "c"]);
+    off();
+    coverStarts();
+    expect(seen).toEqual(["c", "c"]);
   });
 
   test("onReveal can be called off", async () => {

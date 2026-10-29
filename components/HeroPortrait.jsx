@@ -7,7 +7,7 @@ import {
   LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE,
 } from "@/lib/portrait";
 import { noiseChar } from "@/lib/decode";
-import { shouldPlayIntro, onReveal, isRevealed } from "@/lib/motion";
+import { shouldPlayIntro, onReveal, onCover, isRevealed } from "@/lib/motion";
 import { ring, customCursorShown } from "@/lib/cursor";
 import { asset } from "@/lib/assets";
 
@@ -346,8 +346,21 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     raf = requestAnimationFrame(tick);
     drawFrame(now);
   };
+  // Under a full curtain (a page change away from Home, or Back before it
+  // cleared) nothing of the portrait shows: the loop stops until the page
+  // is revealed again or gone (lib/motion.js → onCover).
+  let covered = false;
+  const offCover = onCover(() => {
+    covered = true;
+    sync();
+    onReveal(() => {
+      if (destroyed) return;
+      covered = false;
+      sync();
+    });
+  });
   function sync() {
-    const should = !reduced && onScreen && document.visibilityState === "visible";
+    const should = !reduced && onScreen && !covered && document.visibilityState === "visible";
     if (should && !running) {
       running = true;
       raf = requestAnimationFrame(tick);
@@ -436,6 +449,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
       mo.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", sync);
+      offCover();
       for (const [type, fn] of Object.entries(pointerEvents)) canvas.removeEventListener(type, fn);
     },
   };
