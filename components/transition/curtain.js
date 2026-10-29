@@ -52,6 +52,8 @@ export function createCurtain(root) {
     filter: "", // the resting shadow last written: rewritten only on a theme change
     anims: [], // the running move's animations
     samples: null, // the running move's samples, for a resize
+    frames: null, // the move's frames as style values; `at` the one written last
+    at: -1,
   }));
   const rider = root.querySelector("[data-rider]");
   const label = root.querySelector("[data-label]");
@@ -153,24 +155,48 @@ export function createCurtain(root) {
     const offset = (s) => (dur > 0 ? (s.t * 1000) / dur : 1);
     const frames = samples.map((s) => ({ offset: offset(s), ...frame(s, th) }));
     const opts = { duration: dur, delay, fill: "both", easing: "linear" };
-    const anims = [
-      p.el.animate(frames.map((f) => ({ offset: f.offset, transform: f.transform })), opts),
-      p.shape.animate(frames.map((f) => ({ offset: f.offset, clipPath: f.clip })), opts),
-      p.trailShape.animate(frames.map((f) => ({ offset: f.offset, clipPath: f.clip })), opts),
-      p.trail.animate(frames.map((f) => ({ offset: f.offset, opacity: f.trailOpacity, transform: f.trailTransform })), opts),
-      p.edges.animate(frames.map((f) => ({ offset: f.offset, opacity: f.edges })), opts),
-      p.top.animate(frames.map((f) => ({ offset: f.offset, d: `path("${f.topD}")` })), opts),
-      p.bottom.animate(frames.map((f) => ({ offset: f.offset, d: `path("${f.bottomD}")` })), opts),
-    ];
-    const blurs = [];
-    for (const f of frames) {
-      if (!blurs.length || blurs.at(-1).blur !== f.trailBlur) blurs.push({ offset: f.offset, blur: f.trailBlur });
-    }
-    blurs.push({ offset: 1, blur: blurs.at(-1).blur });
-    anims.push(p.trail.animate(blurs.map((b) => ({ offset: b.offset, filter: `blur(${b.blur}px)`, easing: "step-end" })), opts));
+    // Only the panel's own transform goes to the Web Animations API. The
+    // rest (the edges' curves, the trail, the edge light) is written per
+    // frame by the loop below, from the same frames. Keyframing those too
+    // made the phone worse (57-73 frames shown a change against 83-87 for
+    // the per-frame engine): an animated element gets a compositor layer of
+    // its own, and the trail's is a panel-sized blurred one, re-blurred by
+    // the GPU every frame; a keyframed clip-path costs a mask a frame.
+    const anims = [p.el.animate(frames.map((f) => ({ offset: f.offset, transform: f.transform })), opts)];
+    p.frames = frames;
+    p.at = -1;
     const rest = restFilter(th, shadeFor(th === "dark"));
     if (p.filter !== rest) p.drop.style.filter = p.filter = rest;
     return anims;
+  }
+
+  // The per-frame part of a move: each panel's edges, trail and edge light,
+  // from the frame nearest the move's clock. Under a stall of the main
+  // thread the panels keep moving (the compositor has their transforms) and
+  // only these hold until it ends.
+  let raf = 0;
+  function tick(now) {
+    raf = requestAnimationFrame(tick);
+    if (!moving) return;
+    const { dur, t0 } = moving;
+    panels.forEach((p, i) => {
+      if (!p.frames) return;
+      const local = (now - t0) / 1000 - delayOf(i, panels.length);
+      const at = Math.max(0, Math.min(p.frames.length - 1, Math.round(local / STEP)));
+      if (at === p.at) return;
+      const f = p.frames[at], was = p.at >= 0 ? p.frames[p.at] : null;
+      p.at = at;
+      p.shape.style.clipPath = f.clip;
+      p.trail.style.opacity = f.trailOpacity;
+      if (f.trailOpacity !== "0.000") {
+        p.trailShape.style.clipPath = f.clip;
+        p.trail.style.transform = f.trailTransform;
+        if (!was || was.trailBlur !== f.trailBlur) p.trail.style.filter = `blur(${f.trailBlur}px)`;
+      }
+      p.top.setAttribute("d", f.topD);
+      p.bottom.setAttribute("d", f.bottomD);
+      p.edges.style.opacity = f.edges;
+    });
   }
 
   const stop = () => {
@@ -178,10 +204,13 @@ export function createCurtain(root) {
       for (const a of p.anims) a.cancel();
       p.anims = [];
       p.samples = null;
+      p.frames = null;
     }
     riderAnim?.cancel();
     riderAnim = null;
     moving = null;
+    cancelAnimationFrame(raf);
+    raf = 0;
   };
 
   // Move every panel to `to` (screens) over `dur` seconds, centre-out.
@@ -191,6 +220,7 @@ export function createCurtain(root) {
     const th = theme();
     const my = gen;
     moving = { to, dur, t0: document.timeline.currentTime };
+    raf = requestAnimationFrame(tick);
     const vh = window.innerHeight;
     const done = [];
     panels.forEach((p, i) => {

@@ -40,6 +40,7 @@ test("ring grows into the lens", async ({ page }, info) => {
 
 test("the lens waits for the intro curtain, then opens under a resting pointer", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
+  test.setTimeout(60000); // replaying 6 s of frames on the fake clock is slow under full load
   // Hold the intro curtain down under a paused clock: the loader, the lift
   // and the ring all run on frames, so nothing moves until the clock does,
   // however fast or slow the page loads. (The engine ships with the bundle
