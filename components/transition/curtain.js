@@ -62,7 +62,17 @@ export function createCurtain(root) {
     const vh = window.innerHeight;
     const w = width / panels.length; // as the CSS's panels
     const ww = Math.ceil(w) + 1;
-    const top = vh * 0.15, bot = vh * 1.15;
+    // The edges sit 15% in from the panel's top and bottom. The panel is
+    // 130vh tall, and on a phone a vh is the largest viewport (the URL bar
+    // hidden) while innerHeight is the current one: measured from
+    // innerHeight with the bar shown, the bottom edge sat 0.15 × the bar's
+    // height above the screen's bottom, and a strip of the page showed under
+    // the curtain (Android Chrome, 2026-10-29). So they come from the panel's
+    // own height; where that agrees with innerHeight (desktop) the exact
+    // innerHeight numbers are kept.
+    const cssVh = panels[0].el.getBoundingClientRect().height / 1.3;
+    const unit = Math.abs(cssVh - vh) < 1 ? vh : cssVh;
+    const top = unit * 0.15, bot = unit * 1.15;
     const root = document.documentElement;
     const dark = root.classList.contains("dark");
     // The shadow: the ink token in light mode (--c-ink is "r g b"), black on navy.

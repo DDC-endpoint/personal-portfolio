@@ -493,6 +493,43 @@ test.describe("first load", () => {
     expect(dy).toBeGreaterThan(1); // still below its line
   });
 
+  // On a phone, a vh is the largest viewport (the URL bar hidden) while
+  // innerHeight is the current one. The curtain's edges were placed from
+  // innerHeight on a 130vh panel, so with the bar shown the bottom edge sat
+  // above the screen's bottom and a strip of the page showed under the
+  // curtain (Android Chrome, 2026-10-29). The mismatch is faked here.
+  test("the curtain covers the screen's bottom when innerHeight is less than a vh", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "innerHeight", { get: () => Math.round(window.outerHeight * 0.85) || 700, configurable: true });
+    });
+    await page.goto("/services");
+    await settle(page);
+    // At full cover (a 220 ms hold, so probed from an observer) the middle
+    // panel's clip-path must reach past both ends of the screen, whichever
+    // of innerHeight and the layout viewport is the taller.
+    await page.evaluate(() => {
+      window.__edges = null;
+      new MutationObserver(() => {
+        if (document.querySelector("[data-curtain]").dataset.curtain !== "covered" || window.__edges) return;
+        try {
+          const panel = document.querySelector('[data-panel="2"]');
+          const [, top, bot] = panel.querySelector("[data-shape]").style.clipPath.match(/M ?0 ([\d.-]+) .* L [\d.]+ ([\d.-]+)/).map(Number);
+          const y = panel.getBoundingClientRect().top;
+          window.__edges = { top: y + top, bottom: y + bot, screen: Math.max(innerHeight, document.documentElement.clientHeight) };
+        } catch (e) {
+          window.__edges = { error: String(e), clip: document.querySelector('[data-panel="2"] [data-shape]')?.style.clipPath };
+        }
+      }).observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] });
+      document.querySelector('header nav a[href="/privacy"]').click();
+    });
+    await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
+    await idle(page);
+    const edges = await page.evaluate(() => window.__edges);
+    expect([edges.error, edges.clip]).toEqual([undefined, undefined]);
+    expect(edges.top).toBeLessThanOrEqual(0.1); // 130vh lays out in 1/64 px steps
+    expect(edges.bottom).toBeGreaterThanOrEqual(edges.screen - 0.1);
+  });
+
   test("a link clicked during the intro opens once the loader is done, under the same cover", async ({ page }) => {
     await record(page);
     await page.goto("/services");
