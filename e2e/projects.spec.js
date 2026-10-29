@@ -286,7 +286,7 @@ test.describe("mobile", () => {
 
 test("reduced motion keeps the skeleton when a screenshot fails", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.route("**/projects/aloys-travels.webp", (r) => r.abort());
+  await page.route("**/projects/aloys-travels.webp*", (r) => r.abort());
   await page.goto("/");
   await card(page, 0).scrollIntoViewIfNeeded();
   await expect(card(page, 0).locator("[data-skeleton]")).toBeVisible();

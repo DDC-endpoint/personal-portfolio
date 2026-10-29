@@ -47,10 +47,27 @@ test("a fallback font face that can't load still draws the portrait", async ({ p
   expect((await paint(page)).n).toBeGreaterThan(1000);
 });
 
+// The portrait is fetched from an effect, after hydration: on a slow link
+// that was seconds after the HTML (2026-10-29). A preload in the server HTML
+// starts it with the page, and it must match the fetch's mode and
+// credentials, or the browser fetches the image twice.
+test("the portrait is preloaded with the page and downloaded once", async ({ page }) => {
+  const html = await (await page.goto("/")).text();
+  expect(html).toMatch(/<link rel="preload" href="\/hero\/portrait\.webp[^"]*" as="fetch" crossorigin=""\/?>/);
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
+  // One download, started by the link; the fetch is served from it
+  // (a cache hit still gets a resource entry, with nothing transferred).
+  const entries = await page.evaluate(() =>
+    performance.getEntriesByType("resource").filter((e) => /\/hero\/portrait\.webp/.test(e.name)).map((e) => [e.initiatorType, e.transferSize]),
+  );
+  expect(entries.filter(([, bytes]) => bytes > 0)).toEqual([["link", expect.any(Number)]]);
+  expect(entries.some(([type]) => type === "fetch")).toBe(true);
+});
+
 test("image failure leaves hero intact", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.route("**/hero/portrait.webp", (r) => r.abort());
+  await page.route("**/hero/portrait.webp*", (r) => r.abort());
   await page.goto("/");
   await expect(portrait(page)).toHaveAttribute("data-state", "error", { timeout: 10000 });
   await expect(page.locator("[data-portrait-label]")).toHaveText("");

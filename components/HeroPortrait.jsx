@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 import {
   RAMP, cellSize, fadeAt, glyphIndex, buildField, density, shadeRGB, glyphAlpha,
   scanBand, bandWeight, flickerCount, revealTime, cellPhase, FACE, LOADER_S,
@@ -8,6 +9,7 @@ import {
 import { noiseChar } from "@/lib/decode";
 import { shouldPlayIntro, onReveal, isRevealed } from "@/lib/motion";
 import { ring, customCursorShown } from "@/lib/cursor";
+import { asset } from "@/lib/assets";
 
 // The V3 hero: Damian's studio headshot redrawn as an electric-blue ASCII
 // portrait on a canvas. Spec: docs/v3/hero-portrait.md. All maths lives in
@@ -31,7 +33,7 @@ import { ring, customCursorShown } from "@/lib/cursor";
 // With the custom cursor the lens sits under the ring (lib/cursor); on touch,
 // or without the custom cursor, it follows the pointer and draws its own rim.
 
-const SRC = "/hero/portrait.webp";
+const SRC = asset("/hero/portrait.webp");
 const SUPERSAMPLE = 3;
 const LATE_MS = 2500; // an image or font later than this into the arrival skips the wave
 
@@ -430,6 +432,11 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
 }
 
 export default function HeroPortrait({ className = "" }) {
+  // The image is fetched from the effect below, after hydration: on a slow
+  // connection that was seconds after the HTML. A preload in the server
+  // HTML starts it with the page (same mode and credentials as the fetch,
+  // or the browser fetches it twice).
+  preload(SRC, { as: "fetch", crossOrigin: "anonymous" });
   const wrapperRef = useRef(null);
   const canvasRef = useRef(null);
   const [state, setState] = useState("loading");

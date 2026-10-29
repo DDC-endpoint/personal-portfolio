@@ -65,7 +65,7 @@ test("coming back during the dissolve turns back to the screenshot", async ({ pa
 
 test("failed screenshot stays a skeleton link", async ({ page }) => {
   const errors = trackErrors(page);
-  await page.route("**/projects/aloys-travels.webp", (r) => r.abort());
+  await page.route("**/projects/aloys-travels.webp*", (r) => r.abort());
   await page.goto("/");
   await arrive(page, 0);
   await page.waitForTimeout(2000);

@@ -176,7 +176,7 @@ test("a resting pointer scrolls the preview down, and leaving brings it back", a
   const box = await card.locator("[data-frame]").boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   // The full capture swaps in when the preview first starts.
-  await expect(img).toHaveAttribute("src", "/projects/full/aloys-travels.webp");
+  await expect(img).toHaveAttribute("src", /^\/projects\/full\/aloys-travels\.webp(\?v=\w+)?$/);
   await expect.poll(y, { timeout: 4000 }).toBeLessThan(-40);
   await page.mouse.move(5, 5);
   await expect.poll(y, { timeout: 4000 }).toBe(0);

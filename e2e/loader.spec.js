@@ -82,7 +82,7 @@ test("a reload in the same session is short; a new session is full", async ({ pa
 });
 
 test("a slow portrait holds the count at 96", async ({ page }) => {
-  await page.route("**/hero/portrait.webp", async (r) => {
+  await page.route("**/hero/portrait.webp*", async (r) => {
     await new Promise((res) => setTimeout(res, 2200));
     await r.continue().catch(() => {});
   });
@@ -145,7 +145,7 @@ test("the failsafe hides it if scripts never run", async ({ page }) => {
 });
 
 test("slow image skips the wave", async ({ page }) => {
-  await page.route("**/hero/portrait.webp", async (r) => {
+  await page.route("**/hero/portrait.webp*", async (r) => {
     await new Promise((res) => setTimeout(res, 3000));
     await r.continue();
   });

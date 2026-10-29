@@ -247,15 +247,16 @@ test.describe("the curtain", () => {
 // ---- Task 4: clicks, swap, arrival ----------------------------------------
 
 // A plain page link, fixed in view on every screen size, for tests that need
-// a real (visible) click: the footer has no page links (Phase 6 gate). Bottom
-// right: next dev's tools button sits bottom left and would take the click.
+// a real (visible) click: the footer has no page links (Phase 6 gate). Clear
+// of the corners: next dev's tools button sits in the bottom-right corner
+// (bottom-left before Next 16) and would take the click.
 const PATHS = { Home: "/", Portfolio: "/portfolio", Services: "/services", Privacy: "/privacy" };
 async function pageLink(page, name) {
   await page.evaluate((href) => {
     document.querySelector("[data-test-page-link]")?.remove();
     const a = Object.assign(document.createElement("a"), { href, textContent: "test link" });
     a.dataset.testPageLink = "";
-    a.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:65;padding:8px;background:white";
+    a.style.cssText = "position:fixed;right:12px;bottom:72px;z-index:65;padding:8px;background:white";
     document.querySelector("main").append(a);
   }, PATHS[name]);
   return page.locator("[data-test-page-link]");
