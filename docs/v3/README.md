@@ -32,7 +32,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 - **Touch lens blocked scrolling on phones (Damian): fixed in `037d656`.** A 300 ms still press opens the lens; a swipe scrolls. Verified with real touch input on his phone (`perf-probes/phone-touch.mjs`); `decisions.md` has his picks.
 
-**Gate (Damian decides, then PR to `main`):** keep or revert the curtain trail; build or skip the `drawWave` batching; static-import the engine or not; build the compositor-driven curtain. The Lighthouse before/after is in `perf-2026-10-29.md`.
+- **Damian's gate answers (2026-10-29), all built:** the trail stays; the `drawWave` batching (`835e850`); the engine ships with the bundle (`a4086f5`); the compositor-driven move (`dbd441c`: only the panels' transforms on the compositor, after measuring that keyframing everything was worse).
+- **The phone's real stall is the curtain's raster** (measured with presented frames from a Chrome trace): the resting drop-shadow, the trail's blur and the clip-path mask are re-rasterised every frame; without them the change shows 59 fps instead of 37. **Damian: "Build it now."** The rendering split (static shadowed body, small per-frame caps, pre-blurred trail) is specified in `perf-2026-10-29.md` → "How to resume", step 2. **Start there in the next session.** Then his full mobile verification pass (step 3), the gate, the PR.
 
 The deploy and post-deploy checks below were overtaken: V3 was deployed (CI auto-deploys on a push to `main` since `a7e6968`), and the fixes in item 11 shipped by PRs #5 and #6.
 
