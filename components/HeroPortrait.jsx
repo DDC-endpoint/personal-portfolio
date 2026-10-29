@@ -4,7 +4,7 @@ import { preload } from "react-dom";
 import {
   RAMP, cellSize, fadeAt, glyphIndex, buildField, density, shadeRGB, glyphAlpha,
   scanBand, bandWeight, flickerCount, revealTime, cellPhase, FACE, LOADER_S,
-  LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE,
+  LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE, HOLD_MS, HOLD_SLOP,
 } from "@/lib/portrait";
 import { noiseChar } from "@/lib/decode";
 import { shouldPlayIntro, onReveal, onCover, isRevealed } from "@/lib/motion";
@@ -335,10 +335,48 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     aim(e);
   };
   const lensOff = () => (lens.on = false);
-  const lensUp = (e) => {
-    if (e.pointerType !== "mouse") lens.on = false;
+  // Touch (Damian, 2026-10-29): a finger on the portrait must still scroll
+  // the page, so the lens opens only after a hold (HOLD_MS) with the finger
+  // still. A finger that moves first, or that the browser takes for a
+  // scroll (pointercancel), never opens it. Once held, moving the finger
+  // drags the lens and the touchmove below keeps the page from scrolling.
+  const hold = { timer: 0, x: 0, y: 0, held: false };
+  const endHold = () => {
+    clearTimeout(hold.timer);
+    hold.timer = 0;
+    hold.held = false;
   };
-  const pointerEvents = { pointerenter: lensOn, pointerdown: lensOn, pointermove: aim, pointerleave: lensOff, pointercancel: lensOff, pointerup: lensUp };
+  const touchDown = (e) => {
+    endHold();
+    hold.x = e.clientX;
+    hold.y = e.clientY;
+    hold.timer = setTimeout(() => {
+      hold.timer = 0;
+      hold.held = true;
+      lensOn(e);
+    }, HOLD_MS);
+  };
+  const touchMove = (e) => {
+    if (hold.held) aim(e);
+    else if (hold.timer && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > HOLD_SLOP) endHold();
+  };
+  const touchEnd = () => {
+    endHold();
+    lens.on = false;
+  };
+  const mouse = (e) => e.pointerType === "mouse";
+  const pointerEvents = {
+    pointerenter: (e) => mouse(e) && lensOn(e),
+    pointerdown: (e) => (mouse(e) ? lensOn(e) : touchDown(e)),
+    pointermove: (e) => (mouse(e) ? aim(e) : touchMove(e)),
+    pointerleave: (e) => mouse(e) && lensOff(),
+    pointercancel: (e) => (mouse(e) ? lensOff() : touchEnd()),
+    pointerup: (e) => !mouse(e) && touchEnd(),
+    // While the lens is held, the finger moves the lens, not the page.
+    touchmove: (e) => hold.held && e.cancelable && e.preventDefault(),
+    // A long press must not open the browser's menu over the portrait.
+    contextmenu: (e) => (hold.timer || hold.held) && e.preventDefault(),
+  };
 
   // The next frame is booked before drawing, so one bad frame can never
   // stop the loop for the rest of the page's life.
@@ -420,7 +458,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     io.observe(wrapper);
     document.addEventListener("visibilitychange", sync);
     if (!reduced) {
-      for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn);
+      for (const [type, fn] of Object.entries(pointerEvents)) canvas.addEventListener(type, fn, { passive: false });
       // A pointer that came in before the listeners (a slow photo) sent no
       // pointerenter: pick it up now. Only with the custom cursor, whose ring
       // gives the lens its position; without it, the next move does.
@@ -445,6 +483,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
       cancelAnimationFrame(raf);
       cancelAnimationFrame(pending);
       clearTimeout(restTimer);
+      clearTimeout(hold.timer);
       ro.disconnect();
       mo.disconnect();
       io.disconnect();
@@ -542,7 +581,7 @@ export default function HeroPortrait({ className = "" }) {
       className={`relative h-full w-full ${className}`}
     >
       {/* data-lens on the canvas only — the label above it must not grow the cursor ring */}
-      <canvas ref={canvasRef} data-lens aria-hidden="true" className="absolute inset-0 h-full w-full touch-none" />
+      <canvas ref={canvasRef} data-lens aria-hidden="true" className="absolute inset-0 h-full w-full select-none [-webkit-touch-callout:none]" />
       <div data-portrait-label className="section-label absolute left-0 -top-6">
         {grid && `Portrait · ${grid} cells`}
       </div>

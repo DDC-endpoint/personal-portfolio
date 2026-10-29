@@ -77,21 +77,49 @@ test("lens reveals colour", async ({ page }, info) => {
   expect(await warmAt(page, p)).toBeGreaterThan(0);
 });
 
-test("touch drag moves the lens", async ({ page }, info) => {
+// Touch (Damian, 2026-10-29): a finger on the portrait must still scroll the
+// page, so the lens opens only after a 300 ms hold with the finger still.
+const touch = (page, type, x, y) =>
+  page.locator("[data-portrait] canvas").dispatchEvent(type, { pointerType: "touch", clientX: x, clientY: y, isPrimary: true, bubbles: true });
+
+test("a held touch opens the lens and drags it; lifting fades it", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile");
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
+  await portrait(page).scrollIntoViewIfNeeded();
+  // The browser must be free to scroll a touch on the portrait.
+  expect(await page.locator("[data-portrait] canvas").evaluate((c) => getComputedStyle(c).touchAction)).not.toBe("none");
+  const p = await face(page);
+  await touch(page, "pointerdown", p.x - 30, p.y);
+  await page.waitForTimeout(150);
+  expect(await warmAt(page, p)).toBe(0); // not yet: still under the hold
+  await page.waitForTimeout(350);
+  await touch(page, "pointermove", p.x - 10, p.y);
+  await touch(page, "pointermove", p.x, p.y);
+  await page.waitForTimeout(500);
+  expect(await warmAt(page, p)).toBeGreaterThan(0);
+  await touch(page, "pointerup", p.x, p.y);
+  await page.waitForTimeout(1000);
+  expect(await warmAt(page, p)).toBe(0);
+});
+
+test("a touch that moves at once, or that becomes a scroll, never opens the lens", async ({ page }, info) => {
   test.skip(info.project.name !== "mobile");
   await page.goto("/");
   await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await portrait(page).scrollIntoViewIfNeeded();
   const p = await face(page);
-  const fire = (type, x, y) =>
-    page.locator("[data-portrait] canvas").dispatchEvent(type, { pointerType: "touch", clientX: x, clientY: y, isPrimary: true, bubbles: true });
-  await fire("pointerdown", p.x - 30, p.y);
-  await fire("pointermove", p.x - 10, p.y);
-  await fire("pointermove", p.x, p.y);
-  await page.waitForTimeout(500);
-  expect(await warmAt(page, p)).toBeGreaterThan(0);
-  await fire("pointerup", p.x, p.y);
-  await page.waitForTimeout(1000);
+  // Moved past the slop before the hold: a scroll, even if the finger then rests.
+  await touch(page, "pointerdown", p.x, p.y - 20);
+  await touch(page, "pointermove", p.x, p.y);
+  await page.waitForTimeout(600);
+  expect(await warmAt(page, p)).toBe(0);
+  await touch(page, "pointerup", p.x, p.y);
+  // The browser took the touch for a scroll (pointercancel) during the hold.
+  await touch(page, "pointerdown", p.x, p.y);
+  await page.waitForTimeout(100);
+  await touch(page, "pointercancel", p.x, p.y);
+  await page.waitForTimeout(600);
   expect(await warmAt(page, p)).toBe(0);
 });
 
