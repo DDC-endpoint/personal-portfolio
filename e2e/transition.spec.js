@@ -693,10 +693,13 @@ test.describe("details", () => {
 // ---- Review fixes ------------------------------------------------------------
 
 test.describe("robustness", () => {
-  test("if the curtain's code can't load, page links still work (the browser loads them)", async ({ page }) => {
+  // The engine ships with the first-load bundle (2026-10-29), so blocking it
+  // blocks hydration: the page is the server HTML, the CSS failsafe uncovers
+  // it at 5 s, and its links are plain.
+  test("if the site's code can't load, page links still work (the browser loads them)", async ({ page }) => {
     await blockCurtain(page);
     await page.goto("/");
-    await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
+    await expect(page.locator("[data-curtain]")).toBeHidden({ timeout: 9000 });
     await mark(page);
     await (await pageLink(page, "Services")).click();
     await page.waitForURL(/\/services$/, { timeout: 10000 });
@@ -864,15 +867,7 @@ test.describe("robustness", () => {
     await expect(page.locator("#top h1")).toBeVisible();
   });
 
-  test("a link clicked during the intro, before the curtain's code arrives, opens under the same cover", async ({ page }) => {
-    await record(page);
-    await blockCurtain(page, { delay: 1500 });
-    await page.goto("/services");
-    await expect(page.locator(".morph-loader")).toHaveCount(1);
-    await page.evaluate(() => { window.__marker = 1; document.querySelector('header nav a[href="/privacy"]').click(); });
-    await expect(page).toHaveURL(/\/privacy$/, { timeout: 10000 });
-    await idle(page);
-    expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "covered", "lifting", "idle"]);
-    expect(await sameDocument(page)).toBe(true);
-  });
+  // A link clicked during the intro before the engine arrived used to be its
+  // own case; the engine arrives with hydration now (2026-10-29), so that is
+  // "a link clicked during the intro opens once the loader is done" above.
 });

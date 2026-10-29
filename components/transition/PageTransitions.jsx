@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import MorphLoader from "@/components/MorphLoader";
 import Curtain from "./Curtain";
+import { createCurtain } from "./curtain";
 import { FALLBACK_MS, PAGES, intercept, pageOf } from "@/lib/pageTransition";
 import { TIMING } from "@/lib/curtain";
 import { NAV_LINKS } from "@/lib/site";
@@ -34,9 +35,11 @@ import { getLenis } from "@/lib/lenis";
 // visitor went back to.
 //
 // The panels are in the server HTML but idle and invisible; the engine
-// (./curtain.js) is split out of the first load. It's imported at once when
-// the intro plays, otherwise once the browser is idle, or at the first click
-// if that comes sooner. html[data-transitions="ready"] says the controller is
+// (./curtain.js) ships with the first-load bundle and is built once the
+// intro plays, otherwise once the browser is idle, or at the first click if
+// that comes sooner. (Until 2026-10-29 it was its own chunk, imported after
+// hydration: one more round trip before the first load could lift, 350 ms
+// at a 300 ms RTT.) html[data-transitions="ready"] says the controller is
 // live.
 
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
@@ -118,10 +121,11 @@ export default function PageTransitions() {
   const introRef = useRef({ loaded: false, lifting: false, done: false, engine: null, pending: null });
   const goRef = useRef(null); // the controller's go(), for a click made during the intro
 
-  // A failed load isn't kept: the next call tries again.
+  // One engine per mount, built on first use. A failed build isn't kept: the
+  // next call tries again.
   const loadCurtain = () =>
-    (engineRef.current ??= import("./curtain")
-      .then(({ createCurtain }) => createCurtain(curtainRef.current))
+    (engineRef.current ??= Promise.resolve()
+      .then(() => createCurtain(curtainRef.current))
       .catch((error) => {
         engineRef.current = null;
         throw error;

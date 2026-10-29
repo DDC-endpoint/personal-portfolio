@@ -18,8 +18,10 @@ import {
 // the middle panel. Only runs while something moves. The root's data-curtain
 // says where it is: idle, covering, covered or lifting.
 //
-// Split out of the first load: PageTransitions imports it once the browser
-// is idle, or at the first click if that comes sooner.
+// PageTransitions builds it when the intro plays, otherwise once the browser
+// is idle, or at the first click if that comes sooner. It ships with the
+// first-load bundle: as its own chunk, imported after hydration, it cost a
+// round trip before the first load could lift (2026-10-29).
 
 export function createCurtain(root) {
   const all = [...root.querySelectorAll("[data-panel]")].map((el) => ({

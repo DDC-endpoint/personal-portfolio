@@ -9,7 +9,10 @@ export function trackErrors(page) {
   return errors;
 }
 
-// Aborts (or delays) the curtain's code chunk: the only one naming its "lifting" state.
+// Aborts (or delays) the chunk holding the curtain's engine: the only one
+// naming its "lifting" state. Since 2026-10-29 the engine ships with the
+// first-load bundle, so this holds hydration itself: the page stays the
+// server HTML (plain links, the CSS failsafe) until the chunk arrives.
 // `until`: a promise that releases it, for a test that must act while it's held.
 export async function blockCurtain(page, { delay, until } = {}) {
   await page.route("**/_next/static/chunks/**", async (route) => {

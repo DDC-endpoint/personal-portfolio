@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test";
-import { blockCurtain } from "./helpers";
 
 // A finished portrait: after the wave ("static"), or straight away when the
 // load was too slow for one ("skipped" — a cold dev build sometimes is).
@@ -41,25 +40,28 @@ test("ring grows into the lens", async ({ page }, info) => {
 
 test("the lens waits for the intro curtain, then opens under a resting pointer", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
-  // Hold the intro curtain down: its code is released only once the pointer
-  // is in, so it can't lift first, however fast or slow the page loads.
-  let release;
-  await blockCurtain(page, { until: new Promise((r) => (release = r)) });
+  // Hold the intro curtain down under a paused clock: the loader, the lift
+  // and the ring all run on frames, so nothing moves until the clock does,
+  // however fast or slow the page loads. (The engine ships with the bundle
+  // since 2026-10-29, so its chunk can't be held on its own any more.)
+  await page.clock.install();
   await page.goto("/");
   // The curtain lets the pointer through, so enter the portrait under it
   // once the cursor is live.
   const curtain = page.locator("[data-curtain]");
   await expect(page.locator("html")).toHaveClass(/js-cursor/, { timeout: 15000 });
-  await expect(curtain).toHaveAttribute("data-curtain", "intro");
+  await page.clock.pauseAt(Date.now() + 1000);
+  await expect(curtain).toHaveAttribute("data-curtain", /^(intro|covered)$/); // still down
   const p = await face(page);
   await page.mouse.move(20, 450);
   await page.mouse.move(p.x, p.y, { steps: 5 });
   const ring = page.locator(".cursor-ring");
-  await page.waitForTimeout(300);
-  await expect(curtain).toHaveAttribute("data-curtain", "intro");
+  await page.clock.runFor(300);
+  await expect(curtain).toHaveAttribute("data-curtain", /^(intro|covered)$/); // still down
   await expect(ring).not.toHaveClass(/is-lens/);
   // Revealed: the lens opens without the pointer moving.
-  release();
+  await page.clock.runFor(6000);
+  await page.clock.resume();
   await expect(ring).toHaveClass(/is-lens/, { timeout: 8000 });
   await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await expect.poll(() => warmAt(page, p), { timeout: 1500 }).toBeGreaterThan(0);

@@ -11,6 +11,7 @@ import {
   shadow,
   restFilter,
   trail,
+  sampleMove,
   coverTime,
   liftTime,
   totalChange,
@@ -130,4 +131,30 @@ test("a page change: cover 0.94 s, hold 0.22 s, lift 1.09 s", () => {
 test("the page shows from 0.45 of the way through the out phase, after the last panel's delay", () => {
   expect(clearAt(5)).toBeCloseTo(0.24 + 0.85 * 0.45, 9);
   expect(clearAt(3)).toBeCloseTo(0.12 + 0.85 * 0.45, 9);
+});
+
+// The compositor-driven move (2026-10-29): a move sampled in advance on a
+// fixed grid, with the same maths the per-frame engine used.
+test("sampleMove: the eased travel on a fixed grid, speed and level as the engine had them", () => {
+  const s = sampleMove(1.3, 0, 0.7);
+  expect(s[0]).toEqual({ t: 0, y: 1.3, speed: 0, level: 0 });
+  // 0.7 s at 120 Hz: 84 steps, plus the still frame after the move.
+  expect(s).toHaveLength(86);
+  expect(s.at(-1)).toMatchObject({ t: 0.7, y: 0, speed: 0 });
+  expect(s.at(-2).y).toBeCloseTo(0, 9);
+  for (let i = 1; i < s.length - 1; i++) {
+    expect(s[i].y).toBeCloseTo(1.3 + (0 - 1.3) * ease(s[i].t / 0.7), 9);
+    expect(s[i].speed).toBeGreaterThanOrEqual(0); // upwards positive
+    expect(s[i].level).toBeGreaterThanOrEqual(0);
+    expect(s[i].level).toBeLessThanOrEqual(1);
+  }
+  // Fastest in the middle; the level follows it and drains by the end.
+  const mid = s[Math.floor(s.length / 2)];
+  expect(mid.speed).toBeGreaterThan(s[5].speed);
+  expect(mid.level).toBeGreaterThan(0.5);
+  expect(s.at(-1).level).toBeLessThan(mid.level);
+  // The still frame keeps the level it ended with, as draw(0) did.
+  expect(s.at(-1).level).toBe(s.at(-2).level);
+  // A lift carries the level over from the cover's end.
+  expect(sampleMove(0, -1.3, 0.85, 0.3)[0].level).toBeCloseTo(0.3, 9);
 });
