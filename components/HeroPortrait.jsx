@@ -210,22 +210,47 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   // Loader: the finished portrait is blitted, then every cell the wave hasn't
   // reached yet is cleared and redrawn as a shimmering skeleton block or, in
   // the last 0.25 s before it lands, a noise glyph.
+  //
+  // Row by row: the row's unrevealed cells are cleared in one path, then
+  // drawn. One clearRect per cell, interleaved with the draws, broke the
+  // GPU's batching on every cell (a wave frame was 18-21 ms of script on a
+  // desktop, 7-10 after; Damian approved it 2026-10-29: the GPU's clearRect
+  // is antialiased, so a cleared seam keeps a trace of the old glyph that
+  // one path doesn't, up to 4/255, invisible). A row at a time keeps what
+  // the per-cell order did for a glyph's descender: it spills into the row
+  // below, which is cleared before it's drawn.
   function drawWave(t) {
     blitRest();
-    ctx.fillStyle = css(electric);
-    for (const i of field.inside) {
-      const tr = reveal[i];
-      if (t >= tr) continue;
-      const x = i % cols, y = (i / cols) | 0, px = x * cw, py = y * ch;
+    const inside = field.inside;
+    let k = 0;
+    while (k < inside.length) {
+      const row = (inside[k] / cols) | 0, py = row * ch;
+      let end = k, any = false;
       ctx.globalAlpha = 1;
-      ctx.clearRect(px, py, cw, ch);
-      if (cellPhase(t, tr) === "skeleton") {
-        ctx.globalAlpha = (0.1 + 0.05 * Math.sin(t * 6 + x * 0.3 + y * 0.2)) * fade[i];
-        ctx.fillRect(px + cw * 0.3, py + ch * 0.3, cw * 0.4, ch * 0.4);
-      } else {
-        ctx.globalAlpha = 0.9 * fade[i];
-        ctx.fillText(noiseChar(), px, py);
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      for (; end < inside.length && ((inside[end] / cols) | 0) === row; end++) {
+        const i = inside[end];
+        if (t >= reveal[i]) continue;
+        ctx.rect((i % cols) * cw, py, cw, ch);
+        any = true;
       }
+      if (any) ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = css(electric);
+      for (let j = k; j < end; j++) {
+        const i = inside[j], tr = reveal[i];
+        if (t >= tr) continue;
+        const x = i % cols, px = x * cw;
+        if (cellPhase(t, tr) === "skeleton") {
+          ctx.globalAlpha = (0.1 + 0.05 * Math.sin(t * 6 + x * 0.3 + row * 0.2)) * fade[i];
+          ctx.fillRect(px + cw * 0.3, py + ch * 0.3, cw * 0.4, ch * 0.4);
+        } else {
+          ctx.globalAlpha = 0.9 * fade[i];
+          ctx.fillText(noiseChar(), px, py);
+        }
+      }
+      k = end;
     }
     ctx.globalAlpha = 1;
   }
