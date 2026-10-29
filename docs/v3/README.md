@@ -30,6 +30,8 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 
 - **Phone page-change lag (Damian: "lag free regardless of device"):** profiled on his phone. Fixed, identical: Home's departing portrait drew under the full curtain (a 134 ms frame), the engine read layout every frame, the portrait set its font every frame. What remains is the next page's mount and first paint landing while the panels move (29-31 fps on the change to `/services`); the fix is a compositor-driven curtain (Web Animations keyframes from the same maths), proposed in `perf-2026-10-29.md`.
 
+- **Touch lens blocked scrolling on phones (Damian): fixed in `037d656`.** A 300 ms still press opens the lens; a swipe scrolls. Verified with real touch input on his phone (`perf-probes/phone-touch.mjs`); `decisions.md` has his picks.
+
 **Gate (Damian decides, then PR to `main`):** keep or revert the curtain trail; build or skip the `drawWave` batching; static-import the engine or not; build the compositor-driven curtain. The Lighthouse before/after is in `perf-2026-10-29.md`.
 
 The deploy and post-deploy checks below were overtaken: V3 was deployed (CI auto-deploys on a push to `main` since `a7e6968`), and the fixes in item 11 shipped by PRs #5 and #6.
