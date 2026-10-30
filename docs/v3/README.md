@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-28: Phases 1–6 merged into `v3`, and `v3` merged to `main` by PR #4; `main` and `v3` are the same commit)
+## Where we are (2026-10-30: V3 and the performance pass are on `main` and live; new work starts on `v5`)
 
 | Track | State |
 |---|---|
@@ -16,8 +16,13 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | SEO and GEO upgrade (Phase 4 Task 11) | **Done and merged with Phase 4 (2026-10-27)**, from a five-part audit and Damian's answers. See [`seo-geo.md`](seo-geo.md), which also lists what Damian does outside the repo (Search Console, profiles, testimonials). The `www` redirect and `server_tokens off` are done and verified. |
 | **Phase 5**: page transition (every page) and the first-load reveal | **Done and merged into `v3` (2026-10-28), and `v3` pushed to `origin`.** Built per [`plan-phase-5.md`](plan-phase-5.md) plus Damian's mid-build change (the first load reveals with the sweep instead of the curtain, Task 4b) and his gate fixes (`decisions.md` → "Phase 5 gate changes"). Reviewed by a fresh reviewer; every finding is fixed. Tests are green, and Lighthouse is at parity with `v3`. See "What Phase 5 built". |
 | **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Done and merged into `v3` (2026-10-28), then merged to `main` by PR #4 (`da83fc0`, 2026-10-28); `v3` was fast-forwarded to the same commit and pushed** (Damian approved the gate after five late fixes: the nav underline, the lens under the curtain, the progress bar, the cursor behind the curtain, the nav's entrance). See "What Phase 6 built" and `decisions.md` → "Phase 6 gate fixes". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
+| **Performance and mobile pass** | **Done, merged to `main` by PR #7 (`2c7556f`, 2026-10-30) and live.** The record is [`perf-2026-10-29.md`](perf-2026-10-29.md). On Damian's phone the main thread went from 45.5 to 53 fps averaged over the pages, with 59-60 fps shown. |
 
-### Resume here (2026-10-29): the performance and mobile pass on `perf/curtain-portrait`
+### Start here (2026-10-30): branch `v5`
+
+**New development starts on `v5`**, branched off `main` at the PR #7 merge (`2c7556f`) and pushed. A push to `main` auto-deploys the live site, so `v5` work reaches `main` by PR, after the e2e comparison with `main` and the visual checks (`perf-probes/visual-check.mjs`). Gate questions 6, 7 and 9 below are still open; 8 is moot (the preview is gone).
+
+### The performance pass as it stood on 2026-10-29 (history; finished and merged since, see the table above)
 
 **Read [`perf-2026-10-29.md`](perf-2026-10-29.md) first.** Damian reported lag on lower-end laptops, a blank hero portrait on Android, and loader trouble on slow connections. The session ran on a second, lower-end laptop and ended mid-way when he moved machines. Branch `perf/curtain-portrait` (off `main` at `c9bcb49`) is pushed, **not merged, not deployed**. **Damian's rule: a lag-only fix; nothing in the design or the animations may change.**
 
@@ -49,7 +54,7 @@ The deploy and post-deploy checks below were overtaken: V3 was deployed (CI auto
 5. **The nav eased down on every page change: fixed.** Its own entrance (`y: -40`, opacity 0, 1 s after 0.2 s) predates the curtain; the nav is rendered per page, so it replayed under the curtain and finished during the lift (measured: still 40 px up as the lift began). Removed (`Nav.jsx` is a plain `<header>` now): the curtain is every page's entrance. Measured: top 0, opacity 1 on the first load and through every curtain phase.
 6. **`/portfolio`'s first row** is hidden until the curtain lifts (it rises then), which costs mobile LCP (61 in the last run). Keep the rise, or show the first row from the first paint?
 7. **The 404 page is always light: fixed (2026-10-28, `fix/404-curtain`),** together with the bug it caused on the live site: after the 404, no page change had a curtain. Next sent the 404 as an empty error shell and React built it client-side, so the pre-paint `js`/`dark` classes never landed and the curtain (`nojs:hidden`) stayed hidden. The 404 is now `app/global-not-found.jsx` (server-rendered in the site's layout); see `decisions.md` → "The 404 is server-rendered".
-8. **Kahatagaha's preview is short** (its landing page is one screen tall). Keep, or capture one of its concept pages?
+8. ~~**Kahatagaha's preview is short** (its landing page is one screen tall). Keep, or capture one of its concept pages?~~ Moot: the scroll-through preview was removed (2026-10-30, `decisions.md`).
 9. **The page change is 2.25 s, not the plan's "about 2.7 s"** (the plan's own parts add to 2.25). Confirm.
 10. **Merge:** done on his word (2026-10-28): `v3-portfolio` merged `--no-ff` into `v3`, `v3` pushed, PR `v3` to `main` opened, then merged the same day on his request (`da83fc0`). Questions 6-9 shipped with the current behaviour and stay open.
 11. **The curtain jumped sideways leaving the 404, and the loader crossed the seams on phones and tablets: fixed (2026-10-29, `fix/curtain-loader-fit`).** The 404 doesn't scroll, so its curtain was a scrollbar wider than Home's; `html` now has `scrollbar-gutter: stable`. The loader sits in a box as wide as the middle panel and sizes itself from it; below a 230 px panel the name and coordinates stack, two centred lines each. `lib/scrollLock.js` now pads by how much the page widened, since the gutter stays. See `decisions.md` → "The loader fits the middle panel". **Failing on `main` too, not yet looked at:** ten `e2e/transition.spec.js` tests (the Privacy link, a modified click, the 4 s fallback, a link to the page you're on, the curtain's code failing; desktop and mobile) and `e2e/lens.spec.js` → "the lens waits for the intro curtain".
@@ -302,7 +307,7 @@ The deploy and post-deploy checks below were overtaken: V3 was deployed (CI auto
 
 **Home § 04, the carousel (Task 3):** `lib/strip.js` (layout, `stripOffset`, `focusAt`, `depthAt`, `stackDepth`, `smoothStep`) and `components/Projects.jsx`. One rAF frame loop eases the displayed progress after the scroll and writes each card's depth of field; the strip marks `data-settled` while it glides (the e2e helpers wait on it). The centred card is the active one; the pointer no longer picks it. A keyboard focus scrolls the strip a frame later, after the browser's own focus scroll.
 
-**Full-page captures (Task 4):** `node scripts/capture-projects.mjs --full` writes `public/projects/full/<slug>.webp` (720 wide, ≤ 4200 px, no metadata). This Portfolio is captured from local dev under reduced motion, so the pinned strip is a plain list. **Kahatagaha's landing page is one screen tall** (1065 px), so its capture is 533 px and its preview travel is short: gate question.
+**Full-page captures (Task 4; removed 2026-10-30 with the preview, see `decisions.md`):** `node scripts/capture-projects.mjs --full` writes `public/projects/full/<slug>.webp` (720 wide, ≤ 4200 px, no metadata). This Portfolio is captured from local dev under reduced motion, so the pinned strip is a plain list. **Kahatagaha's landing page is one screen tall** (1065 px), so its capture is 533 px and its preview travel is short: gate question.
 
 **`/portfolio` (Task 5):** `app/(site)/portfolio/page.jsx` and `components/portfolio/` (`Portfolio`, `PortfolioHero`, `WorkGrid`, `WorkCard`, `UpcomingBuild`, `PortfolioEnd`, `useTyping`, `usePreview`), with `lib/portfolio.js` (the preview plan, the entrance stagger, the filter). The morph is framer `layout` on each frame and `layout="position"` on the text; filters use `AnimatePresence mode="popLayout"`. The entrance and the loops are CSS (`globals.css` → `[data-work-card]`, `.live-dot`, `.build-bar`, `.addr-caret`), with a 5 s failsafe. `--c-live` (#22C55E) is the one new token. SEO: `portfolioGraph()`, the sitemap, `PAGES`.
 
@@ -441,7 +446,7 @@ The deploy and post-deploy checks below were overtaken: V3 was deployed (CI auto
 ## Repo state at hand-off
 
 - **Branches:**
-  - `main` and `v3` point at the same commit (PR #4's merge `da83fc0`, plus the docs update after it), both pushed (2026-10-28). The working tree is clean.
+  - `main` is at PR #7's merge (`2c7556f`, 2026-10-30), deployed. **`v5`** branches off it for new development, pushed. `v3` stays at PR #4 (`da83fc0`); `perf/curtain-portrait` is merged.
   - `v3-portfolio` (local only): Phase 6, merged into `v3` and so into `main`; safe to delete. `v3-phase-1` to `v3-phase-5` and `v3-timeline-circuit` are merged and deleted.
   - `upgrade/deps` is merged (PR #3).
 - **Dev server:** `next dev` on :3000, restarted at the end of the 2026-10-28 session. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another. A long-running `next dev` slows down and makes timing tests flaky: restart it (with Damian's OK) before chasing flakes.
