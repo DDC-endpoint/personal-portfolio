@@ -51,12 +51,13 @@ const END = CARDS.length;
 const WIDE = "(min-width: 768px)";
 // The track: one screen of sticky viewport plus PIN_SCREENS of scroll.
 const TRACK_STYLE = { "--pin-track": `${(1 + STRIP.PIN_SCREENS) * 100}svh` };
-const STACK_ITEM = "w-[86%] even:ml-auto md:w-full md:max-w-3xl md:ml-[25%] md:even:ml-[25%]";
+const REST_MS = 150; // the stack's scroll has rested this long: back to plain paint
+const STACK_ITEM ="w-[86%] even:ml-auto md:w-full md:max-w-3xl md:ml-[25%] md:even:ml-[25%]";
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 
 // Clears what the frame loop wrote, when the mode changes.
 const clearStyles = (el) => {
-  for (const k of ["transform", "opacity", "filter", "zIndex"]) el.style[k] = "";
+  for (const k of ["transform", "opacity", "filter", "zIndex", "willChange"]) el.style[k] = "";
 };
 
 export default function Projects() {
@@ -72,6 +73,7 @@ export default function Projects() {
   const focused = useRef(null);
   const keyboard = useRef(false);
   const raf = useRef(0);
+  const rest = useRef(0); // the stack's layers come off when this fires
   const [layout, setLayout] = useState(null);
   const [active, setActiveState] = useState(null);
   // The frame loop asks every frame; React hears only when the centred card
@@ -129,11 +131,22 @@ export default function Projects() {
         const r = el.getBoundingClientRect();
         return r.top + r.height / 2;
       });
+      // While the stack scrolls each card is a compositor layer of its own, so
+      // a scroll frame's new scale and opacity re-composite it instead of
+      // repainting every card (a phone's main stall in this section:
+      // docs/v3/perf-2026-10-29.md → Finding A). A layer keeps the scale it
+      // was rasterised at, which softens its text at any other, so the layers
+      // go once the scroll rests and the cards repaint sharp where they stop.
       els.forEach((el, i) => {
         const z = stackDepth(Math.abs(centres[i] - vh / 2) / vh);
+        el.style.willChange = "transform, opacity";
         el.style.transform = `scale(${z.scale})`;
         el.style.opacity = String(z.opacity);
       });
+      clearTimeout(rest.current);
+      rest.current = setTimeout(() => {
+        if (mode.current === "stack") for (const el of items()) el.style.willChange = "";
+      }, REST_MS);
       if (keyboard.current) return setActive(focused.current);
       const i = onScreen ? nearestToCentre(centres, vh) : -1;
       // The end card is a candidate too: when it is nearest, no project card is.
@@ -197,6 +210,7 @@ export default function Projects() {
       window.removeEventListener("keydown", onKey, { capture: true });
       cancelAnimationFrame(raf.current);
       raf.current = 0;
+      clearTimeout(rest.current);
     };
   }, [schedule]);
 

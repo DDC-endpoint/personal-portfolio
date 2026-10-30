@@ -275,6 +275,34 @@ test.describe("mobile", () => {
     await expect.poll(() => decodeState(card(page, 1)), { timeout: 5000 }).toBe("skeleton");
   });
 
+  test("the stack's cards are layers only while it scrolls", async ({ page }) => {
+    await page.goto("/");
+    const willChange = () =>
+      page.locator("[data-strip]").evaluate((s) => [...s.children].map((el) => el.style.willChange));
+    await card(page, 1).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await expect.poll(async () => (await willChange()).every((w) => w === ""), { timeout: 2000 }).toBe(true);
+    // Every card that became a layer after the scroll, as the frame loop wrote it.
+    const during = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          const cards = [...document.querySelector("[data-strip]").children];
+          const seen = new Set();
+          const mo = new MutationObserver(() => {
+            for (const el of cards) if (el.style.willChange === "transform, opacity") seen.add(el);
+          });
+          mo.observe(document.querySelector("[data-strip]"), { attributes: true, subtree: true, attributeFilter: ["style"] });
+          scrollBy({ top: 300, behavior: "instant" });
+          setTimeout(() => {
+            mo.disconnect();
+            resolve(cards.map((el) => seen.has(el)));
+          }, 500);
+        })
+    );
+    expect(during).toEqual(during.map(() => true));
+    // At rest they repaint at their own scale, so their text is as sharp as without a layer.
+    await expect.poll(willChange, { timeout: 3000 }).toEqual(during.map(() => ""));
+  });
+
   test("centring the end card leaves no project card active", async ({ page }) => {
     await page.goto("/");
     await card(page, 4).evaluate((el) => el.scrollIntoView({ block: "center" }));
