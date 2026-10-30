@@ -4,11 +4,16 @@ import {
   panelCount,
   delayOf,
   bulge,
+  bulgeCap,
   edgeLight,
   restFilter,
   trail,
   clearAt,
   sampleMove,
+  pieces,
+  endBoxes,
+  shadow,
+  SEAM,
 } from "@/lib/curtain";
 
 // The curtain's engine: it drives the panels Curtain.jsx renders (in the
@@ -22,13 +27,15 @@ import {
 // free regardless of the device"). The label rides the middle panel. The
 // root's data-curtain says where it is: idle, covering, covered or lifting.
 //
-// What the compositor runs on its own: the panels' transforms, the shape's
-// clip-path (Chrome composites a path() animation whose commands match from
-// frame to frame, which these do), the trail's opacity and transform and the
-// edge light's opacity. The trail's blur steps (a few a move) and the edge
-// light's curves (SVG `d`) are keyframed too, but the main thread applies
-// them, so a stall holds them for its length: a blur a pixel off, a glint
-// a frame behind.
+// What the compositor runs on its own: the panels' transforms. The rest is
+// written per frame from the same samples (tick), and drawn so that a frame
+// redraws only small pieces (lib/curtain.js → pieces): each panel's straight
+// body and its shadow are pictures drawn once that the compositor moves, the
+// trail's offset and opacity move a picture redrawn only when its blur steps,
+// and only the curved ends, small layers of their own, are redrawn per frame.
+// Drawn as one picture, the panel's resting drop-shadow was blurred again
+// over all 130vh every frame, and a mid-range phone showed 82 frames of a
+// page change where it could show 131.
 //
 // PageTransitions builds it when the intro plays, otherwise once the browser
 // is idle, or at the first click if that comes sooner. It ships with the
@@ -36,20 +43,40 @@ import {
 // round trip before the first load could lift (2026-10-29).
 
 const STEP = 1 / 120; // the sample grid, seconds
+// The blurred pieces are drawn on canvases at PX panel px to the pixel and
+// scaled up by the compositor: they are Gaussians of deviation 8 px and more,
+// smooth enough that the scaling is within 1/255 of a full-size drawing, at
+// a sixteenth of its cost on a 2.75× phone screen. REACH is how far past its
+// outline a piece reaches (4 deviations of the widest blur, plus the trail's
+// offset).
+const PX = 2;
+const REACH = 112;
 
 export function createCurtain(root) {
+  // A panel's curved end (Curtain.jsx → End): under the body, a canvas with
+  // its trail and shadow; over it, its shape and edge light.
+  const end = (el, at) => {
+    const over = el.querySelector(`[data-end-over="${at}"]`);
+    return {
+      canvas: el.querySelector(`[data-end-under="${at}"]`),
+      over,
+      shape: over.querySelector("[data-end-shape]"),
+      edges: over.querySelector("[data-edges]"),
+      edge: over.querySelector("[data-edge]"),
+    };
+  };
   const all = [...root.querySelectorAll("[data-panel]")].map((el) => ({
     el,
     drop: el.querySelector("[data-drop]"),
     shape: el.querySelector("[data-shape]"),
     trail: el.querySelector("[data-trail]"),
-    trailShape: el.querySelector("[data-trail-shape]"),
-    edges: el.querySelector("[data-edges]"),
-    top: el.querySelector("[data-edge-top]"),
-    bottom: el.querySelector("[data-edge-bottom]"),
+    trailCanvas: el.querySelector("[data-trail-canvas]"),
+    ends: [end(el, "top"), end(el, "bottom")],
     y: EXTENT, // in screens: EXTENT below, 0 covering, −EXTENT above
     level: 0, // the moving shadow's level, carried from move to move
     filter: "", // the resting shadow last written: rewritten only on a theme change
+    placed: "", // the layout its pieces were last placed for: redone only on a resize
+    trailDrawn: "", // what the trail's canvas holds: redrawn when its blur steps
     anims: [], // the running move's animations
     samples: null, // the running move's samples, for a resize
     frames: null, // the move's frames as style values; `at` the one written last
@@ -60,6 +87,7 @@ export function createCurtain(root) {
   let panels = all;
   let width = 0; // the curtain's: the viewport less the scrollbar's room
   let unit = 0; // the px the panels' edges are placed in (see layout)
+  let geo = null; // the panels' pieces, in panel px (see layout)
   let shade = "", shadeDark = null; // the shadow's colour, read per theme
   let gen = 0, destroyed = false;
   let riderAnim = null;
@@ -86,6 +114,41 @@ export function createCurtain(root) {
     const vh = window.innerHeight;
     const cssVh = panels[0].el.getBoundingClientRect().height / 1.3;
     unit = Math.abs(cssVh - vh) < 1 ? vh : cssVh;
+    // The pieces (lib/curtain.js → pieces), in panel px: the edges, the
+    // path's width `ww` and the panel's `W` (as the CSS's), each end's box,
+    // and the canvases, each its piece's box plus the blur's reach.
+    const w = width / panels.length;
+    const top = unit * 0.15, bot = unit * 1.15;
+    const boxes = endBoxes(top, bot, bulgeCap(vh, w));
+    const W = w + 1, ww = Math.ceil(w) + 1;
+    const canvas = (y, h) => ({ x: -REACH, y: y - REACH, w: Math.ceil((W + 2 * REACH) / PX), h: Math.ceil((h + 2 * REACH) / PX) });
+    geo = {
+      top, bot, W, ww, boxes,
+      key: `${top} ${bot} ${W} ${boxes.map((b) => `${b.y} ${b.h}`)}`,
+      trail: canvas(top + SEAM, bot - top - 2 * SEAM),
+      ends: boxes.map((b) => canvas(b.y, b.h)),
+    };
+    for (const p of panels) {
+      if (p.placed === geo.key) continue;
+      p.placed = geo.key;
+      p.trailDrawn = "";
+      p.shape.style.clipPath = pieces(top, bot, ww, 0).body;
+      fit(p.trailCanvas, geo.trail);
+      p.ends.forEach((e, k) => {
+        fit(e.canvas, geo.ends[k]);
+        e.over.style.height = `${boxes[k].h}px`;
+        e.over.style.bottom = "auto";
+        e.over.style.transform = `translate3d(0, ${boxes[k].y}px, 0)`;
+      });
+    }
+  };
+  // A canvas over its box, PX panel px to its pixel (setting its size clears it).
+  // The pieces are placed by transforms: moved by top or left, the intro's
+  // visible curtain counted as a layout shift (CLS 0.7).
+  const fit = (el, c) => {
+    el.width = c.w;
+    el.height = c.h;
+    Object.assign(el.style, { transform: `translate3d(${c.x}px, ${c.y}px, 0)`, width: `${c.w * PX}px`, height: `${c.h * PX}px` });
   };
   const mid = () => panels[Math.floor(panels.length / 2)];
 
@@ -100,46 +163,87 @@ export function createCurtain(root) {
     return shade;
   };
 
-  // What one sample of a move looks like on a panel, as style values.
+  // What one sample of a move looks like on a panel: style values for the
+  // panel and its ends' shapes and edges, and the numbers the canvases draw.
   function frame(s, theme) {
     const vh = window.innerHeight;
     const w = width / panels.length; // as the CSS's panels
-    const ww = Math.ceil(w) + 1;
-    const top = unit * 0.15, bot = unit * 1.15;
     const b = bulge(s.speed, vh, w);
-    const tq = `${ww / 2} ${(top - 2 * b).toFixed(2)}`, bq = `${ww / 2} ${(bot + 2 * b).toFixed(2)}`;
+    const pc = pieces(geo.top, geo.bot, geo.ww, b, [geo.boxes[0].y, geo.boxes[1].y]);
     const t = trail(s.level, s.speed, theme);
     return {
       transform: `translate3d(0, ${(s.y * vh).toFixed(2)}px, 0)`,
-      clip: `path("M0 ${top} Q ${tq} ${ww} ${top} L ${ww} ${bot} Q ${bq} 0 ${bot} Z")`,
+      b,
+      ends: [pc.top, pc.bottom].map((e) => ({ ...e, mask: new Path2D(e.mask) })),
+      trail: t,
       trailOpacity: t.opacity.toFixed(3),
       trailTransform: `translate3d(0, ${t.y.toFixed(1)}px, 0)`,
-      trailBlur: t.blur,
-      topD: `M0 ${top} Q ${tq} ${ww} ${top}`,
-      bottomD: `M0 ${bot} Q ${bq} ${ww} ${bot}`,
       edges: String(edgeLight(s.speed)),
+      shade: shadeFor(theme === "dark"),
+      rest: shadow(0, theme).rest,
     };
   }
 
   const theme = () => (document.documentElement.classList.contains("dark") ? "dark" : "light");
+
+  // A blurred fill on a canvas laid over its box `c` (layout → fit): the
+  // outline `path` is filled with its shadow alone, a
+  // Gaussian of deviation `sigma` in `shade` at `alpha`. The outline itself
+  // is drawn far off the canvas and the shadow offset back onto it: a
+  // canvas shadow's blur is 2σ (as drop-shadow's is σ) and every browser has
+  // it, where a canvas filter isn't everywhere yet.
+  const FAR = 8192;
+  // `path` is in panel px less `y` (an end's mask is in its box's px), and
+  // `dy` offsets it (the trail's offset).
+  function blurFill(ctx, c, sigma, shade, alpha, path, y = 0, dy = 0) {
+    ctx.setTransform(1 / PX, 0, 0, 1 / PX, -c.x / PX - FAR, (y + dy - c.y) / PX);
+    ctx.shadowColor = `rgb(${shade} / ${alpha})`;
+    ctx.shadowBlur = (2 * sigma) / PX;
+    ctx.shadowOffsetX = FAR;
+    ctx.fill(path);
+  }
+
+  // A frame's pieces on a panel (all but its transform). The trail's canvas
+  // is redrawn only when its blur steps (its offset and opacity are the
+  // compositor's); the ends are small and redrawn every frame.
+  function write(p, f) {
+    const t = f.trail, on = t.opacity > 0;
+    p.trail.style.opacity = f.trailOpacity;
+    if (on) {
+      p.trail.style.transform = f.trailTransform;
+      const key = `${t.blur} ${f.shade}`;
+      if (p.trailDrawn !== key) {
+        p.trailDrawn = key;
+        const ctx = p.trailCanvas.getContext("2d");
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, geo.trail.w, geo.trail.h);
+        const body = new Path2D();
+        body.rect(0, geo.top + SEAM, geo.W, geo.bot - geo.top - 2 * SEAM);
+        blurFill(ctx, geo.trail, t.blur, f.shade, 1, body);
+      }
+    }
+    f.ends.forEach((e, k) => {
+      const end = p.ends[k], c = geo.ends[k];
+      const ctx = end.canvas.getContext("2d");
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, c.w, c.h);
+      const y = geo.boxes[k].y;
+      if (on) blurFill(ctx, c, t.blur, f.shade, t.opacity, e.mask, y, t.y);
+      blurFill(ctx, c, f.rest.blur, f.shade, f.rest.alpha, e.mask, y);
+      end.shape.style.clipPath = e.shape;
+      end.edge.setAttribute("d", e.edge);
+      end.edges.style.opacity = f.edges;
+    });
+  }
 
   // A still frame, written as inline styles (the resting place, full cover,
   // and the end of every move).
   function paint(p, s, th) {
     const f = frame(s, th);
     p.el.style.transform = f.transform;
-    p.shape.style.clipPath = f.clip;
     const rest = restFilter(th, shadeFor(th === "dark"));
     if (p.filter !== rest) p.drop.style.filter = p.filter = rest;
-    p.trail.style.opacity = f.trailOpacity;
-    if (s.level > 0) {
-      p.trailShape.style.clipPath = f.clip;
-      p.trail.style.transform = f.trailTransform;
-      p.trail.style.filter = `blur(${f.trailBlur}px)`;
-    }
-    p.top.setAttribute("d", f.topD);
-    p.bottom.setAttribute("d", f.bottomD);
-    p.edges.style.opacity = f.edges;
+    write(p, f);
   }
   function paintAll() {
     const th = theme();
@@ -184,18 +288,8 @@ export function createCurtain(root) {
       const local = (now - t0) / 1000 - delayOf(i, panels.length);
       const at = Math.max(0, Math.min(p.frames.length - 1, Math.round(local / STEP)));
       if (at === p.at) return;
-      const f = p.frames[at], was = p.at >= 0 ? p.frames[p.at] : null;
       p.at = at;
-      p.shape.style.clipPath = f.clip;
-      p.trail.style.opacity = f.trailOpacity;
-      if (f.trailOpacity !== "0.000") {
-        p.trailShape.style.clipPath = f.clip;
-        p.trail.style.transform = f.trailTransform;
-        if (!was || was.trailBlur !== f.trailBlur) p.trail.style.filter = `blur(${f.trailBlur}px)`;
-      }
-      p.top.setAttribute("d", f.topD);
-      p.bottom.setAttribute("d", f.bottomD);
-      p.edges.style.opacity = f.edges;
+      write(p, p.frames[at]);
     });
   }
 

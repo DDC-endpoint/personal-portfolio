@@ -133,15 +133,43 @@ test("the first paint already has the seams' resting shadow (no pop when scripts
   expect(before).toBe("drop-shadow(rgba(11, 31, 58, 0.1) 0px 0px 14px)");
 });
 
-test("the failsafe hides it if scripts never run", async ({ page }) => {
+// A slow link: the count rises from the first paint, before any script of the
+// bundle has run (lib/loader.js → firstPaintCount), and never past 96; the
+// loader then takes it over and the curtain lifts at 100 (2026-10-29).
+test("the count rises before the scripts arrive, and the curtain holds until 100", async ({ page }) => {
   await page.route("**/_next/static/chunks/**", async (route) => {
     if (route.request().url().endsWith(".css")) return route.continue();
-    await new Promise((r) => setTimeout(r, 9000));
+    await new Promise((r) => setTimeout(r, 4000));
+    return route.continue().catch(() => {});
+  });
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const c = document.querySelector("[data-curtain]");
+      new MutationObserver(() => {
+        if (c.dataset.curtain === "lifting" && window.__countAtLift === undefined) window.__countAtLift = document.querySelector("[data-count]")?.textContent;
+      }).observe(c, { attributes: true, attributeFilter: ["data-curtain"] });
+    });
+  });
+  await page.goto("/services", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(2500);
+  const before = await page.evaluate(() => ({ count: Number(document.querySelector("[data-count]").textContent), hydrated: document.documentElement.dataset.transitions === "ready" }));
+  expect(before.hydrated).toBe(false);
+  expect(before.count).toBeGreaterThan(20);
+  expect(before.count).toBeLessThanOrEqual(96);
+  await expect(curtain(page)).toHaveAttribute("data-curtain", "idle", { timeout: 15000 });
+  expect(await page.evaluate(() => window.__countAtLift)).toBe("100");
+});
+
+test("the failsafe hides it if scripts never run", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.route("**/_next/static/chunks/**", async (route) => {
+    if (route.request().url().endsWith(".css")) return route.continue();
+    await new Promise((r) => setTimeout(r, 20000));
     return route.continue().catch(() => {});
   });
   await page.goto("/services", { waitUntil: "domcontentloaded" });
   await expect(curtain(page)).toBeVisible();
-  await expect(curtain(page)).toBeHidden({ timeout: 7000 });
+  await expect(curtain(page)).toBeHidden({ timeout: 17000 });
 });
 
 test("slow image skips the wave", async ({ page }) => {

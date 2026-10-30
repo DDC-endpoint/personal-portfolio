@@ -44,8 +44,7 @@ import { getLenis } from "@/lib/lenis";
 
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
 const PORTRAIT_WAIT_MS = 400; // the reveal waits this long for Home's portrait
-const LATE_MS = 2500; // hydration later than this: the loader's time is up
-const FAILSAFE_MS = 5000; // the CSS failsafe has started hiding the curtain (globals.css)
+const FAILSAFE_MS = 15000; // the CSS failsafe has started hiding the curtain (globals.css)
 
 // The destination's name on the curtain's middle panel.
 const nameOf = (path) => NAV_LINKS.find((l) => l.href === path)?.label ?? "";
@@ -197,8 +196,9 @@ export default function PageTransitions() {
     if (!shouldPlayIntro() || still()) return skipIntro();
     busy.current = true;
     curtainRef.current.dataset.intro = "";
-    // A late hydration: the loader's time is up already, so lift at once.
-    if (performance.now() > LATE_MS) introRef.current.loaded = true;
+    // A late hydration still waits for the loader to reach 100 (it skips its
+    // minimum time instead: lib/loader.js → LOAD.late). Until 2026-10-29 it
+    // lifted at once, and the count was still rising on the departing panel.
     let live = true;
     loadCurtain()
       .then((engine) => {

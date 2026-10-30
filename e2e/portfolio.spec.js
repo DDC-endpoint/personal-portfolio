@@ -43,9 +43,10 @@ test("the first row lands only as the curtain lifts", async ({ page }) => {
 });
 
 test("rows further down still rise when reached, however long the visitor waits", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/portfolio");
   await ready(page);
-  await page.waitForTimeout(6000); // past the pre-hydration failsafe
+  await page.waitForTimeout(15500); // past the pre-hydration failsafe
   const last = cardOf(page, "ai-studio");
   await expect(last).not.toHaveAttribute("data-in", "");
   expect(await last.evaluate((el) => getComputedStyle(el).opacity)).toBe("0");

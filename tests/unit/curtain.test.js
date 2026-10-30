@@ -12,6 +12,11 @@ import {
   restFilter,
   trail,
   sampleMove,
+  pieces,
+  endBoxes,
+  bulgeCap,
+  SEAM,
+  OVERLAP,
   coverTime,
   liftTime,
   totalChange,
@@ -91,13 +96,13 @@ test("the resting shadow is one constant filter per theme", () => {
 test("the moving shadow: the drop-shadow it replaces, drawn as a blurred copy", () => {
   // At rest: invisible, not offset.
   expect(trail(0, 0, "light")).toEqual({ opacity: 0, y: 0, blur: 0 });
-  // A drop-shadow's blur radius b is a Gaussian of deviation b / 2, which is
-  // what blur() takes. Whole pixels, so the filter changes a few times a move
-  // rather than every frame.
+  // drop-shadow()'s blur length is the Gaussian's standard deviation, which
+  // is what blur() takes. Whole pixels, so the filter changes a few times a
+  // move rather than every frame.
   for (const m of [0.3, 0.6, 1]) {
     const { blur } = trail(m, 3, "light");
     expect(Number.isInteger(blur)).toBe(true);
-    expect(Math.abs(blur - shadow(m, "light").move.blur / 2)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(blur - shadow(m, "light").move.blur)).toBeLessThanOrEqual(0.5);
   }
   // As the drop-shadow it replaces: the same strength, and the same offset
   // (against the direction of travel; speed is upwards positive).
@@ -108,6 +113,49 @@ test("the moving shadow: the drop-shadow it replaces, drawn as a blurred copy", 
   expect(trail(1, 3, "dark").opacity).toBeCloseTo(0.45, 9);
   // Below the visible threshold it is off, so a resting curtain draws nothing.
   expect(trail(0.0001, 3, "light").opacity).toBe(0);
+});
+
+// The panel in pieces: a straight body drawn once, and two curved ends drawn
+// per frame. The ends' masks and the body tile the outline exactly (their
+// shadows add up to the outline's); the ends' shapes reach OVERLAP into the
+// body, so the joint is under solid colour.
+test("pieces: the body and the ends' masks tile the outline; the shapes overlap the body", () => {
+  const nums = (path) => path.match(/-?[\d.]+/g).map(Number);
+  const top = 120.5, bot = 923.25, ww = 309, b = 31.4;
+  const p = pieces(top, bot, ww, b);
+  // Body: M0 t L ww t L ww u L 0 u Z
+  const [, t, , , , u] = nums(p.body);
+  expect([t, u]).toEqual([top + SEAM, bot - SEAM]);
+  // Top end: from the curve over `top` (control point 2b above) down to the body.
+  const [, y0, , cy, , y1, , ym, , ym2] = nums(p.top.mask);
+  expect([y0, y1]).toEqual([top, top]);
+  expect(cy).toBeCloseTo(top - 2 * b, 2);
+  expect([ym, ym2]).toEqual([t, t]);
+  expect(nums(p.top.shape).slice(6)).toEqual([ww, t + OVERLAP, 0, t + OVERLAP]);
+  // Bottom end: from the body down to the curve under `bot`.
+  const bm = nums(p.bottom.mask);
+  expect([bm[1], bm[3]]).toEqual([u, u]);
+  expect([bm[5], bm[9]]).toEqual([bot, bot]);
+  expect(bm[7]).toBeCloseTo(bot + 2 * b, 2);
+  expect(nums(p.bottom.shape)[1]).toBe(u - OVERLAP);
+  // At rest the ends are the 2px strips beyond the body: no bulge.
+  expect(nums(pieces(top, bot, ww, 0).top.mask)[3]).toBe(top);
+});
+
+// Each end is drawn in a small box around its bulge, so a frame redraws that
+// box only; its paths are in the box's px.
+test("endBoxes hold each end's largest bulge; the ends' paths are in their boxes", () => {
+  const top = 120.5, bot = 923.25, cap = bulgeCap(803, 307);
+  const [t, b] = endBoxes(top, bot, cap);
+  expect(t.y).toBeLessThanOrEqual(top - cap);
+  expect(t.y + t.h).toBeGreaterThanOrEqual(top + SEAM + OVERLAP);
+  expect(b.y).toBeLessThanOrEqual(bot - SEAM - OVERLAP);
+  expect(b.y + b.h).toBeGreaterThanOrEqual(bot + cap);
+  expect(t.h).toBeLessThan(cap + 10);
+  const p = pieces(top, bot, 309, cap, [t.y, b.y]);
+  const r = (v) => Math.round(v * 100) / 100;
+  expect(p.top.edge).toBe(`M0 ${r(top - t.y)} Q 154.5 ${r(top - 2 * cap - t.y)} 309 ${r(top - t.y)}`);
+  expect(Number(p.bottom.shape.match(/M0 ([\d.]+)/)[1])).toBeCloseTo(bot - SEAM - OVERLAP - b.y, 2);
 });
 
 test("shadowLevel follows the speed smoothly", () => {

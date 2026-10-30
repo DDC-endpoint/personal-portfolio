@@ -544,11 +544,16 @@ test.describe("first load", () => {
         if (document.querySelector("[data-curtain]").dataset.curtain !== "covered" || window.__edges) return;
         try {
           const panel = document.querySelector('[data-panel="2"]');
-          const [, top, bot] = panel.querySelector("[data-shape]").style.clipPath.match(/M ?0 ([\d.-]+) .* L [\d.]+ ([\d.-]+)/).map(Number);
+          // The panel's outline ends at its curved ends' edges (lib/curtain.js → pieces).
+          // Their paths are in their boxes' px: add each box's place in the panel (a transform).
+          const end = (at) => panel.querySelector(`[data-end-over="${at}"]`);
+          const at = (el) => new DOMMatrix(getComputedStyle(el).transform).m42;
+          const top = at(end("top")) + Number(end("top").querySelector("[data-end-shape]").style.clipPath.match(/M ?0 ([\d.-]+) Q/)[1]);
+          const bot = at(end("bottom")) + Number(end("bottom").querySelector("[data-end-shape]").style.clipPath.match(/L [\d.]+ ([\d.-]+) Q/)[1]);
           const y = panel.getBoundingClientRect().top;
           window.__edges = { top: y + top, bottom: y + bot, screen: Math.max(innerHeight, document.documentElement.clientHeight) };
         } catch (e) {
-          window.__edges = { error: String(e), clip: document.querySelector('[data-panel="2"] [data-shape]')?.style.clipPath };
+          window.__edges = { error: String(e), clip: document.querySelector('[data-panel="2"] [data-end-shape]')?.style.clipPath };
         }
       }).observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] });
       document.querySelector('header nav a[href="/privacy"]').click();
@@ -695,11 +700,12 @@ test.describe("details", () => {
 test.describe("robustness", () => {
   // The engine ships with the first-load bundle (2026-10-29), so blocking it
   // blocks hydration: the page is the server HTML, the CSS failsafe uncovers
-  // it at 5 s, and its links are plain.
+  // it at 15 s, and its links are plain.
   test("if the site's code can't load, page links still work (the browser loads them)", async ({ page }) => {
+    test.setTimeout(60_000);
     await blockCurtain(page);
     await page.goto("/");
-    await expect(page.locator("[data-curtain]")).toBeHidden({ timeout: 9000 });
+    await expect(page.locator("[data-curtain]")).toBeHidden({ timeout: 19000 });
     await mark(page);
     await (await pageLink(page, "Services")).click();
     await page.waitForURL(/\/services$/, { timeout: 10000 });
@@ -818,21 +824,28 @@ test.describe("robustness", () => {
     expect(y).toBe(0);
   });
 
-  test("a very late hydration: no count, at most one lift, and the page ends uncovered", async ({ page }) => {
+  // Until 2026-10-29 a hydration later than 2.5 s lifted at once, with the
+  // count still rising on the departing panel; now the curtain holds until
+  // it reads 100 (Damian).
+  test("a late hydration: the curtain holds until the count reaches 100, lifts once, and the page ends uncovered", async ({ page }) => {
     await record(page);
     // Every change of data-curtain with the value it left: a second lift
-    // shows up as lifting → lifting.
+    // shows up as lifting → lifting. And the count as the lift starts.
     await page.addInitScript(() => {
       window.__left = [];
       document.addEventListener("DOMContentLoaded", () => {
-        new MutationObserver((ms) => ms.forEach((m) => window.__left.push(m.oldValue))).observe(document.querySelector("[data-curtain]"), {
+        const c = document.querySelector("[data-curtain]");
+        new MutationObserver((ms) => ms.forEach((m) => {
+          window.__left.push(m.oldValue);
+          if (c.dataset.curtain === "lifting" && window.__countAtLift === undefined) window.__countAtLift = document.querySelector("[data-count]")?.textContent;
+        })).observe(c, {
           attributes: true,
           attributeFilter: ["data-curtain"],
           attributeOldValue: true,
         });
       });
     });
-    // Every script arrives after 3 s: hydration lands well past the 2.5 s cut-off.
+    // Every script arrives after 3 s: hydration lands past LOAD.late (2.5 s).
     await page.route("**/_next/static/chunks/**", async (route) => {
       await new Promise((r) => setTimeout(r, 3000));
       return route.continue();
@@ -840,25 +853,25 @@ test.describe("robustness", () => {
     await page.goto("/services");
     await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 30000 });
     await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
-    // It lifts at once, or, if the curtain's own code arrives after the CSS
-    // failsafe (each chunk here is 3 s late), it stands down: either way it
-    // ends idle. Let the loader finish too: it must never lift a second time.
+    // It must never lift a second time.
     await page.waitForTimeout(1500);
     const log = await page.evaluate(() => window.__curtain);
     expect(log[0]).toBe("intro");
     expect(log.at(-1)).toBe("idle");
-    expect((await page.evaluate(() => window.__left)).filter((v) => v === "lifting").length).toBeLessThanOrEqual(1);
+    expect((await page.evaluate(() => window.__left)).filter((v) => v === "lifting").length).toBe(1);
+    expect(await page.evaluate(() => window.__countAtLift)).toBe("100");
   });
 
   test("hydration after the CSS failsafe never covers the readable page again", async ({ page }) => {
+    test.setTimeout(60_000);
     await record(page);
     await page.route("**/_next/static/chunks/**", async (route) => {
       if (route.request().url().endsWith(".css")) return route.continue();
-      await new Promise((r) => setTimeout(r, 6500));
+      await new Promise((r) => setTimeout(r, 16500));
       return route.continue().catch(() => {});
     });
     await page.goto("/services", { waitUntil: "domcontentloaded" });
-    await expect(curtain(page)).toBeHidden({ timeout: 7000 });
+    await expect(curtain(page)).toBeHidden({ timeout: 17000 });
     await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 30000 });
     await page.waitForTimeout(800);
     const log = await page.evaluate(() => window.__curtain);
