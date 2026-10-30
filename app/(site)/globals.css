@@ -295,15 +295,44 @@ main[tabindex="-1"]:focus-visible { outline: none; }
 .addr-caret[data-done] { animation: caret-blink 1s steps(1) 2 forwards; }
 @keyframes caret-blink { 50%, 100% { opacity: 0; } }
 
+/* The scroll progress line (ScrollProgress.jsx) on the page's own scroll
+   timeline: the share of the page scrolled, as framer's scrollYProgress
+   measures it, drawn by the compositor in step with the scroll. */
+@supports (animation-timeline: scroll()) {
+  .scroll-progress { animation: scroll-progress linear both; animation-timeline: scroll(root block); }
+}
+@keyframes scroll-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 /* A live site's dot breathes, an upcoming card's skeleton lays itself out
-   (5.2 s), both only on screen ([data-onscreen], set by WorkCard). */
-.live-dot { animation: live-breathe 2.6s ease-in-out infinite paused; }
+   (5.2 s), both only on screen ([data-onscreen], set by WorkCard). The dot's
+   glow is a copy of the dot that grows by 4px of radius (3px → 7px: 7/3) and
+   fades from 0.45, which draws what a 0 → 4px box-shadow spread did; as a
+   transform and an opacity the compositor runs it, where a box-shadow repaints
+   every frame on the main thread. Green over the green dot is the dot, so the
+   copy can sit on top. */
+.live-dot { position: relative; animation: live-breathe 2.6s ease-in-out infinite paused; }
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(var(--c-live));
+  animation: live-glow 2.6s ease-in-out infinite paused;
+}
 .build-bar { transform-origin: left center; animation: build-lay 5.2s cubic-bezier(0.22, 1, 0.36, 1) infinite paused; animation-delay: calc(var(--k) * 0.16s); }
 [data-onscreen="true"] .live-dot,
+[data-onscreen="true"] .live-dot::after,
 [data-onscreen="true"] .build-bar { animation-play-state: running; }
 @keyframes live-breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--c-live) / 0.45); opacity: 1; }
-  50% { box-shadow: 0 0 0 4px rgb(var(--c-live) / 0); opacity: 0.7; }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+@keyframes live-glow {
+  0%, 100% { transform: scale(1); opacity: 0.45; }
+  50% { transform: scale(2.333333); opacity: 0; }
 }
 @keyframes build-lay {
   0% { transform: scaleX(0); opacity: 1; }
@@ -313,6 +342,7 @@ main[tabindex="-1"]:focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   .addr-caret { display: none; }
   .live-dot, .build-bar { animation: none; }
+  .live-dot::after { display: none; }
 }
 html:not(.js) .addr-caret { display: none; }
 

@@ -7,6 +7,7 @@ import {
   progressForCard,
   depthAt,
   stackDepth,
+  stackKeyframes,
   smoothStep,
   nearestToCentre,
 } from "@/lib/strip";
@@ -129,6 +130,24 @@ test("stackDepth dims and shrinks by distance from the centre", () => {
   expect(far.scale).toBeCloseTo(0.92, 9);
   expect(far.opacity).toBeCloseTo(0.6, 9);
   expect(stackDepth(0.3).opacity).toBeLessThan(1);
+});
+
+test("stackKeyframes, read between keyframes, is stackDepth at every point of the view timeline", () => {
+  const scaleOf = (t) => +t.match(/scale\(([\d.]+)\)/)[1];
+  for (const ratio of [0.1, 0.45, 0.8, 1.6]) {
+    const ks = stackKeyframes(ratio);
+    expect(ks[0].offset).toBe(0);
+    expect(ks.at(-1).offset).toBe(1);
+    for (let i = 0; i <= 400; i++) {
+      const p = i / 400;
+      const j = Math.max(0, ks.findIndex((k) => k.offset >= p) - 1);
+      const [a, b] = [ks[j], ks[Math.min(j + 1, ks.length - 1)]];
+      const u = b.offset === a.offset ? 0 : (p - a.offset) / (b.offset - a.offset);
+      const want = stackDepth((1 + ratio) * Math.abs(0.5 - p));
+      expect(scaleOf(a.transform) + u * (scaleOf(b.transform) - scaleOf(a.transform))).toBeCloseTo(want.scale, 9);
+      expect(a.opacity + u * (b.opacity - a.opacity)).toBeCloseTo(want.opacity, 9);
+    }
+  }
 });
 
 test("smoothStep eases with a ~110 ms time constant, converges and never overshoots", () => {

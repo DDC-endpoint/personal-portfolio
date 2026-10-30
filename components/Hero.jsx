@@ -1,8 +1,9 @@
 "use client";
-import { motion, useAnimationControls, useScroll, useTransform } from "framer-motion";
+import { motion, useAnimationControls } from "framer-motion";
 import { createContext, useContext, useEffect, useRef } from "react";
 import EagerReveal from "./EagerReveal";
 import HeroPortrait from "./HeroPortrait";
+import { useHeroDrift } from "./useHeroDrift";
 import { EASE, onReveal } from "@/lib/motion";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
@@ -50,11 +51,10 @@ export default function Hero() {
       fades.start((delay) => ({ opacity: 1, transition: { delay, duration: 0.8 } }));
     });
   }, [reduced, words, fades]);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-  // metadata fades quickly as soon as the user scrolls, so it never collides
-  const metaOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
+  // The content drifts up and fades as the page scrolls away; the corner
+  // metadata fades as soon as it scrolls, so it never collides
+  // (lib/heroDrift.js, drawn by the compositor where it can be).
+  useHeroDrift(ref);
 
   return (
     <Entrance.Provider value={entrance}>
@@ -65,29 +65,26 @@ export default function Hero() {
       <div className="absolute top-1/3 -left-40 w-[40vw] h-[40vw] rounded-full bg-mist dark:bg-[#122848] blur-3xl blob pointer-events-none" style={{ animationDelay: "-6s" }} />
 
       {/* corner metadata — coordinates top-left, index top-right; both fade out on scroll */}
-      <motion.div
-        style={{ opacity: metaOpacity }}
-        className="absolute top-28 left-6 md:left-10 section-label"
-      >
+      <div data-drift-meta className="absolute top-28 left-6 md:left-10 section-label">
         <Fade delay={1.15}>
           <div>N 6.9271° / E 79.8612°</div>
           <div className="mt-1 text-ink-faint">Colombo · Sri Lanka</div>
         </Fade>
-      </motion.div>
+      </div>
       <div className="absolute top-28 right-6 md:right-10 flex flex-col items-end gap-4 z-10">
-        <motion.div style={{ opacity: metaOpacity }} className="section-label text-right">
+        <div data-drift-meta className="section-label text-right">
           <Fade delay={1.15}>
             <div>(001)</div>
             <div className="mt-1 text-ink-faint">Index / Landing</div>
           </Fade>
-        </motion.div>
+        </div>
       </div>
 
       {/* The drifting content is three siblings sharing one scroll drift, so
           on mobile the portrait sits between the name and the lede while on
           desktop it is absolute against the section (a transformed parent
           would otherwise become its containing block). */}
-      <motion.div style={{ y, opacity }} className="relative px-6 md:px-10">
+      <div data-drift className="relative px-6 md:px-10">
         {/* Role kicker — fades in before the name animates. EagerReveal keeps
             it painted in the SSR HTML (early LCP) and replays the entrance
             after hydration, invisible behind the intro curtain. */}
@@ -112,18 +109,18 @@ export default function Hero() {
             <Word delay={0.4}>Cruz.</Word>
           </div>
         </h1>
-      </motion.div>
+      </div>
 
       {/* Portrait stage — 4:5, bottom-anchored on desktop, height-capped so
           its label clears the nav (values: docs/v3/hero-portrait.md) */}
-      <motion.div
-        style={{ y, opacity }}
+      <div
+        data-drift
         className="mx-auto mt-8 w-[min(86vw,60vh)] aspect-[4/5] md:absolute md:bottom-0 md:mt-0 md:right-[calc(40px+5vw)] md:w-[min(40vw,72vh,calc((100vh-190px)*0.8))] max-[1100px]:md:right-10 max-[1100px]:md:w-[min(38vw,72vh,calc((100vh-190px)*0.8))]"
       >
         <HeroPortrait />
-      </motion.div>
+      </div>
 
-      <motion.div style={{ y, opacity }} className="relative px-6 md:px-10 pb-16 md:pb-0">
+      <div data-drift className="relative px-6 md:px-10 pb-16 md:pb-0">
         <div className="mt-10 md:mt-16 grid grid-cols-12 gap-6 items-end">
           {/* The largest above-fold text block = the LCP element on both form
               factors — replay={false} keeps it painted from the very first
@@ -139,7 +136,7 @@ export default function Hero() {
           </EagerReveal>
         </div>
 
-      </motion.div>
+      </div>
     </section>
     </Entrance.Provider>
   );

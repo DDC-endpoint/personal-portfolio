@@ -15,6 +15,7 @@ import {
   progressForCard,
   depthAt,
   stackDepth,
+  stackKeyframes,
   smoothStep,
   nearestToCentre,
 } from "@/lib/strip";
@@ -34,7 +35,14 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 // CSS (js:motion-safe:md:, the `js` class set pre-paint by the layout's
 // inline script), so the server HTML is right for everyone; only the card
 // positions need JS. Heights are in svh, so mobile browser toolbars showing
-// and hiding never re-lay it out.
+// and hiding never re-lay it out. Where the browser has view timelines, the
+// stack's depth is a scroll-driven animation per card, so the compositor
+// draws it in step with the scroll however busy the main thread is; elsewhere
+// the frame loop writes it. Either way the cards are compositor layers only
+// while the stack scrolls: a layer keeps the scale it was rasterised at,
+// which softens its text at any other, so at rest the animations give way to
+// the same values as plain styles (the frame loop's layers come off) and the
+// cards repaint sharp where they stop.
 //
 // One card is active at a time, and only it decodes: the centred card (within
 // half a step of the centre on desktop, the one nearest the middle of the
@@ -74,6 +82,9 @@ export default function Projects() {
   const keyboard = useRef(false);
   const raf = useRef(0);
   const rest = useRef(0); // the stack's layers come off when this fires
+  const timelines = useRef(false); // the stack runs on view timelines
+  const timed = useRef([]); // its scroll-driven animations, one per card, while it scrolls
+  const sharpen = useRef(0); // after they end: the hint that rasterises the cards again
   const [layout, setLayout] = useState(null);
   const [active, setActiveState] = useState(null);
   // The frame loop asks every frame; React hears only when the centred card
@@ -87,6 +98,55 @@ export default function Projects() {
   }, []);
 
   const items = () => [...(stripRef.current?.children ?? [])];
+
+  // The stack's depth on each card's view timeline (lib/strip.js →
+  // stackKeyframes), shaped by its height in screens, from a scroll's first
+  // event; again when either changes.
+  const bindStack = useCallback(() => {
+    const vh = window.innerHeight;
+    if (timed.current.length) {
+      timed.current.forEach((a, i) => a.effect.setKeyframes(stackKeyframes(items()[i].offsetHeight / vh)));
+      return;
+    }
+    timed.current = items().map((el) =>
+      el.animate(stackKeyframes(el.offsetHeight / vh), {
+        timeline: new window.ViewTimeline({ subject: el, axis: "block" }),
+        rangeStart: "cover 0%",
+        rangeEnd: "cover 100%",
+        fill: "both",
+      })
+    );
+  }, []);
+  const unbindStack = useCallback(() => {
+    for (const a of timed.current) a.cancel();
+    timed.current = [];
+  }, []);
+  // At rest: the values the animations show, as styles, and the animations
+  // go. A card's layer can keep the raster from the animation (soft at its own
+  // scale); a will-change hint a moment later has the browser rasterise it
+  // again at its own scale, and the hint goes after that.
+  const restStack = useCallback(() => {
+    if (!timed.current.length) return;
+    const vh = window.innerHeight;
+    const els = items();
+    for (const el of els) {
+      const r = el.getBoundingClientRect();
+      const z = stackDepth(Math.abs(r.top + r.height / 2 - vh / 2) / vh);
+      el.style.transform = `scale(${z.scale})`;
+      el.style.opacity = String(z.opacity);
+    }
+    unbindStack();
+    clearTimeout(sharpen.current);
+    sharpen.current = setTimeout(() => {
+      if (timed.current.length) return;
+      for (const el of els) el.style.willChange = "transform";
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (!timed.current.length) for (const el of els) el.style.willChange = "";
+        })
+      );
+    }, REST_MS);
+  }, [unbindStack]);
 
   const frame = useCallback((now) => {
     raf.current = 0;
@@ -137,22 +197,28 @@ export default function Projects() {
       // docs/v3/perf-2026-10-29.md → Finding A). A layer keeps the scale it
       // was rasterised at, which softens its text at any other, so the layers
       // go once the scroll rests and the cards repaint sharp where they stop.
-      els.forEach((el, i) => {
-        const z = stackDepth(Math.abs(centres[i] - vh / 2) / vh);
-        el.style.willChange = "transform, opacity";
-        el.style.transform = `scale(${z.scale})`;
-        el.style.opacity = String(z.opacity);
-      });
+      // With view timelines the animations are the layers, and this writes
+      // only while they're not running (before the first scroll).
+      const timeline = timelines.current;
+      if (!timeline || !timed.current.length)
+        els.forEach((el, i) => {
+          const z = stackDepth(Math.abs(centres[i] - vh / 2) / vh);
+          if (!timeline) el.style.willChange = "transform, opacity";
+          el.style.transform = `scale(${z.scale})`;
+          el.style.opacity = String(z.opacity);
+        });
       clearTimeout(rest.current);
       rest.current = setTimeout(() => {
-        if (mode.current === "stack") for (const el of items()) el.style.willChange = "";
+        if (mode.current !== "stack") return;
+        if (timeline) restStack();
+        else for (const el of items()) el.style.willChange = "";
       }, REST_MS);
       if (keyboard.current) return setActive(focused.current);
       const i = onScreen ? nearestToCentre(centres, vh) : -1;
       // The end card is a candidate too: when it is nearest, no project card is.
       setActive(i < 0 || i === END ? null : i);
     }
-  }, []);
+  }, [restStack]);
 
   const schedule = useCallback(() => {
     if (!raf.current) raf.current = requestAnimationFrame(frame);
@@ -162,9 +228,13 @@ export default function Projects() {
   // below md, the plain list under reduced motion.
   useEffect(() => {
     const wide = window.matchMedia(WIDE);
+    const supported = "ViewTimeline" in window;
+    const cards = new ResizeObserver(() => (timed.current.length ? bindStack() : schedule()));
+    for (const el of items()) cards.observe(el);
     const measure = () => {
       const next = reduced ? null : wide.matches ? "strip" : "stack";
       if (next !== mode.current) {
+        unbindStack();
         items().forEach(clearStyles);
         if (stripRef.current) {
           stripRef.current.style.transform = "";
@@ -178,6 +248,8 @@ export default function Projects() {
           : null;
       layoutRef.current = L;
       setLayout(L);
+      timelines.current = next === "stack" && supported;
+      if (timed.current.length) bindStack();
       shown.current = null; // snap after a resize
       if (!next) setActive(null);
       schedule();
@@ -188,8 +260,10 @@ export default function Projects() {
     return () => {
       window.removeEventListener("resize", measure);
       wide.removeEventListener("change", measure);
+      cards.disconnect();
+      unbindStack();
     };
-  }, [reduced, schedule]);
+  }, [reduced, schedule, bindStack, unbindStack]);
 
   // Scroll drives the frames; a Tab press hands control to focus until the
   // pointer is next used.
@@ -201,18 +275,25 @@ export default function Projects() {
     const onKey = (e) => {
       if (e.key === "Tab") keyboard.current = true;
     };
-    window.addEventListener("scroll", schedule, { passive: true });
+    // The stack's animations start from the scroll's first event, not a
+    // frame later.
+    const onScroll = () => {
+      if (timelines.current && !timed.current.length) bindStack();
+      schedule();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("pointerdown", onPointerDown, { passive: true, capture: true });
     window.addEventListener("keydown", onKey, { capture: true });
     return () => {
-      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pointerdown", onPointerDown, { capture: true });
       window.removeEventListener("keydown", onKey, { capture: true });
       cancelAnimationFrame(raf.current);
       raf.current = 0;
       clearTimeout(rest.current);
+      clearTimeout(sharpen.current);
     };
-  }, [schedule]);
+  }, [schedule, bindStack]);
 
   // In the strip, brings item i (a card, or the end card) to the centre when
   // it was reached by keyboard. A frame later, so it lands after the
