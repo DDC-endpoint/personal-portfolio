@@ -1,6 +1,7 @@
 // Presented frames on the USB phone during a page change, from a Chrome
 // trace (the viz/GPU process's own swap events, independent of the
 // renderer's main thread). usage: node phone-trace.mjs <base-url>
+// FROM=/ TO=/services (the defaults) pick the change; it goes through the menu.
 import { chromium } from "@playwright/test";
 
 const base = (process.argv[2] || "http://localhost:3102").replace(/\/$/, "");
@@ -10,7 +11,8 @@ const page = ctx.pages().find((p) => p.url().startsWith("http://localhost")) || 
 await page.bringToFront();
 if (process.env.CSS) await ctx.addInitScript((css) => { const add = () => { const st = document.createElement("style"); st.textContent = css; (document.head || document.documentElement).appendChild(st); }; if (document.readyState !== "loading") add(); else document.addEventListener("DOMContentLoaded", add); }, process.env.CSS);
 console.log("CSS:", process.env.CSS || "none");
-await page.goto(base + "/", { waitUntil: "load", timeout: 60000 });
+const FROM = process.env.FROM || "/", TO = process.env.TO || "/services";
+await page.goto(base + FROM, { waitUntil: "load", timeout: 60000 });
 await page.waitForFunction(() => document.querySelector("[data-curtain]")?.dataset.curtain === "idle", null, { timeout: 60000 });
 await page.waitForTimeout(2500);
 await page.evaluate(() => document.querySelector("button[aria-label='Open menu']")?.click());
@@ -22,7 +24,7 @@ const done = new Promise((r) => b.on("Tracing.tracingComplete", r));
 await b.send("Tracing.start", { traceConfig: { includedCategories: ["viz", "benchmark", "disabled-by-default-devtools.timeline.frame", "gpu"], excludedCategories: ["*"] }, transferMode: "ReportEvents" });
 await page.waitForTimeout(300);
 const t0 = Date.now();
-await page.evaluate(() => { window.__st = []; window.__t0 = Date.now(); new MutationObserver(() => window.__st.push([Date.now() - window.__t0, document.querySelector("[data-curtain]").dataset.curtain])).observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] }); document.querySelector("[role=dialog] a[href='/services']")?.click(); });
+await page.evaluate((to) => { window.__st = []; window.__t0 = Date.now(); new MutationObserver(() => window.__st.push([Date.now() - window.__t0, document.querySelector("[data-curtain]").dataset.curtain])).observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] }); document.querySelector(`[role=dialog] a[href='${to}']`)?.click(); }, TO);
 await page.waitForFunction(() => document.querySelector("[data-curtain]")?.dataset.curtain === "idle", null, { timeout: 30000 });
 const t1 = Date.now();
 await page.waitForTimeout(200);

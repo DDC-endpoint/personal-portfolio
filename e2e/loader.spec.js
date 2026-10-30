@@ -68,10 +68,12 @@ test("a reload in the same session is short; a new session is full", async ({ pa
   await expect(loader(page)).toHaveCount(1);
   await expect(loader(page).locator("[data-orb]")).toBeHidden();
   await expect(loader(page).locator("[data-name]")).toBeVisible();
-  // Short: the curtain is lifting well before a full load's 1.2 s minimum.
+  // Short: the curtain is lifting well before a full load's 1.2 s minimum,
+  // plus at most the 1.5 s the lift waits for the main thread to keep up
+  // (PageTransitions → settled), which the dev server's slow frames reach.
   const t0 = Date.now();
-  await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 4000 });
-  expect(Date.now() - t0).toBeLessThan(2000);
+  await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 5000 });
+  expect(Date.now() - t0).toBeLessThan(3500);
   await gone(page);
 
   const fresh = await browser.newContext();
