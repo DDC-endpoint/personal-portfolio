@@ -27,7 +27,9 @@ async function capture(base, tag) {
   const top = await page.evaluate(() => document.querySelector("[data-strip]").getBoundingClientRect().top + scrollY - innerHeight);
   const files = [];
   for (const k of STEPS) {
-    await page.evaluate((y) => scrollTo(0, y), Math.round(top + k * 751));
+    // The quiet clock starts again at each stop: carried over, a stop reads
+    // as settled at once and is shot mid-scroll, before the stack's rest.
+    await page.evaluate((y) => { window.__calm = 0; scrollTo(0, y); }, Math.round(top + k * 751));
     // Settled: no card mid-decode for 600 ms.
     await page.waitForFunction(() => {
       const busy = [...document.querySelectorAll("[data-decode]")].some((el) => /decoding|dissolving|scrambling/.test(el.dataset.decode));
@@ -43,7 +45,20 @@ async function capture(base, tag) {
       return h >= 8 ? { x: 0, y, width: innerWidth, height: h } : null;
     });
     if (!clip) { files.push(null); continue; }
-    await page.screenshot({ path: f, clip, animations: "disabled", caret: "hide" });
+    // Playwright's "disabled" fast-forwards every finite animation to its end,
+    // a scroll-driven one too, and the screenshot's own scroll event starts
+    // the stack's (Projects.jsx). ANIM=freeze stops the others here (an
+    // infinite one at its start, as "disabled" does, a finite one at its end)
+    // and leaves the scroll-driven ones be.
+    const freeze = process.env.ANIM === "freeze";
+    if (freeze)
+      await page.evaluate(() => {
+        for (const a of document.getAnimations()) {
+          if (a.timeline && !(a.timeline instanceof DocumentTimeline)) continue;
+          if (a.effect.getComputedTiming().endTime === Infinity) { a.pause(); a.currentTime = 0; } else a.finish();
+        }
+      });
+    await page.screenshot({ path: f, clip, animations: freeze ? "allow" : "disabled", caret: "hide" });
     files.push(f);
   }
   await ctx.close();
