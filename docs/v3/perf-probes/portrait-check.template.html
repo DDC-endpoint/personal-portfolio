@@ -1,0 +1,186 @@
+<title>Portrait Phone Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Instrument+Serif&display=swap">
+<style>
+/* One column of check rows under a short header, the site's own palette. */
+:root {
+  --bg: #f4f6f9; --ink: #0b1f3a; --soft: #4a5b74; --faint: #8a96a8;
+  --electric: #2563eb; --ok: #15803d; --bad: #c2410c; --rule: #d8dee8; --panel: #ffffff;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --serif: "Instrument Serif", Georgia, serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1a2e; --ink: #e8eef7; --soft: #b3c0d3; --faint: #7d8ba0; --electric: #60a5fa;
+  --ok: #4ade80; --bad: #fb923c; --rule: #1f3350; --panel: #10233d; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1a2e; --ink: #e8eef7; --soft: #b3c0d3; --faint: #7d8ba0; --electric: #60a5fa;
+  --ok: #4ade80; --bad: #fb923c; --rule: #1f3350; --panel: #10233d; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 13px; }
+main { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 20px; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1; margin: 0; text-wrap: balance; }
+h1 em { color: var(--electric); }
+.lede { color: var(--soft); line-height: 1.55; margin: 0; font-family: system-ui, sans-serif; font-size: 14px; }
+.verdict { padding: 14px 16px; border: 1px solid var(--rule); background: var(--panel); border-radius: 6px; line-height: 1.5; }
+.verdict strong { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; font-weight: 400; }
+ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+li { display: grid; grid-template-columns: 4.2em 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+li > div { min-width: 0; overflow-wrap: anywhere; }
+.tag { font-size: 11px; letter-spacing: 0.1em; font-weight: 700; }
+.tag.ok { color: var(--ok); } .tag.bad { color: var(--bad); } .tag.info { color: var(--faint); } .tag.run { color: var(--electric); }
+.name { color: var(--ink); } .detail { color: var(--soft); display: block; margin-top: 2px; }
+.stage { width: min(86vw, 60vh, 420px); aspect-ratio: 4 / 5; max-width: 100%; justify-self: center; position: relative; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+button { font: inherit; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bg); background: var(--electric); border: 0; border-radius: 4px; padding: 12px 16px; cursor: pointer; justify-self: start; }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+textarea { width: 100%; box-sizing: border-box; min-height: 120px; font: inherit; font-size: 11px; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 8px; }
+</style>
+
+<main>
+  <h1>Portrait <em>phone</em> check</h1>
+  <p class="lede">This runs each step the damiandc.com hero portrait takes on your phone, in the same order. Wait until the last row finishes, then screenshot the whole page or tap Copy results and paste them to Claude.</p>
+  <div class="verdict" id="verdict"><strong>Result</strong><span id="verdict-text">Running the checks…</span></div>
+  <ol id="rows"></ol>
+  <div class="label">The portrait, drawn here the way the site draws it</div>
+  <div class="stage" id="stage"><canvas id="out"></canvas></div>
+  <button type="button" id="copy">Copy results</button>
+  <textarea id="dump" readonly hidden aria-label="Results as text"></textarea>
+</main>
+
+<script>
+const PORTRAIT_B64 = "__B64__";
+const rows = document.getElementById("rows");
+const lines = [];
+let failed = null;
+function row(name, status, detail) {
+  const li = document.createElement("li");
+  const tag = { ok: "PASS", bad: "FAIL", info: "INFO", run: "…" }[status];
+  li.innerHTML = `<span class="tag ${status}">${tag}</span><div><span class="name"></span><span class="detail"></span></div>`;
+  li.querySelector(".name").textContent = name;
+  li.querySelector(".detail").textContent = detail || "";
+  rows.appendChild(li);
+  lines.push(`${tag} ${name}${detail ? " — " + detail : ""}`);
+  if (status === "bad" && !failed) failed = name;
+  return li;
+}
+const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, j) => setTimeout(() => j(new Error(`${what} gave no answer in ${ms / 1000} s`)), ms))]);
+async function check(name, fn, ms = 10000) {
+  const t = performance.now();
+  try {
+    const v = await withTimeout(Promise.resolve().then(fn), ms, name);
+    row(name, "ok", `${Math.round(performance.now() - t)} ms${v ? " · " + v : ""}`);
+    return { ok: true, v };
+  } catch (e) {
+    row(name, "bad", `${e && e.name ? e.name + ": " : ""}${e && e.message ? e.message : e}`);
+    return { ok: false };
+  }
+}
+
+(async () => {
+  row("Browser", "info", navigator.userAgent);
+  row("Screen", "info", `dpr ${devicePixelRatio} · ${innerWidth}×${innerHeight} css px · memory ${navigator.deviceMemory ?? "?"} GB · ${navigator.hardwareConcurrency ?? "?"} cores`);
+  row("APIs", "info", `createImageBitmap ${typeof createImageBitmap} · OffscreenCanvas ${typeof OffscreenCanvas} · ResizeObserver ${typeof ResizeObserver} · fonts ${!!document.fonts}`);
+
+  let blob, photo, small;
+  const SS = 3;
+  const stage = document.getElementById("stage");
+  const sr = stage.getBoundingClientRect();
+  const font = 6, cw = font * 0.6, ch = font * 0.92;
+  const cols = Math.floor(sr.width / cw), rowsN = Math.floor(sr.height / ch);
+  row("Stage size", sr.width && sr.height ? "ok" : "bad", `${Math.round(sr.width)}×${Math.round(sr.height)} css px → ${cols}×${rowsN} cells`);
+
+  await check("1. Image to blob", () => {
+    const bin = atob(PORTRAIT_B64), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    blob = new Blob([bytes], { type: "image/webp" });
+    return `${blob.size} bytes`;
+  });
+  if (blob) {
+    const r = await check("2. Decode the full photo (createImageBitmap)", async () => {
+      photo = await createImageBitmap(blob);
+      return `${photo.width}×${photo.height}`;
+    });
+    await check("3. Decode at grid size (createImageBitmap + resize)", async () => {
+      small = await createImageBitmap(blob, { resizeWidth: cols * SS, resizeHeight: rowsN * SS, resizeQuality: "high" });
+      return `asked ${cols * SS}×${rowsN * SS}, got ${small.width}×${small.height}`;
+    });
+    if (!r.ok) await check("2b. Decode via <img> instead", () => new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(`${img.naturalWidth}×${img.naturalHeight}`);
+      img.onerror = () => rej(new Error("the <img> could not decode it either"));
+      img.src = URL.createObjectURL(blob);
+    }));
+  }
+  const family = '"JetBrains Mono"';
+  await check("4. Load the mono font (document.fonts.load)", async () => {
+    const f = await document.fonts.load(`700 6px ${family}`);
+    return `${f.length} face(s), status ${document.fonts.status}`;
+  }, 8000);
+
+  let data;
+  if (small) {
+    await check("5. Read the pixels back (getImageData)", () => {
+      const c = document.createElement("canvas");
+      c.width = cols * SS; c.height = rowsN * SS;
+      const x = c.getContext("2d", { willReadFrequently: true });
+      x.drawImage(small, 0, 0, c.width, c.height);
+      data = x.getImageData(0, 0, c.width, c.height).data;
+      let opaque = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 76) opaque++;
+      const share = opaque / (data.length / 4);
+      if (share < 0.05) throw new Error(`only ${(share * 100).toFixed(1)}% of pixels came back visible; expected about 45%`);
+      return `${(share * 100).toFixed(0)}% of pixels visible`;
+    });
+  }
+
+  if (data) {
+    await check("6. Draw the ASCII portrait", () => {
+      const RAMP = " .·:;-=+*#%@";
+      const cv = document.getElementById("out");
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      cv.width = Math.round(sr.width * dpr); cv.height = Math.round(sr.height * dpr);
+      const x = cv.getContext("2d");
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      x.font = `700 ${font}px ${family}, monospace`;
+      x.textBaseline = "top";
+      x.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--electric").trim();
+      const SW = cols * SS;
+      let drawn = 0;
+      for (let y = 0; y < rowsN; y++) for (let X = 0; X < cols; X++) {
+        let a = 0, l = 0;
+        for (let v = 0; v < SS; v++) for (let u = 0; u < SS; u++) {
+          const q = ((y * SS + v) * SW + X * SS + u) * 4;
+          a += data[q + 3]; l += 0.299 * data[q] + 0.587 * data[q + 1] + 0.114 * data[q + 2];
+        }
+        a /= SS * SS * 255; l /= SS * SS * 255;
+        if (a < 0.3) continue;
+        const d = Math.min(1, Math.pow(1 - l, 1.2) * 0.95 + 0.05);
+        x.globalAlpha = 0.55 + 0.45 * d;
+        x.fillText(RAMP[Math.max(1, Math.round(Math.pow(d, 1.35) * (RAMP.length - 1)))], X * cw, y * ch);
+        drawn++;
+      }
+      return `${drawn} glyphs`;
+    });
+  }
+
+  document.getElementById("verdict-text").textContent = failed
+    ? `Step "${failed}" failed on this phone. Send the screenshot or the copied results to Claude.`
+    : "Every step passed here. The portrait's pipeline works in this browser, so the fault is on the site itself (its layout or timing). Send this to Claude anyway.";
+  lines.unshift(`VERDICT: ${failed ? "failed at " + failed : "all passed"}`);
+})();
+
+document.getElementById("copy").addEventListener("click", async () => {
+  const text = lines.join("\n");
+  const dump = document.getElementById("dump");
+  dump.value = text;
+  try {
+    await navigator.clipboard.writeText(text);
+    document.getElementById("copy").textContent = "Copied";
+  } catch {
+    dump.hidden = false;
+    dump.focus();
+    dump.select();
+    document.getElementById("copy").textContent = "Select the text below and copy it";
+  }
+});
+</script>

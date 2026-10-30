@@ -7,15 +7,17 @@ import { shouldPlayIntro } from "@/lib/motion";
 // curtain's middle panel, so it leaves with it. It's in the server HTML, so
 // the first paint is the loader on the covering panels, never a blank page;
 // CSS gates (globals.css → .morph-loader) hide it with the curtain for
-// reduced motion, forced colours and no JS, with a 5 s failsafe.
+// reduced motion, forced colours and no JS, with a 15 s failsafe.
 //
 // A full load: a blob morphs at the centre (an electric stroke, a 7% fill, a
 // ghost outline trailing it) with the count inside, "DAMIAN DE CRUZ" decoding
 // under it in regular-weight mono, and the coordinates under that. The count
 // follows real readiness (lib/loader.js): fonts, and on Home the portrait
 // prepared. At 100 the blob settles into a circle and one ring pulses out;
-// then `onDone` lifts the curtain. A short load (later loads in the session):
-// only the name and coordinates resolve, in about 0.4 s.
+// then `onDone` lifts the curtain. The count already rises from the first
+// paint (lib/loader.js → firstPaintCount); the loader takes it over here.
+// A short load (later loads in the session): only the name and coordinates
+// resolve, in about 0.4 s.
 //
 // It sits in a box as wide as the middle panel and sizes itself from it
 // (globals.css → .morph-loader), so it never crosses a seam: on a narrow
@@ -91,6 +93,14 @@ export default function MorphLoader({ onDone }) {
     let last = t0, raf = 0, noiseAt = 0, shown = 0;
     let radii = TARGETS[0].slice(), trail = radii.slice(), target = 1, swapAt = 0.8, t = 0;
     let p = 0, speed = 70, phase = "load", phaseAt = 0;
+    // The count the server HTML's script has reached, and whether the
+    // scripts came late (lib/loader.js → LOAD.late).
+    const early = window.__ddcCount;
+    if (early) {
+      early.taken = true;
+      if (full) p = early.p;
+    }
+    const late = t0 > LOAD.late * 1000;
 
     const frame = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000);
@@ -110,7 +120,7 @@ export default function MorphLoader({ onDone }) {
             swapAt = t + 0.55 + Math.random() * 0.4;
             speed = 45 + Math.random() * 60;
           }
-          p = stepCount({ p, el, ready, speed, dt });
+          p = stepCount({ p, el, ready, speed, dt, late });
         } else {
           const finished = (ready && el >= SHORT.min) || el >= SHORT.max;
           p = finished ? 100 : Math.min(LOAD.hold, (el / SHORT.min) * 100);
@@ -168,9 +178,9 @@ export default function MorphLoader({ onDone }) {
           <circle data-ring cx="50" cy="50" r="34" className="fill-none stroke-electric opacity-0 [stroke-width:0.9]" />
         </svg>
         <div className="ml-count absolute inset-0 flex items-center justify-center font-display italic leading-none text-ink">
-          <span data-count>
-            <span className="ml-d">0</span>
-          </span>
+          {/* Its digits are written by script from the first paint, so
+              React leaves them alone. */}
+          <span data-count suppressHydrationWarning dangerouslySetInnerHTML={{ __html: digits(0) }} />
           <sup className="ml-1 self-start mt-[38%] font-mono text-[11px] not-italic tracking-[0.1em] text-ink-faint">%</sup>
         </div>
       </div>

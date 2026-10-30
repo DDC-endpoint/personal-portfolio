@@ -256,6 +256,14 @@ Damian added an SEO and GEO upgrade when he approved Phase 4. A five-part audit 
   - FAQ data uses typographic apostrophes (’) throughout, so the visible FAQ and its JSON-LD stay identical.
 - **Server-side items** (`www` → apex redirect, `server_tokens`, lab robots) are Damian's to apply on the VPS. They're listed in `seo-geo.md` without host details. He applied the `www` redirect and `server_tokens off` on 2026-10-27, and both check out (see `seo-geo.md`). The lab's robots and sitemap moved into the repo instead (`proxy.js`), at his request.
 
+## The portrait's touch lens opens on a hold, so the page scrolls (2026-10-29)
+
+Damian, on his phone: "You can't scroll on mobile because the touch over the portrait activates the lens." The portrait canvas was `touch-action: none` and any touch-down opened the lens, so a finger starting a scroll on it dragged the lens instead.
+
+- **Hold to open (Damian's picks: 300 ms, and the lens fades out on release).** A finger resting still on the portrait for `HOLD_MS` (300 ms, `lib/portrait.js`) opens the lens; one that drifts more than `HOLD_SLOP` (8 px) first, or that the browser takes for a scroll (`pointercancel`), never does. Once held, moving the finger drags the lens and a non-passive `touchmove` keeps the page still; lifting fades it out as before. The `touch-action` rule is gone. A long press shows no browser menu or callout (`contextmenu` is stopped while a hold is pending or held; `-webkit-touch-callout: none`, `user-select: none`). 300 ms sits under Android's own long-press, so the system menu never races it. Mouse behaviour is unchanged.
+- Rejected: a lens that parks until tapped (Damian chose the fade), and longer holds (450 ms).
+- Tests: `e2e/lens.spec.js` → "a held touch opens the lens and drags it; lifting fades it" and "a touch that moves at once, or that becomes a scroll, never opens the lens". Spec: `hero-portrait.md` → Touch.
+
 ## The loader fits the middle panel; the curtain no longer jumps (2026-10-29)
 
 Two curtain bugs (Damian). **The jump:** leaving the 404 for Home, the panels jumped sideways. The curtain is fixed, so it's the viewport's width less the scrollbar: the 404 is too short to scroll (1440 px wide at 1440), Home isn't (1425 px), and the 404's covering curtain hands over to Home's at a different width. **The spill:** on phones and tablets the loader was wider than the middle panel it rides (at 390 px: a 131 px panel under a 150 px blob, a 193 px name and 198 px coordinates), so it crossed the seams and slid over the neighbouring panels as the middle one lifted first.
@@ -343,6 +351,7 @@ Damian asked for "a few minor changes before the perf pass", which grew into Pha
 **From the `/portfolio` mock (Damian, 2026-10-28)**
 - **No decode on `/portfolio`:** the cards rise in already showing their screenshots ("leave them as is"). The address bar still types as each card lands.
 - **The scroll-through preview is slower, "more browsable":** 1.5× the mock's first timing, so 3.9 s minimum and 13.5 s maximum to reach the bottom, a 1.35 s hold, 2.1 s back up.
+- **Superseded (Damian, 2026-10-30): no scroll-through preview.** Its swap to the full-page capture flashed in the cards, so a live card shows its site's top screenshot only. The full-page captures and `capture-projects --full` are gone.
 - **Clicking a card opens the live site** in a new tab; This Portfolio goes to Home (with the curtain); upcoming cards aren't links. Same as the home strip.
 - **Grid tiles keep the one-line description.**
 - Damian asked to see Home with his curation (`spike/home-curation.html`) before approving the phase.

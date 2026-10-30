@@ -189,6 +189,44 @@ test.describe("the curtain", () => {
     await expect(page).toHaveURL(/\/portfolio$/);
   });
 
+  // Under the full curtain nothing of Home shows, so its portrait's loop
+  // stops (lib/motion.js → onCover): on a mid-range phone one of its frames
+  // there cost 134 ms while the next page was being built (2026-10-29).
+  test("the departing portrait stops drawing under the full curtain", async ({ page }) => {
+    await page.goto("/");
+    await settle(page);
+    await expect(page.locator("[data-portrait]")).toHaveAttribute("data-state", /^(static|skipped)$/, { timeout: 10000 });
+    // The renderer counts its loop's frames (lib/portraitRenderer.js), on the
+    // page or in its worker. At the cover: the loop has stopped, and a moment
+    // later (if Home is still there to ask) it hasn't drawn since.
+    await page.evaluate(() => {
+      const cv = document.querySelector("[data-portrait] canvas");
+      window.__under = new Promise((resolve) => {
+        const mo = new MutationObserver(async () => {
+          if (document.querySelector("[data-curtain]").dataset.curtain !== "covered") return;
+          mo.disconnect();
+          // The cover's state is set a moment before the page hears of it
+          // (lib/motion.js → coverStarts, in the same task).
+          await new Promise((r) => setTimeout(r, 0));
+          const at = await cv.portraitSnapshot();
+          const later = await Promise.race([
+            new Promise((r) => setTimeout(r, 150)).then(() => cv.portraitSnapshot()),
+            new Promise((r) => setTimeout(() => r(null), 600)),
+          ]);
+          resolve({ frames: at.frames, running: at.running, later: later?.frames ?? null });
+        });
+        mo.observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] });
+      });
+    });
+    await clickNav(page, "Services");
+    await expect(page).toHaveURL(/\/services$/);
+    await idle(page);
+    const under = await page.evaluate(() => window.__under);
+    expect(under.frames).toBeGreaterThan(0); // it was drawing up to the cover
+    expect(under.running).toBe(false); // and stopped there
+    if (under.later !== null) expect(under.later).toBe(under.frames);
+  });
+
   test("the cursor stays behind the curtain and lives through the page change", async ({ page, isMobile }) => {
     test.skip(isMobile, "the custom cursor is desktop only");
     await page.goto("/");
@@ -214,23 +252,39 @@ test.describe("the curtain", () => {
     expect(await page.evaluate(() => [window.__ring === document.querySelector(".cursor-ring"), window.__cursorLost])).toEqual([true, false]);
   });
 
-  test("the resting shadow is there before any panel moves; panels are ivory and mist", async ({ page, isMobile }) => {
+  // Flat and clean since 2026-10-30, as the lab: no shadow, no curved edge;
+  // a straight edge light that fades with the speed and is off at rest.
+  test("flat panels, ivory and mist, with no shadow; the edge lights only while moving", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
-    const first = page.evaluate(() => new Promise((r) => {
+    const look = page.evaluate(() => new Promise((r) => {
       const c = document.querySelector("[data-curtain]");
-      new MutationObserver((_, o) => {
-        if (c.dataset.curtain !== "covering") return;
-        o.disconnect();
-        const drops = [...c.querySelectorAll("[data-panel]")].filter((el) => getComputedStyle(el).display !== "none").map((el) => getComputedStyle(el.querySelector("[data-drop]")).filter);
-        const shapes = [...c.querySelectorAll("[data-shape]")].map((el) => getComputedStyle(el).backgroundColor);
-        r({ drops, shapes });
-      }).observe(c, { attributes: true });
+      const out = {};
+      const shown = () => [...c.querySelectorAll("[data-panel]")].filter((el) => getComputedStyle(el).display !== "none");
+      const light = () => Math.max(...shown().flatMap((el) => [...el.querySelectorAll("[data-edge]")].map((e) => +getComputedStyle(e).opacity)));
+      new MutationObserver(() => {
+        if (c.dataset.curtain === "covering" && !out.panels) {
+          out.panels = shown().map((el) => ({ filter: getComputedStyle(el).filter, clip: getComputedStyle(el.querySelector("[data-shape]")).clipPath }));
+          out.shapes = [...c.querySelectorAll("[data-shape]")].map((el) => getComputedStyle(el).backgroundColor);
+          out.peak = 0;
+          const watch = () => {
+            out.peak = Math.max(out.peak, light());
+            if (c.dataset.curtain === "covering") requestAnimationFrame(watch);
+          };
+          requestAnimationFrame(watch);
+        }
+        if (c.dataset.curtain === "covered" && out.panels && out.atRest === undefined) {
+          out.atRest = light();
+          r(out);
+        }
+      }).observe(c, { attributes: true, attributeFilter: ["data-curtain"] });
     }));
     await page.evaluate(() => document.querySelector('header nav a[href="/privacy"]').click());
-    const { drops, shapes } = await first;
-    for (const d of drops) expect(d).toMatch(/drop-shadow\(rgba\(11, 31, 58, 0\.1\) 0px 0px 14px\)/);
+    const { panels, shapes, peak, atRest } = await look;
+    for (const p of panels) expect(p).toEqual({ filter: "none", clip: "none" });
     expect(shapes.slice(0, 2)).toEqual(["rgb(246, 246, 241)", "rgb(238, 244, 253)"]);
+    expect(peak).toBeGreaterThan(0.5);
+    expect(atRest).toBe(0);
     await idle(page);
   });
 
@@ -247,15 +301,16 @@ test.describe("the curtain", () => {
 // ---- Task 4: clicks, swap, arrival ----------------------------------------
 
 // A plain page link, fixed in view on every screen size, for tests that need
-// a real (visible) click: the footer has no page links (Phase 6 gate). Bottom
-// right: next dev's tools button sits bottom left and would take the click.
+// a real (visible) click: the footer has no page links (Phase 6 gate). Clear
+// of the corners: next dev's tools button sits in the bottom-right corner
+// (bottom-left before Next 16) and would take the click.
 const PATHS = { Home: "/", Portfolio: "/portfolio", Services: "/services", Privacy: "/privacy" };
 async function pageLink(page, name) {
   await page.evaluate((href) => {
     document.querySelector("[data-test-page-link]")?.remove();
     const a = Object.assign(document.createElement("a"), { href, textContent: "test link" });
     a.dataset.testPageLink = "";
-    a.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:65;padding:8px;background:white";
+    a.style.cssText = "position:fixed;right:12px;bottom:72px;z-index:65;padding:8px;background:white";
     document.querySelector("main").append(a);
   }, PATHS[name]);
   return page.locator("[data-test-page-link]");
@@ -320,22 +375,27 @@ test.describe("transitions", () => {
   });
 
   // Home's portrait is prepared well before the lift; the curtain mustn't
-  // wait for its wave (which itself waits for the lift). Timed from the new
-  // page's arrival, so the dev server's fetch doesn't count.
+  // wait for its wave (which itself waits for the lift). Since 2026-10-30 the
+  // lift also waits for the main thread to keep up (PageTransitions →
+  // settled), so the time to the lift says nothing here: the portrait must be
+  // prepared, its still drawn, by the time the curtain lifts.
   test("a change to Home doesn't wait on the portrait's wave", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
     await page.evaluate(() => {
-      window.__coveredAt = window.__revealingAt = window.__arrivedAt = undefined;
-      const watch = () => {
-        if (location.pathname === "/" && document.querySelector("[data-portrait]")) window.__arrivedAt ??= performance.now();
-        if (window.__arrivedAt === undefined) requestAnimationFrame(watch);
-      };
-      requestAnimationFrame(watch);
+      window.__preparedAtLift = undefined;
+      const c = document.querySelector("[data-curtain]");
+      new MutationObserver((_, o) => {
+        if (c.dataset.curtain !== "lifting") return;
+        o.disconnect();
+        const p = document.querySelector("[data-portrait]");
+        window.__preparedAtLift = { prepared: p?.hasAttribute("data-prepared"), state: p?.dataset.state };
+      }).observe(c, { attributes: true, attributeFilter: ["data-curtain"] });
     });
     await transitionTo(page, () => page.evaluate(() => document.querySelector('header nav a[href="/"]').click()), /\/$/);
-    const wait = await page.evaluate(() => window.__revealingAt - window.__arrivedAt);
-    expect(wait).toBeLessThan(330); // was the full 400 ms portrait wait, plus frames
+    const at = await page.evaluate(() => window.__preparedAtLift);
+    expect(at.prepared).toBe(true);
+    expect(at.state).not.toBe("wave"); // the wave waits for the lift, not the other way round
   });
 
   test("Home → /services from the mobile menu", async ({ page }, info) => {
@@ -492,6 +552,35 @@ test.describe("first load", () => {
     expect(dy).toBeGreaterThan(1); // still below its line
   });
 
+  // On a phone, a vh is the largest viewport (the URL bar hidden) while
+  // innerHeight is the current one. The curtain was once placed from
+  // innerHeight, so with the bar shown a strip of the page showed under it
+  // (Android Chrome, 2026-10-29). The mismatch is faked here.
+  test("the curtain covers the screen's bottom when innerHeight is less than a vh", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "innerHeight", { get: () => Math.round(window.outerHeight * 0.85) || 700, configurable: true });
+    });
+    await page.goto("/services");
+    await settle(page);
+    // At full cover (a 220 ms hold, so probed from an observer) the middle
+    // panel must reach past both ends of the screen, whichever of innerHeight
+    // and the layout viewport is the taller.
+    await page.evaluate(() => {
+      window.__edges = null;
+      new MutationObserver(() => {
+        if (document.querySelector("[data-curtain]").dataset.curtain !== "covered" || window.__edges) return;
+        const r = document.querySelector('[data-panel="2"]').getBoundingClientRect();
+        window.__edges = { top: r.top, bottom: r.bottom, screen: Math.max(innerHeight, document.documentElement.clientHeight) };
+      }).observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] });
+      document.querySelector('header nav a[href="/privacy"]').click();
+    });
+    await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
+    await idle(page);
+    const edges = await page.evaluate(() => window.__edges);
+    expect(edges.top).toBeLessThanOrEqual(0.1);
+    expect(edges.bottom).toBeGreaterThanOrEqual(edges.screen - 0.1);
+  });
+
   test("a link clicked during the intro opens once the loader is done, under the same cover", async ({ page }) => {
     await record(page);
     await page.goto("/services");
@@ -624,10 +713,14 @@ test.describe("details", () => {
 // ---- Review fixes ------------------------------------------------------------
 
 test.describe("robustness", () => {
-  test("if the curtain's code can't load, page links still work (the browser loads them)", async ({ page }) => {
+  // The engine ships with the first-load bundle (2026-10-29), so blocking it
+  // blocks hydration: the page is the server HTML, the CSS failsafe uncovers
+  // it at 15 s, and its links are plain.
+  test("if the site's code can't load, page links still work (the browser loads them)", async ({ page }) => {
+    test.setTimeout(60_000);
     await blockCurtain(page);
     await page.goto("/");
-    await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
+    await expect(page.locator("[data-curtain]")).toBeHidden({ timeout: 19000 });
     await mark(page);
     await (await pageLink(page, "Services")).click();
     await page.waitForURL(/\/services$/, { timeout: 10000 });
@@ -657,7 +750,9 @@ test.describe("robustness", () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await idle(page);
-    expect(Date.now() - t0).toBeLessThan(2500);
+    // The lift plus at most the 1.5 s the curtain waits for the main thread
+    // (PageTransitions → settled), which the dev server's slow frames reach.
+    expect(Date.now() - t0).toBeLessThan(4000);
     expect(await sameDocument(page)).toBe(true);
     await page.waitForTimeout(4500); // past the 4 s fallback: nothing reloads
     await expect(page).toHaveURL(/\/$/);
@@ -702,8 +797,9 @@ test.describe("robustness", () => {
     const tops = await panels(page).evaluateAll((els) =>
       els.filter((el) => getComputedStyle(el).display !== "none").map((el) => el.getBoundingClientRect().top)
     );
+    // One panel height down (flat since 2026-10-30): its top on the screen's bottom edge.
     for (const top of tops) {
-      expect(top).toBeGreaterThan(await page.evaluate(() => innerHeight));
+      expect(top).toBeGreaterThanOrEqual(await page.evaluate(() => innerHeight));
     }
   });
 
@@ -746,21 +842,28 @@ test.describe("robustness", () => {
     expect(y).toBe(0);
   });
 
-  test("a very late hydration: no count, at most one lift, and the page ends uncovered", async ({ page }) => {
+  // Until 2026-10-29 a hydration later than 2.5 s lifted at once, with the
+  // count still rising on the departing panel; now the curtain holds until
+  // it reads 100 (Damian).
+  test("a late hydration: the curtain holds until the count reaches 100, lifts once, and the page ends uncovered", async ({ page }) => {
     await record(page);
     // Every change of data-curtain with the value it left: a second lift
-    // shows up as lifting → lifting.
+    // shows up as lifting → lifting. And the count as the lift starts.
     await page.addInitScript(() => {
       window.__left = [];
       document.addEventListener("DOMContentLoaded", () => {
-        new MutationObserver((ms) => ms.forEach((m) => window.__left.push(m.oldValue))).observe(document.querySelector("[data-curtain]"), {
+        const c = document.querySelector("[data-curtain]");
+        new MutationObserver((ms) => ms.forEach((m) => {
+          window.__left.push(m.oldValue);
+          if (c.dataset.curtain === "lifting" && window.__countAtLift === undefined) window.__countAtLift = document.querySelector("[data-count]")?.textContent;
+        })).observe(c, {
           attributes: true,
           attributeFilter: ["data-curtain"],
           attributeOldValue: true,
         });
       });
     });
-    // Every script arrives after 3 s: hydration lands well past the 2.5 s cut-off.
+    // Every script arrives after 3 s: hydration lands past LOAD.late (2.5 s).
     await page.route("**/_next/static/chunks/**", async (route) => {
       await new Promise((r) => setTimeout(r, 3000));
       return route.continue();
@@ -768,25 +871,25 @@ test.describe("robustness", () => {
     await page.goto("/services");
     await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 30000 });
     await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
-    // It lifts at once, or, if the curtain's own code arrives after the CSS
-    // failsafe (each chunk here is 3 s late), it stands down: either way it
-    // ends idle. Let the loader finish too: it must never lift a second time.
+    // It must never lift a second time.
     await page.waitForTimeout(1500);
     const log = await page.evaluate(() => window.__curtain);
     expect(log[0]).toBe("intro");
     expect(log.at(-1)).toBe("idle");
-    expect((await page.evaluate(() => window.__left)).filter((v) => v === "lifting").length).toBeLessThanOrEqual(1);
+    expect((await page.evaluate(() => window.__left)).filter((v) => v === "lifting").length).toBe(1);
+    expect(await page.evaluate(() => window.__countAtLift)).toBe("100");
   });
 
   test("hydration after the CSS failsafe never covers the readable page again", async ({ page }) => {
+    test.setTimeout(60_000);
     await record(page);
     await page.route("**/_next/static/chunks/**", async (route) => {
       if (route.request().url().endsWith(".css")) return route.continue();
-      await new Promise((r) => setTimeout(r, 6500));
+      await new Promise((r) => setTimeout(r, 16500));
       return route.continue().catch(() => {});
     });
     await page.goto("/services", { waitUntil: "domcontentloaded" });
-    await expect(curtain(page)).toBeHidden({ timeout: 7000 });
+    await expect(curtain(page)).toBeHidden({ timeout: 17000 });
     await page.waitForFunction(() => document.documentElement.dataset.transitions === "ready", null, { timeout: 30000 });
     await page.waitForTimeout(800);
     const log = await page.evaluate(() => window.__curtain);
@@ -795,15 +898,7 @@ test.describe("robustness", () => {
     await expect(page.locator("#top h1")).toBeVisible();
   });
 
-  test("a link clicked during the intro, before the curtain's code arrives, opens under the same cover", async ({ page }) => {
-    await record(page);
-    await blockCurtain(page, { delay: 1500 });
-    await page.goto("/services");
-    await expect(page.locator(".morph-loader")).toHaveCount(1);
-    await page.evaluate(() => { window.__marker = 1; document.querySelector('header nav a[href="/privacy"]').click(); });
-    await expect(page).toHaveURL(/\/privacy$/, { timeout: 10000 });
-    await idle(page);
-    expect(await page.evaluate(() => window.__curtain)).toEqual(["intro", "covered", "lifting", "idle"]);
-    expect(await sameDocument(page)).toBe(true);
-  });
+  // A link clicked during the intro before the engine arrived used to be its
+  // own case; the engine arrives with hydration now (2026-10-29), so that is
+  // "a link clicked during the intro opens once the loader is done" above.
 });

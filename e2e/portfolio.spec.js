@@ -43,9 +43,10 @@ test("the first row lands only as the curtain lifts", async ({ page }) => {
 });
 
 test("rows further down still rise when reached, however long the visitor waits", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/portfolio");
   await ready(page);
-  await page.waitForTimeout(6000); // past the pre-hydration failsafe
+  await page.waitForTimeout(15500); // past the pre-hydration failsafe
   const last = cardOf(page, "ai-studio");
   await expect(last).not.toHaveAttribute("data-in", "");
   expect(await last.evaluate((el) => getComputedStyle(el).opacity)).toBe("0");
@@ -166,30 +167,22 @@ test("the loops run only on screen", async ({ page }) => {
   expect(await dot.evaluate((el) => getComputedStyle(el).animationPlayState)).toBe("paused");
 });
 
-test("a resting pointer scrolls the preview down, and leaving brings it back", async ({ page, isMobile }) => {
-  test.skip(isMobile, "phones preview the card nearest the centre");
+// Damian, 2026-10-30: no scroll-through preview (its swap to the full-page
+// capture flashed). A card shows its site's top screenshot, still, whether a
+// pointer rests on it or it sits at the centre of a phone's screen.
+test("a card's screenshot stays its top shot, still, under a resting pointer or at the centre", async ({ page, isMobile }) => {
   await page.goto("/portfolio");
   await ready(page);
   const card = cardOf(page, "Aloys Travels");
   const img = card.locator("[data-preview]");
-  const y = () => img.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m42);
-  const box = await card.locator("[data-frame]").boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  // The full capture swaps in when the preview first starts.
-  await expect(img).toHaveAttribute("src", "/projects/full/aloys-travels.webp");
-  await expect.poll(y, { timeout: 4000 }).toBeLessThan(-40);
-  await page.mouse.move(5, 5);
-  await expect.poll(y, { timeout: 4000 }).toBe(0);
-});
-
-test("phones preview the card nearest the centre once scrolling settles", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "phones");
-  await page.goto("/portfolio");
-  await ready(page);
-  const card = cardOf(page, "Danella De Cruz");
-  await card.evaluate((el) => el.scrollIntoView({ block: "center" }));
-  const y = () => card.locator("[data-preview]").evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m42);
-  await expect.poll(y, { timeout: 5000 }).toBeLessThan(-20);
+  if (isMobile) await card.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  else {
+    const box = await card.locator("[data-frame]").boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  }
+  await page.waitForTimeout(1500);
+  await expect(img).toHaveAttribute("src", /^\/projects\/aloys-travels\.webp(\?v=\w+)?$/);
+  expect(await img.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
 });
 
 test("the end card types your-site.com and links to Contact", async ({ page }) => {
@@ -201,7 +194,7 @@ test("the end card types your-site.com and links to Contact", async ({ page }) =
   await expect(end.getByRole("link", { name: "Start a project" })).toHaveAttribute("href", "/#contact");
 });
 
-test("reduced motion: everything in place, no preview", async ({ page, isMobile }) => {
+test("reduced motion: everything in place", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/portfolio");
   await ready(page);
@@ -211,13 +204,6 @@ test("reduced motion: everything in place, no preview", async ({ page, isMobile 
     await expect(cardOf(page, t)).toHaveCSS("transform", "none");
   }
   expect(await cardOf(page, "Aloys Travels").locator("[data-status]").evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
-  if (!isMobile) {
-    const card = cardOf(page, "Aloys Travels");
-    const box = await card.locator("[data-frame]").boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.waitForTimeout(1200);
-    expect(await card.locator("[data-preview]").evaluate((el) => getComputedStyle(el).transform)).toBe("none");
-  }
   // Filters change instantly.
   await chip(page, "Concept").click();
   await expect(shown(page).locator("h3")).toHaveText(["Kahatagaha Graphite"]);

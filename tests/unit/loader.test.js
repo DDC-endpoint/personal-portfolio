@@ -15,8 +15,19 @@ function run({ readyAt = Infinity, until = 3, speed = 70 } = {}) {
   return out;
 }
 
-test("the count's rules: 96 until ready and 1.2 s, done by 2.5 s", () => {
-  expect(LOAD).toEqual({ hold: 96, min: 1.2, max: 2.5 });
+test("the count's rules: 96 until ready and 1.2 s, done by 2.5 s; scripts after 2.5 s are late", () => {
+  expect(LOAD).toEqual({ hold: 96, min: 1.2, max: 2.5, late: 2.5 });
+});
+
+// A late load has already waited: once the page is ready it finishes without
+// the 1.2 s minimum (the curtain holds until 100 either way).
+test("a late load finishes as soon as the page is ready", () => {
+  let p = 80;
+  for (let k = 1; k <= 10; k++) p = stepCount({ p, el: k * DT, ready: true, speed: 70, dt: DT, late: true });
+  expect(p).toBe(100);
+  p = 80;
+  for (let k = 1; k <= 10; k++) p = stepCount({ p, el: k * DT, ready: true, speed: 70, dt: DT });
+  expect(p).toBeLessThanOrEqual(96);
 });
 
 test("never passes 96 before the page is ready", () => {

@@ -101,7 +101,7 @@ The fade starts around chest level ("stronger" setting, Damian's choice) so the 
 
 ## Touch
 
-- Dragging on the portrait moves the lens (`touch-action: none` on the portrait only). Lifting the finger hides it. Swipes elsewhere scroll normally.
+- **Hold to open (Damian, 2026-10-29; before, any touch opened it and the portrait couldn't be scrolled over).** A finger resting still on the portrait for 300 ms (`HOLD_MS`) opens the lens; one that drifts more than 8 px first (`HOLD_SLOP`), or that the browser takes for a scroll, just scrolls the page. Once held, moving the finger drags the lens and the page doesn't scroll; lifting the finger fades it out. The portrait has no `touch-action` rule any more; a long press shows no browser menu or callout.
 
 ## Dark mode
 

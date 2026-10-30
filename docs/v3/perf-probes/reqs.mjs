@@ -1,0 +1,18 @@
+import { chromium, devices } from "@playwright/test";
+const browser = await chromium.launch({ channel: "chromium" });
+const ctx = await browser.newContext({ ...devices["Pixel 7"] });
+const page = await ctx.newPage();
+const t0 = Date.now(), pending = new Map();
+page.on("request", (r) => pending.set(r, Date.now()));
+page.on("requestfinished", async (r) => { const s = pending.get(r); pending.delete(r); const sz = (await r.sizes().catch(() => ({}))).responseBodySize; console.log(`${String(s - t0).padStart(6)} +${String(Date.now() - s).padStart(5)}ms ${sz ?? "?"}B ${r.url().replace("https://damiandc.com", "").slice(0, 90)}`); });
+page.on("requestfailed", (r) => { pending.delete(r); console.log("FAILED", r.url(), r.failure()?.errorText); });
+page.on("domcontentloaded", () => console.log("DCL", Date.now() - t0));
+page.on("load", () => console.log("LOAD", Date.now() - t0));
+page.on("pageerror", (e) => console.log("pageerror", e.message));
+await page.goto("https://damiandc.com/", { waitUntil: "commit" });
+await page.waitForTimeout(25000);
+console.log("still pending:", [...pending.keys()].map((r) => r.url()));
+const info = await page.evaluate(() => { const p = document.querySelector("[data-portrait]"); return { state: p?.dataset.state, prepared: p?.hasAttribute("data-prepared"), label: p?.textContent, curtain: document.querySelector("[data-curtain]")?.dataset.curtain }; });
+console.log(JSON.stringify(info));
+await page.screenshot({ path: "pixel.png" });
+await browser.close();

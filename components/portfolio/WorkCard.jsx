@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import BrowserFrame from "../projects/BrowserFrame";
 import UpcomingBuild from "./UpcomingBuild";
 import { useTyping } from "./useTyping";
-import { usePreview } from "./usePreview";
 import { delayFor, ENTRANCE } from "@/lib/portfolio";
 import { EASE, onReveal } from "@/lib/motion";
 
@@ -12,9 +11,9 @@ import { EASE, onReveal } from "@/lib/motion";
 // then the screenshot or, for upcoming work, the build loop) over the
 // number, name, year, tags and blurb. It rises as its row enters (never
 // before the curtain clears), staggered by its column (columnOf, from the
-// grid), and types its address as it lands.
-// The grid decides when it previews (`previewing`); the full-page capture
-// swaps in then, so the page's first load carries only the top shots.
+// grid), and types its address as it lands. A live card shows its site's
+// top screenshot (Damian, 2026-10-30: no scroll-through preview; its swap to
+// the full-page capture flashed).
 //
 // Grid | List (View Morph): the frame animates its size with framer's
 // `layout`; the text block animates position only, so its glyphs never
@@ -40,15 +39,13 @@ const LIST = {
 };
 const MONO = "font-mono text-[11px] uppercase tracking-[0.18em]";
 
-export default function WorkCard({ project: p, index, view, previewing, columnOf, reduced }) {
+export default function WorkCard({ project: p, index, view, columnOf, reduced }) {
   const rootRef = useRef(null);
   const addressRef = useRef(null);
   const imgRef = useRef(null);
   const [landed, setLanded] = useState(false);
   const [delay, setDelay] = useState(0);
   const [onscreen, setOnscreen] = useState(false);
-  const [full, setFull] = useState(false);
-  const [fullReady, setFullReady] = useState(false);
   const live = p.status === "live";
   const s = view === "list" ? LIST : GRID;
 
@@ -86,11 +83,6 @@ export default function WorkCard({ project: p, index, view, previewing, columnOf
   }, []);
 
   const typed = useTyping(addressRef, p.domain, landed, delay + ENTRANCE.typeAfterMs);
-
-  useEffect(() => {
-    if (previewing && live && !reduced) setFull(true);
-  }, [previewing, live, reduced]);
-  usePreview(imgRef, previewing && !reduced, fullReady);
 
   // Layout morphs: a capped per-card stagger; instant under reduced motion.
   const layout = reduced ? { duration: 0 } : { duration: 0.62, ease: EASE, delay: Math.min(index, 7) * 0.028 };
@@ -133,15 +125,13 @@ export default function WorkCard({ project: p, index, view, previewing, columnOf
             <img
               ref={imgRef}
               data-preview
-              data-full={full ? "" : undefined}
-              src={full ? p.full : p.shot}
-              onLoad={() => full && setFullReady(true)}
+              src={p.shot}
               alt={`${p.title} website, home page`}
               width={1440}
-              height={full ? undefined : 900}
+              height={900}
               loading={index < 3 ? "eager" : "lazy"}
               decoding="async"
-              className={full ? "absolute left-0 top-0 h-auto w-full will-change-transform" : "absolute inset-0 h-full w-full object-cover object-top"}
+              className="absolute inset-0 h-full w-full object-cover object-top"
             />
           ) : (
             <UpcomingBuild />

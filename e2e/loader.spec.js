@@ -68,10 +68,12 @@ test("a reload in the same session is short; a new session is full", async ({ pa
   await expect(loader(page)).toHaveCount(1);
   await expect(loader(page).locator("[data-orb]")).toBeHidden();
   await expect(loader(page).locator("[data-name]")).toBeVisible();
-  // Short: the curtain is lifting well before a full load's 1.2 s minimum.
+  // Short: the curtain is lifting well before a full load's 1.2 s minimum,
+  // plus at most the 1.5 s the lift waits for the main thread to keep up
+  // (PageTransitions → settled), which the dev server's slow frames reach.
   const t0 = Date.now();
-  await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 4000 });
-  expect(Date.now() - t0).toBeLessThan(2000);
+  await expect(curtain(page)).toHaveAttribute("data-curtain", "lifting", { timeout: 5000 });
+  expect(Date.now() - t0).toBeLessThan(3500);
   await gone(page);
 
   const fresh = await browser.newContext();
@@ -82,7 +84,7 @@ test("a reload in the same session is short; a new session is full", async ({ pa
 });
 
 test("a slow portrait holds the count at 96", async ({ page }) => {
-  await page.route("**/hero/portrait.webp", async (r) => {
+  await page.route("**/hero/portrait.webp*", async (r) => {
     await new Promise((res) => setTimeout(res, 2200));
     await r.continue().catch(() => {});
   });
@@ -121,7 +123,7 @@ test("without JS there's no loader", async ({ browser }) => {
   await context.close();
 });
 
-test("the first paint already has the seams' resting shadow (no pop when scripts arrive)", async ({ page }) => {
+test("the first paint already has the curtain covering, flat (no change when scripts arrive)", async ({ page }) => {
   await page.route("**/_next/static/chunks/**", async (route) => {
     if (route.request().url().endsWith(".css")) return route.continue();
     await new Promise((r) => setTimeout(r, 4000));
@@ -129,23 +131,54 @@ test("the first paint already has the seams' resting shadow (no pop when scripts
   });
   await page.goto("/services", { waitUntil: "domcontentloaded" });
   await expect(curtain(page)).toHaveAttribute("data-curtain", "intro");
-  const before = await page.locator('[data-panel="2"] [data-drop]').evaluate((el) => getComputedStyle(el).filter);
-  expect(before).toBe("drop-shadow(rgba(11, 31, 58, 0.1) 0px 0px 14px)");
+  const r = await page.locator('[data-panel="2"]').evaluate((el) => {
+    const b = el.getBoundingClientRect();
+    return { top: b.top, covers: b.bottom >= innerHeight - 0.1, filter: getComputedStyle(el).filter };
+  });
+  expect(r).toEqual({ top: 0, covers: true, filter: "none" });
+});
+
+// A slow link: the count rises from the first paint, before any script of the
+// bundle has run (lib/loader.js → firstPaintCount), and never past 96; the
+// loader then takes it over and the curtain lifts at 100 (2026-10-29).
+test("the count rises before the scripts arrive, and the curtain holds until 100", async ({ page }) => {
+  await page.route("**/_next/static/chunks/**", async (route) => {
+    if (route.request().url().endsWith(".css")) return route.continue();
+    await new Promise((r) => setTimeout(r, 4000));
+    return route.continue().catch(() => {});
+  });
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const c = document.querySelector("[data-curtain]");
+      new MutationObserver(() => {
+        if (c.dataset.curtain === "lifting" && window.__countAtLift === undefined) window.__countAtLift = document.querySelector("[data-count]")?.textContent;
+      }).observe(c, { attributes: true, attributeFilter: ["data-curtain"] });
+    });
+  });
+  await page.goto("/services", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(2500);
+  const before = await page.evaluate(() => ({ count: Number(document.querySelector("[data-count]").textContent), hydrated: document.documentElement.dataset.transitions === "ready" }));
+  expect(before.hydrated).toBe(false);
+  expect(before.count).toBeGreaterThan(20);
+  expect(before.count).toBeLessThanOrEqual(96);
+  await expect(curtain(page)).toHaveAttribute("data-curtain", "idle", { timeout: 15000 });
+  expect(await page.evaluate(() => window.__countAtLift)).toBe("100");
 });
 
 test("the failsafe hides it if scripts never run", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.route("**/_next/static/chunks/**", async (route) => {
     if (route.request().url().endsWith(".css")) return route.continue();
-    await new Promise((r) => setTimeout(r, 9000));
+    await new Promise((r) => setTimeout(r, 20000));
     return route.continue().catch(() => {});
   });
   await page.goto("/services", { waitUntil: "domcontentloaded" });
   await expect(curtain(page)).toBeVisible();
-  await expect(curtain(page)).toBeHidden({ timeout: 7000 });
+  await expect(curtain(page)).toBeHidden({ timeout: 17000 });
 });
 
 test("slow image skips the wave", async ({ page }) => {
-  await page.route("**/hero/portrait.webp", async (r) => {
+  await page.route("**/hero/portrait.webp*", async (r) => {
     await new Promise((res) => setTimeout(res, 3000));
     await r.continue();
   });
@@ -201,11 +234,12 @@ test.describe("every load (timing-dependent)", () => {
     const sample = () => {
       window.__early = 0;
       window.__waveInk = null;
-      const tick = () => {
+      const tick = async () => {
         const p = document.querySelector("[data-portrait]");
         const cv = p?.querySelector("canvas");
-        if (cv?.width) {
-          const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+        const shot = cv?.portraitSnapshot && (await cv.portraitSnapshot());
+        if (shot?.width) {
+          const d = shot.data;
           let ink = 0;
           for (let i = 3; i < d.length; i += 4 * 97) if (d[i] > 20) ink++;
           if (p.dataset.state === "loading") window.__early = Math.max(window.__early, ink);

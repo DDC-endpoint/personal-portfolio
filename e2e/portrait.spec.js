@@ -10,11 +10,17 @@ test.beforeEach(async ({ page }, info) => {
 });
 
 const portrait = (page) => page.locator("[data-portrait]");
+// The page draws the portrait itself, as a browser that can't hand a canvas
+// to a worker does: for the tests that patch the page's own canvas APIs.
+const onThePage = () => {
+  delete HTMLCanvasElement.prototype.transferControlToOffscreen;
+};
 
-// Counts painted pixels and averages their colour over the whole canvas.
+// Counts painted pixels and averages their colour over the whole canvas
+// (read through the portrait's snapshot: it may be drawn in a worker).
 const paint = (page) =>
-  page.locator("[data-portrait] canvas").evaluate((c) => {
-    const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+  page.locator("[data-portrait] canvas").evaluate(async (c) => {
+    const { data: d } = await c.portraitSnapshot();
     let n = 0, r = 0, g = 0, b = 0;
     for (let i = 0; i < d.length; i += 4) {
       if (d[i + 3] > 0) { n++; r += d[i]; g += d[i + 1]; b += d[i + 2]; }
@@ -29,10 +35,45 @@ test("portrait draws and labels itself", async ({ page }) => {
   expect((await paint(page)).n).toBeGreaterThan(1000);
 });
 
+// Android has no Arial, so next/font's fallback face for the mono
+// (src: local(Arial)) can't load there, and document.fonts.load() rejects
+// for the whole family list. The portrait stayed blank, with no label, on
+// every Android phone (2026-10-29). A face that can't load must not stop it.
+test("a fallback font face that can't load still draws the portrait", async ({ page }) => {
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent = '@font-face{font-family:"JetBrains Mono Fallback";font-weight:700;src:local("No Such Font Anywhere")}';
+      document.head.appendChild(style);
+    });
+  });
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
+  await expect(page.locator("[data-portrait-label]")).toHaveText(/^PORTRAIT · \d+ × \d+ CELLS$/i);
+  expect((await paint(page)).n).toBeGreaterThan(1000);
+});
+
+// The portrait is fetched from an effect, after hydration: on a slow link
+// that was seconds after the HTML (2026-10-29). A preload in the server HTML
+// starts it with the page, and it must match the fetch's mode and
+// credentials, or the browser fetches the image twice.
+test("the portrait is preloaded with the page and downloaded once", async ({ page }) => {
+  const html = await (await page.goto("/")).text();
+  expect(html).toMatch(/<link rel="preload" href="\/hero\/portrait\.webp[^"]*" as="fetch" crossorigin=""\/?>/);
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
+  // One download, started by the link; the fetch is served from it
+  // (a cache hit still gets a resource entry, with nothing transferred).
+  const entries = await page.evaluate(() =>
+    performance.getEntriesByType("resource").filter((e) => /\/hero\/portrait\.webp/.test(e.name)).map((e) => [e.initiatorType, e.transferSize]),
+  );
+  expect(entries.filter(([, bytes]) => bytes > 0)).toEqual([["link", expect.any(Number)]]);
+  expect(entries.some(([type]) => type === "fetch")).toBe(true);
+});
+
 test("image failure leaves hero intact", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.route("**/hero/portrait.webp", (r) => r.abort());
+  await page.route("**/hero/portrait.webp*", (r) => r.abort());
   await page.goto("/");
   await expect(portrait(page)).toHaveAttribute("data-state", "error", { timeout: 10000 });
   await expect(page.locator("[data-portrait-label]")).toHaveText("");
@@ -66,26 +107,29 @@ test("resize relays out", async ({ page }) => {
 test("portrait builds once per load", async ({ page }) => {
   // Perf guard: a full load creates exactly 4 canvases (field sample, fade
   // mask, rest, lens) and samples pixels once. A resize-observer first fire
-  // or the cursor's html class must not trigger a rebuild.
-  await page.addInitScript(() => {
-    window.__canvases = 0;
-    window.__samples = 0;
-    const create = Document.prototype.createElement;
-    Document.prototype.createElement = function (tag, ...rest) {
-      if (String(tag).toLowerCase() === "canvas") window.__canvases++;
-      return create.call(this, tag, ...rest);
-    };
-    const get = CanvasRenderingContext2D.prototype.getImageData;
-    CanvasRenderingContext2D.prototype.getImageData = function (...a) {
-      window.__samples++;
-      return get.apply(this, a);
-    };
-  });
+  // or the cursor's html class must not trigger a rebuild. The renderer
+  // counts them itself (lib/portraitRenderer.js), wherever it runs.
   await page.goto("/");
   await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
   await page.mouse.move(700, 450);
   await page.waitForTimeout(1000);
-  expect(await page.evaluate(() => [window.__canvases, window.__samples])).toEqual([4, 1]);
+  const { canvases, samples } = await page.locator("[data-portrait] canvas").evaluate((c) => c.portraitSnapshot());
+  expect([canvases, samples]).toEqual([4, 1]);
+});
+
+test("the portrait draws in a worker where the browser can hand it the canvas", async ({ page }) => {
+  await page.goto("/");
+  await expect(portrait(page)).toHaveAttribute("data-state", FINISHED, { timeout: 10000 });
+  // A canvas handed to a worker has no context here.
+  const here = await page.locator("[data-portrait] canvas").evaluate((c) => {
+    try {
+      return !!c.getContext("2d");
+    } catch {
+      return false;
+    }
+  });
+  expect(here).toBe(false);
+  expect((await paint(page)).n).toBeGreaterThan(1000);
 });
 
 test("a zero-size stage never kills the loop", async ({ page }) => {
@@ -122,8 +166,8 @@ const slowFieldBitmap = () => {
 // A 32×40 block-average of the canvas (premultiplied RGB), for comparing
 // two renders of the same layout.
 const signature = (page) =>
-  page.locator("[data-portrait] canvas").evaluate((c) => {
-    const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+  page.locator("[data-portrait] canvas").evaluate(async (c) => {
+    const { data: d } = await c.portraitSnapshot();
     const BX = 32, BY = 40, out = new Array(BX * BY * 3).fill(0), cnt = new Array(BX * BY).fill(0);
     for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
       const i = (y * c.width + x) * 4, a = d[i + 3] / 255, b = ((y * BY / c.height) | 0) * BX + ((x * BX / c.width) | 0);
@@ -150,6 +194,7 @@ test("a theme switch during the first layout still recolours", async ({ page, br
   // (Not reduced motion: that currently hits a SplitLines hydration error
   // which resets <html> classes, theme included.)
   await page.emulateMedia({ forcedColors: "active" });
+  await page.addInitScript(onThePage);
   await page.addInitScript(slowFieldBitmap);
   await page.goto("/");
   await page.waitForFunction(() => window.__inLayout === true); // inside the delayed first layout
@@ -163,6 +208,7 @@ test("a theme switch during the first layout still recolours", async ({ page, br
 });
 
 test("a browser that ignores resize options still draws the portrait", async ({ page, browser }) => {
+  await page.addInitScript(onThePage);
   await page.addInitScript(() => {
     const orig = window.createImageBitmap;
     window.createImageBitmap = (src) => orig(src); // drops resizeWidth/Height
@@ -183,7 +229,9 @@ test("a browser that ignores resize options still draws the portrait", async ({ 
 
 test("the lens photo is released when a mount is abandoned", async ({ page }) => {
   // Dev StrictMode mounts, unmounts and remounts: the abandoned mount's
-  // full-size photo bitmap must be closed, leaving exactly one live.
+  // full-size photo bitmap must be closed, leaving exactly one live. (On the
+  // page: a worker's photo is handed over, so none is live here.)
+  await page.addInitScript(onThePage);
   await page.addInitScript(() => {
     window.__photos = [];
     const orig = window.createImageBitmap;

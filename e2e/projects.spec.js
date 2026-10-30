@@ -275,6 +275,48 @@ test.describe("mobile", () => {
     await expect.poll(() => decodeState(card(page, 1)), { timeout: 5000 }).toBe("skeleton");
   });
 
+  test("the stack's depth runs on each card's view timeline while it scrolls, and is stackDepth wherever the card sits", async ({ page }) => {
+    await page.goto("/");
+    await card(page, 1).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    const anims = () => page.locator("[data-strip]").evaluate((s) => [...s.children].map((el) => el.getAnimations().length));
+    // At rest no card is animating (so none is a layer, and each repaints at
+    // its own scale: sharp text), and its depth is a plain style (written
+    // once the stack is live).
+    const inline = () => page.locator("[data-strip]").evaluate((s) => [...s.children].every((el) => el.style.transform.startsWith("scale(")));
+    await expect.poll(inline, { timeout: 5000 }).toBe(true);
+    await expect.poll(anims, { timeout: 3000 }).toEqual(Array(6).fill(0));
+    // A scroll's first event puts every card on its view timeline.
+    const kinds = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          addEventListener("scroll", () => setTimeout(() => resolve([...document.querySelector("[data-strip]").children].map((el) => el.getAnimations().map((a) => a.timeline?.constructor.name).join()))), { once: true });
+          scrollBy({ top: 40, behavior: "instant" });
+        })
+    );
+    expect(kinds).toEqual(Array(6).fill("ViewTimeline"));
+    // Drawn against wanted, moving and at rest: the scale and opacity each
+    // card shows, and the ones stackDepth gives for where its centre is
+    // (lib/strip.js).
+    const off = () =>
+      page.locator("[data-strip]").evaluate(async (s) => {
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const vh = innerHeight;
+        return Math.max(
+          ...[...s.children].flatMap((el) => {
+            const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+            const k = Math.min(1, (Math.abs(r.top + r.height / 2 - vh / 2) / vh) * 1.6);
+            return [Math.abs(new DOMMatrix(cs.transform).a - (1 - k * 0.08)), Math.abs(+cs.opacity - (1 - k * 0.4))];
+          })
+        );
+      });
+    for (const dy of [0, 137, 301, 480, -250, 777]) {
+      await page.evaluate((dy) => scrollBy({ top: dy, behavior: "instant" }), dy);
+      expect(await off()).toBeLessThan(0.002);
+    }
+    await expect.poll(anims, { timeout: 3000 }).toEqual(Array(6).fill(0));
+    expect(await off()).toBeLessThan(0.002);
+  });
+
   test("centring the end card leaves no project card active", async ({ page }) => {
     await page.goto("/");
     await card(page, 4).evaluate((el) => el.scrollIntoView({ block: "center" }));
@@ -286,7 +328,7 @@ test.describe("mobile", () => {
 
 test("reduced motion keeps the skeleton when a screenshot fails", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.route("**/projects/aloys-travels.webp", (r) => r.abort());
+  await page.route("**/projects/aloys-travels.webp*", (r) => r.abort());
   await page.goto("/");
   await card(page, 0).scrollIntoViewIfNeeded();
   await expect(card(page, 0).locator("[data-skeleton]")).toBeVisible();
