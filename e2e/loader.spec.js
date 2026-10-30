@@ -121,7 +121,7 @@ test("without JS there's no loader", async ({ browser }) => {
   await context.close();
 });
 
-test("the first paint already has the seams' resting shadow (no pop when scripts arrive)", async ({ page }) => {
+test("the first paint already has the curtain covering, flat (no change when scripts arrive)", async ({ page }) => {
   await page.route("**/_next/static/chunks/**", async (route) => {
     if (route.request().url().endsWith(".css")) return route.continue();
     await new Promise((r) => setTimeout(r, 4000));
@@ -129,8 +129,11 @@ test("the first paint already has the seams' resting shadow (no pop when scripts
   });
   await page.goto("/services", { waitUntil: "domcontentloaded" });
   await expect(curtain(page)).toHaveAttribute("data-curtain", "intro");
-  const before = await page.locator('[data-panel="2"] [data-drop]').evaluate((el) => getComputedStyle(el).filter);
-  expect(before).toBe("drop-shadow(rgba(11, 31, 58, 0.1) 0px 0px 14px)");
+  const r = await page.locator('[data-panel="2"]').evaluate((el) => {
+    const b = el.getBoundingClientRect();
+    return { top: b.top, covers: b.bottom >= innerHeight - 0.1, filter: getComputedStyle(el).filter };
+  });
+  expect(r).toEqual({ top: 0, covers: true, filter: "none" });
 });
 
 // A slow link: the count rises from the first paint, before any script of the

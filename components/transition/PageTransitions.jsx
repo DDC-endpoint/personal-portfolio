@@ -45,6 +45,8 @@ import { getLenis } from "@/lib/lenis";
 const NAV_OFFSET = 80; // the fixed nav, as SmoothScroll's in-page links
 const PORTRAIT_WAIT_MS = 400; // the reveal waits this long for Home's portrait
 const FAILSAFE_MS = 15000; // the CSS failsafe has started hiding the curtain (globals.css)
+const SMOOTH_MS = 20; // a frame this quick: the main thread is keeping up
+const SETTLE_MAX_MS = 1500; // the longest the curtain waits for that
 
 // The destination's name on the curtain's middle panel.
 const nameOf = (path) => NAV_LINKS.find((l) => l.href === path)?.label ?? "";
@@ -59,6 +61,24 @@ const frames = (n) =>
     const tick = () => (--n <= 0 ? r() : requestAnimationFrame(tick));
     requestAnimationFrame(tick);
   });
+
+// The next page is in, but a slow device may still be building it (styles,
+// layout, its first paint, its effects starting up). The curtain lifts only
+// once the main thread keeps up, two frames in a row, so the panels never
+// move over a page still being built and the reveal runs at the screen's
+// rate (Damian, 2026-10-30: "60 fps on any device"). A fast device is there
+// within the hold; a slow one holds the cover a little longer instead of
+// stuttering through the lift.
+async function settled() {
+  const until = performance.now() + SETTLE_MAX_MS;
+  const next = () => new Promise((r) => requestAnimationFrame(r));
+  let last = await next(), calm = 0;
+  while (calm < 2 && performance.now() < until) {
+    const now = await next();
+    calm = now - last < SMOOTH_MS ? calm + 1 : 0;
+    last = now;
+  }
+}
 
 const whenIdle = (fn) => {
   if ("requestIdleCallback" in window) {
@@ -181,8 +201,13 @@ export default function PageTransitions() {
       return;
     }
     // The lift keeps the intro's rules: the pointer passes through, and a
-    // page link clicked meanwhile waits for it to finish.
-    state.engine.lift({ onClear: markRevealed }).then(introDone);
+    // page link clicked meanwhile waits for it to finish. It waits for the
+    // main thread to keep up, as a page change's does (Back meanwhile has
+    // ended the intro: it lifts the curtain itself).
+    settled().then(() => {
+      if (state.done) return;
+      state.engine.lift({ onClear: markRevealed }).then(introDone);
+    });
   };
 
   const finishLoader = () => {
@@ -285,10 +310,12 @@ export default function PageTransitions() {
           current = url;
           await frames(2); // let the new page paint under the curtain
           if (path === "/") await portraitDrawn();
+          if (!live()) return;
+          land(targetTop(hash) ?? 0);
+          await settled();
           const left = TIMING.hold * 1000 - (performance.now() - coveredAt);
           if (left > 0) await sleep(left);
           if (!live()) return;
-          land(targetTop(hash) ?? 0);
           await engine.lift({ onClear: markRevealed });
         }
         if (live()) busy.current = false;
@@ -338,6 +365,8 @@ export default function PageTransitions() {
           if (path === "/") await portraitDrawn();
           if (!live()) return;
           land(positions.current.get(current) ?? 0);
+          await settled();
+          if (!live()) return;
           await engine.lift({ onClear: markRevealed });
         }
         if (live()) busy.current = false;

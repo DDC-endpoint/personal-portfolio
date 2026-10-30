@@ -245,23 +245,39 @@ test.describe("the curtain", () => {
     expect(await page.evaluate(() => [window.__ring === document.querySelector(".cursor-ring"), window.__cursorLost])).toEqual([true, false]);
   });
 
-  test("the resting shadow is there before any panel moves; panels are ivory and mist", async ({ page, isMobile }) => {
+  // Flat and clean since 2026-10-30, as the lab: no shadow, no curved edge;
+  // a straight edge light that fades with the speed and is off at rest.
+  test("flat panels, ivory and mist, with no shadow; the edge lights only while moving", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
-    const first = page.evaluate(() => new Promise((r) => {
+    const look = page.evaluate(() => new Promise((r) => {
       const c = document.querySelector("[data-curtain]");
-      new MutationObserver((_, o) => {
-        if (c.dataset.curtain !== "covering") return;
-        o.disconnect();
-        const drops = [...c.querySelectorAll("[data-panel]")].filter((el) => getComputedStyle(el).display !== "none").map((el) => getComputedStyle(el.querySelector("[data-drop]")).filter);
-        const shapes = [...c.querySelectorAll("[data-shape]")].map((el) => getComputedStyle(el).backgroundColor);
-        r({ drops, shapes });
-      }).observe(c, { attributes: true });
+      const out = {};
+      const shown = () => [...c.querySelectorAll("[data-panel]")].filter((el) => getComputedStyle(el).display !== "none");
+      const light = () => Math.max(...shown().flatMap((el) => [...el.querySelectorAll("[data-edge]")].map((e) => +getComputedStyle(e).opacity)));
+      new MutationObserver(() => {
+        if (c.dataset.curtain === "covering" && !out.panels) {
+          out.panels = shown().map((el) => ({ filter: getComputedStyle(el).filter, clip: getComputedStyle(el.querySelector("[data-shape]")).clipPath }));
+          out.shapes = [...c.querySelectorAll("[data-shape]")].map((el) => getComputedStyle(el).backgroundColor);
+          out.peak = 0;
+          const watch = () => {
+            out.peak = Math.max(out.peak, light());
+            if (c.dataset.curtain === "covering") requestAnimationFrame(watch);
+          };
+          requestAnimationFrame(watch);
+        }
+        if (c.dataset.curtain === "covered" && out.panels && out.atRest === undefined) {
+          out.atRest = light();
+          r(out);
+        }
+      }).observe(c, { attributes: true, attributeFilter: ["data-curtain"] });
     }));
     await page.evaluate(() => document.querySelector('header nav a[href="/privacy"]').click());
-    const { drops, shapes } = await first;
-    for (const d of drops) expect(d).toMatch(/drop-shadow\(rgba\(11, 31, 58, 0\.1\) 0px 0px 14px\)/);
+    const { panels, shapes, peak, atRest } = await look;
+    for (const p of panels) expect(p).toEqual({ filter: "none", clip: "none" });
     expect(shapes.slice(0, 2)).toEqual(["rgb(246, 246, 241)", "rgb(238, 244, 253)"]);
+    expect(peak).toBeGreaterThan(0.5);
+    expect(atRest).toBe(0);
     await idle(page);
   });
 
@@ -352,22 +368,27 @@ test.describe("transitions", () => {
   });
 
   // Home's portrait is prepared well before the lift; the curtain mustn't
-  // wait for its wave (which itself waits for the lift). Timed from the new
-  // page's arrival, so the dev server's fetch doesn't count.
+  // wait for its wave (which itself waits for the lift). Since 2026-10-30 the
+  // lift also waits for the main thread to keep up (PageTransitions →
+  // settled), so the time to the lift says nothing here: the portrait must be
+  // prepared, its still drawn, by the time the curtain lifts.
   test("a change to Home doesn't wait on the portrait's wave", async ({ page }) => {
     await page.goto("/services");
     await settle(page);
     await page.evaluate(() => {
-      window.__coveredAt = window.__revealingAt = window.__arrivedAt = undefined;
-      const watch = () => {
-        if (location.pathname === "/" && document.querySelector("[data-portrait]")) window.__arrivedAt ??= performance.now();
-        if (window.__arrivedAt === undefined) requestAnimationFrame(watch);
-      };
-      requestAnimationFrame(watch);
+      window.__preparedAtLift = undefined;
+      const c = document.querySelector("[data-curtain]");
+      new MutationObserver((_, o) => {
+        if (c.dataset.curtain !== "lifting") return;
+        o.disconnect();
+        const p = document.querySelector("[data-portrait]");
+        window.__preparedAtLift = { prepared: p?.hasAttribute("data-prepared"), state: p?.dataset.state };
+      }).observe(c, { attributes: true, attributeFilter: ["data-curtain"] });
     });
     await transitionTo(page, () => page.evaluate(() => document.querySelector('header nav a[href="/"]').click()), /\/$/);
-    const wait = await page.evaluate(() => window.__revealingAt - window.__arrivedAt);
-    expect(wait).toBeLessThan(330); // was the full 400 ms portrait wait, plus frames
+    const at = await page.evaluate(() => window.__preparedAtLift);
+    expect(at.prepared).toBe(true);
+    expect(at.state).not.toBe("wave"); // the wave waits for the lift, not the other way round
   });
 
   test("Home → /services from the mobile menu", async ({ page }, info) => {
@@ -525,10 +546,9 @@ test.describe("first load", () => {
   });
 
   // On a phone, a vh is the largest viewport (the URL bar hidden) while
-  // innerHeight is the current one. The curtain's edges were placed from
-  // innerHeight on a 130vh panel, so with the bar shown the bottom edge sat
-  // above the screen's bottom and a strip of the page showed under the
-  // curtain (Android Chrome, 2026-10-29). The mismatch is faked here.
+  // innerHeight is the current one. The curtain was once placed from
+  // innerHeight, so with the bar shown a strip of the page showed under it
+  // (Android Chrome, 2026-10-29). The mismatch is faked here.
   test("the curtain covers the screen's bottom when innerHeight is less than a vh", async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(window, "innerHeight", { get: () => Math.round(window.outerHeight * 0.85) || 700, configurable: true });
@@ -536,33 +556,21 @@ test.describe("first load", () => {
     await page.goto("/services");
     await settle(page);
     // At full cover (a 220 ms hold, so probed from an observer) the middle
-    // panel's clip-path must reach past both ends of the screen, whichever
-    // of innerHeight and the layout viewport is the taller.
+    // panel must reach past both ends of the screen, whichever of innerHeight
+    // and the layout viewport is the taller.
     await page.evaluate(() => {
       window.__edges = null;
       new MutationObserver(() => {
         if (document.querySelector("[data-curtain]").dataset.curtain !== "covered" || window.__edges) return;
-        try {
-          const panel = document.querySelector('[data-panel="2"]');
-          // The panel's outline ends at its curved ends' edges (lib/curtain.js → pieces).
-          // Their paths are in their boxes' px: add each box's place in the panel (a transform).
-          const end = (at) => panel.querySelector(`[data-end-over="${at}"]`);
-          const at = (el) => new DOMMatrix(getComputedStyle(el).transform).m42;
-          const top = at(end("top")) + Number(end("top").querySelector("[data-end-shape]").style.clipPath.match(/M ?0 ([\d.-]+) Q/)[1]);
-          const bot = at(end("bottom")) + Number(end("bottom").querySelector("[data-end-shape]").style.clipPath.match(/L [\d.]+ ([\d.-]+) Q/)[1]);
-          const y = panel.getBoundingClientRect().top;
-          window.__edges = { top: y + top, bottom: y + bot, screen: Math.max(innerHeight, document.documentElement.clientHeight) };
-        } catch (e) {
-          window.__edges = { error: String(e), clip: document.querySelector('[data-panel="2"] [data-end-shape]')?.style.clipPath };
-        }
+        const r = document.querySelector('[data-panel="2"]').getBoundingClientRect();
+        window.__edges = { top: r.top, bottom: r.bottom, screen: Math.max(innerHeight, document.documentElement.clientHeight) };
       }).observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] });
       document.querySelector('header nav a[href="/privacy"]').click();
     });
     await expect(page).toHaveURL(/\/privacy$/, { timeout: 6000 });
     await idle(page);
     const edges = await page.evaluate(() => window.__edges);
-    expect([edges.error, edges.clip]).toEqual([undefined, undefined]);
-    expect(edges.top).toBeLessThanOrEqual(0.1); // 130vh lays out in 1/64 px steps
+    expect(edges.top).toBeLessThanOrEqual(0.1);
     expect(edges.bottom).toBeGreaterThanOrEqual(edges.screen - 0.1);
   });
 
@@ -735,7 +743,9 @@ test.describe("robustness", () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await idle(page);
-    expect(Date.now() - t0).toBeLessThan(2500);
+    // The lift plus at most the 1.5 s the curtain waits for the main thread
+    // (PageTransitions → settled), which the dev server's slow frames reach.
+    expect(Date.now() - t0).toBeLessThan(4000);
     expect(await sameDocument(page)).toBe(true);
     await page.waitForTimeout(4500); // past the 4 s fallback: nothing reloads
     await expect(page).toHaveURL(/\/$/);
@@ -780,8 +790,9 @@ test.describe("robustness", () => {
     const tops = await panels(page).evaluateAll((els) =>
       els.filter((el) => getComputedStyle(el).display !== "none").map((el) => el.getBoundingClientRect().top)
     );
+    // One panel height down (flat since 2026-10-30): its top on the screen's bottom edge.
     for (const top of tops) {
-      expect(top).toBeGreaterThan(await page.evaluate(() => innerHeight));
+      expect(top).toBeGreaterThanOrEqual(await page.evaluate(() => innerHeight));
     }
   });
 

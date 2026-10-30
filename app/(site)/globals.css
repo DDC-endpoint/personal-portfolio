@@ -159,10 +159,6 @@
    they do (Damian). */
 .curtain[data-curtain="intro"] { pointer-events: none; animation: curtain-failsafe 0.4s ease 15s forwards; }
 .curtain[data-curtain="intro"] .curtain-panel { transform: none; }
-/* The seams' resting shadow from the first paint, as the engine draws it
-   (lib/curtain.js → shadow), so it doesn't pop on when scripts arrive. */
-.curtain[data-curtain="intro"] [data-drop] { filter: drop-shadow(0 0 14px rgb(var(--c-ink) / 0.1)); }
-.dark .curtain[data-curtain="intro"] [data-drop] { filter: drop-shadow(0 0 14px rgb(0 0 0 / 0.38)); }
 @keyframes curtain-failsafe { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce), (forced-colors: active) {
   .curtain[data-curtain="intro"] { display: none; }
@@ -203,24 +199,16 @@ html.ddc-seen .morph-loader [data-orb],
 /* The page-change curtain (components/transition/): five panels (three
    below md), each a little wider than its share so no seam shows between
    them. Invisible while idle, so it never paints over the page; while it
-   runs it takes every click, so nothing lands on the page underneath. */
-.curtain-panel { position: absolute; top: -15vh; height: 130vh; width: calc(20% + 1px); transform: translate3d(0, 130vh, 0); will-change: transform; }
-/* The moving shadow (lib/curtain.js → trail): invisible at rest; the engine
-   draws it while a panel moves. */
-.curtain-trail { opacity: 0; }
-/* The panel in pieces (lib/curtain.js → pieces; Curtain.jsx). The body's
-   trail is a layer of its own, so the engine's per-frame offset and opacity
-   move a picture drawn once; each curved end is a small layer, redrawn per
-   frame without touching the body's. The blurred pieces are canvases the
-   engine sizes and draws. The outlines at rest, until the engine writes them
-   as paths: the body from 15vh + 2px to 115vh − 2px of the 130vh panel, each
-   end's shape the 4px beyond it. */
-.curtain-trail-body { will-change: opacity, transform; }
-.curtain-end { position: absolute; inset: 0; will-change: transform; }
-.curtain-canvas { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
-.curtain-body { clip-path: inset(calc(15vh + 2px) 0); }
-[data-end-over="top"] .curtain-mask { clip-path: inset(15vh 0 calc(115vh - 4px) 0); }
-[data-end-over="bottom"] .curtain-mask { clip-path: inset(calc(115vh - 4px) 0 15vh 0); }
+   runs it takes every click, so nothing lands on the page underneath. Flat,
+   one screen tall (100vh: on a phone the largest viewport, so it covers
+   whether the URL bar shows or not), parked one of its heights below. */
+.curtain-panel { position: absolute; top: 0; height: 100vh; width: calc(20% + 1px); transform: translate3d(0, 100vh, 0); will-change: transform; }
+/* The edge light (lib/curtain.js → edgeLight): a thin electric line centred
+   on the panel's top and bottom edges, invisible at rest; the engine fades it
+   with the panel's speed. A layer of its own, so a fade only re-composites. */
+.curtain-edge { position: absolute; left: 0; right: 0; height: 1.25px; background: rgb(var(--c-electric)); opacity: 0; will-change: opacity; }
+.curtain-edge[data-edge="top"] { transform: translateY(-50%); }
+.curtain-edge[data-edge="bottom"] { transform: translateY(50%); }
 .curtain-panel[data-panel="1"] { left: 20%; }
 .curtain-panel[data-panel="2"] { left: 40%; }
 .curtain-panel[data-panel="3"] { left: 60%; }

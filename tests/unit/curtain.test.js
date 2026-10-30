@@ -5,18 +5,8 @@ import {
   delayOf,
   maxDelay,
   ease,
-  bulge,
   edgeLight,
-  shadowLevel,
-  shadow,
-  restFilter,
-  trail,
   sampleMove,
-  pieces,
-  endBoxes,
-  bulgeCap,
-  SEAM,
-  OVERLAP,
   coverTime,
   liftTime,
   totalChange,
@@ -25,7 +15,7 @@ import {
 
 test("the lab's timings", () => {
   expect(TIMING).toEqual({ in: 0.7, hold: 0.22, out: 0.85, stagger: 0.12 });
-  expect(EXTENT).toBe(1.3);
+  expect(EXTENT).toBe(1); // one panel height either side, as the lab
 });
 
 test("five panels from md, three below", () => {
@@ -50,123 +40,11 @@ test("ease is power4 in-out: symmetric, 0 → 1", () => {
   expect(ease(0.25)).toBeCloseTo(16 * 0.25 ** 5, 9);
 });
 
-test("bulge: none at rest, signed with the speed, capped by both limits", () => {
-  expect(bulge(0, 900, 288)).toBe(0);
-  expect(bulge(1, 900, 288)).toBeCloseTo(9.9, 9);
-  expect(bulge(-1, 900, 288)).toBeCloseTo(-9.9, 9);
-  expect(bulge(50, 900, 288)).toBeCloseTo(81, 9); // 9% of the screen height
-  expect(bulge(50, 844, 130)).toBeCloseTo(39, 9); // 0.3 × a narrow panel
-  expect(bulge(-50, 844, 130)).toBeCloseTo(-39, 9);
-});
-
 test("edge light: off at rest, full at 3.5 screens a second", () => {
   expect(edgeLight(0)).toBe(0);
   expect(edgeLight(1.75)).toBeCloseTo(0.5, 9);
   expect(edgeLight(-3.5)).toBe(1);
   expect(edgeLight(9)).toBe(1);
-});
-
-test("shadow: always a resting part; the moving part rises smoothly from 0", () => {
-  const rest = shadow(0, "light");
-  expect(rest.rest).toEqual({ alpha: 0.1, blur: 14 });
-  expect(rest.move.alpha).toBe(0);
-  expect(shadow(0, "dark").rest).toEqual({ alpha: 0.38, blur: 14 });
-  expect(shadow(1, "light").move.alpha).toBeCloseTo(0.16, 9);
-  expect(shadow(1, "dark").move.alpha).toBeCloseTo(0.45, 9);
-  // No threshold: a small level gives a small (non-zero) shadow, and it grows.
-  let prev = 0;
-  for (let m = 0.01; m <= 1; m += 0.01) {
-    const a = shadow(m, "light").move.alpha;
-    expect(a).toBeGreaterThan(prev);
-    prev = a;
-  }
-  expect(shadow(0.001, "light").move.alpha).toBeLessThan(0.02);
-});
-
-// A filter whose parameters change every frame re-blurs the whole panel every
-// frame (measured: 16-22 dropped frames a page change on an Iris Xe laptop).
-// So the resting shadow is one constant filter, and the moving one is a
-// blurred copy of the panel's shape: the same shadow, but its offset and
-// opacity move cheaply and its blur changes only a few times a move.
-test("the resting shadow is one constant filter per theme", () => {
-  expect(restFilter("light", "11 31 58")).toBe("drop-shadow(0 0 14px rgb(11 31 58 / 0.1))");
-  expect(restFilter("dark", "0 0 0")).toBe("drop-shadow(0 0 14px rgb(0 0 0 / 0.38))");
-});
-
-test("the moving shadow: the drop-shadow it replaces, drawn as a blurred copy", () => {
-  // At rest: invisible, not offset.
-  expect(trail(0, 0, "light")).toEqual({ opacity: 0, y: 0, blur: 0 });
-  // drop-shadow()'s blur length is the Gaussian's standard deviation, which
-  // is what blur() takes. Whole pixels, so the filter changes a few times a
-  // move rather than every frame.
-  for (const m of [0.3, 0.6, 1]) {
-    const { blur } = trail(m, 3, "light");
-    expect(Number.isInteger(blur)).toBe(true);
-    expect(Math.abs(blur - shadow(m, "light").move.blur)).toBeLessThanOrEqual(0.5);
-  }
-  // As the drop-shadow it replaces: the same strength, and the same offset
-  // (against the direction of travel; speed is upwards positive).
-  const up = trail(1, 3, "light"), down = trail(1, -3, "light");
-  expect(up.opacity).toBeCloseTo(shadow(1, "light").move.alpha, 9);
-  expect(up.y).toBeCloseTo(-shadow(1, "light").move.y, 9);
-  expect(down.y).toBeCloseTo(shadow(1, "light").move.y, 9);
-  expect(trail(1, 3, "dark").opacity).toBeCloseTo(0.45, 9);
-  // Below the visible threshold it is off, so a resting curtain draws nothing.
-  expect(trail(0.0001, 3, "light").opacity).toBe(0);
-});
-
-// The panel in pieces: a straight body drawn once, and two curved ends drawn
-// per frame. The ends' masks and the body tile the outline exactly (their
-// shadows add up to the outline's); the ends' shapes reach OVERLAP into the
-// body, so the joint is under solid colour.
-test("pieces: the body and the ends' masks tile the outline; the shapes overlap the body", () => {
-  const nums = (path) => path.match(/-?[\d.]+/g).map(Number);
-  const top = 120.5, bot = 923.25, ww = 309, b = 31.4;
-  const p = pieces(top, bot, ww, b);
-  // Body: M0 t L ww t L ww u L 0 u Z
-  const [, t, , , , u] = nums(p.body);
-  expect([t, u]).toEqual([top + SEAM, bot - SEAM]);
-  // Top end: from the curve over `top` (control point 2b above) down to the body.
-  const [, y0, , cy, , y1, , ym, , ym2] = nums(p.top.mask);
-  expect([y0, y1]).toEqual([top, top]);
-  expect(cy).toBeCloseTo(top - 2 * b, 2);
-  expect([ym, ym2]).toEqual([t, t]);
-  expect(nums(p.top.shape).slice(6)).toEqual([ww, t + OVERLAP, 0, t + OVERLAP]);
-  // Bottom end: from the body down to the curve under `bot`.
-  const bm = nums(p.bottom.mask);
-  expect([bm[1], bm[3]]).toEqual([u, u]);
-  expect([bm[5], bm[9]]).toEqual([bot, bot]);
-  expect(bm[7]).toBeCloseTo(bot + 2 * b, 2);
-  expect(nums(p.bottom.shape)[1]).toBe(u - OVERLAP);
-  // At rest the ends are the 2px strips beyond the body: no bulge.
-  expect(nums(pieces(top, bot, ww, 0).top.mask)[3]).toBe(top);
-});
-
-// Each end is drawn in a small box around its bulge, so a frame redraws that
-// box only; its paths are in the box's px.
-test("endBoxes hold each end's largest bulge; the ends' paths are in their boxes", () => {
-  const top = 120.5, bot = 923.25, cap = bulgeCap(803, 307);
-  const [t, b] = endBoxes(top, bot, cap);
-  expect(t.y).toBeLessThanOrEqual(top - cap);
-  expect(t.y + t.h).toBeGreaterThanOrEqual(top + SEAM + OVERLAP);
-  expect(b.y).toBeLessThanOrEqual(bot - SEAM - OVERLAP);
-  expect(b.y + b.h).toBeGreaterThanOrEqual(bot + cap);
-  expect(t.h).toBeLessThan(cap + 10);
-  const p = pieces(top, bot, 309, cap, [t.y, b.y]);
-  const r = (v) => Math.round(v * 100) / 100;
-  expect(p.top.edge).toBe(`M0 ${r(top - t.y)} Q 154.5 ${r(top - 2 * cap - t.y)} 309 ${r(top - t.y)}`);
-  expect(Number(p.bottom.shape.match(/M0 ([\d.]+)/)[1])).toBeCloseTo(bot - SEAM - OVERLAP - b.y, 2);
-});
-
-test("shadowLevel follows the speed smoothly", () => {
-  let m = 0;
-  m = shadowLevel(m, 4, 1 / 60);
-  expect(m).toBeGreaterThan(0);
-  expect(m).toBeLessThan(0.3);
-  for (let i = 0; i < 60; i++) m = shadowLevel(m, 4, 1 / 60);
-  expect(m).toBeCloseTo(1, 2);
-  for (let i = 0; i < 120; i++) m = shadowLevel(m, 0, 1 / 60);
-  expect(m).toBeLessThan(0.01);
 });
 
 test("a page change: cover 0.94 s, hold 0.22 s, lift 1.09 s", () => {
@@ -182,27 +60,21 @@ test("the page shows from 0.45 of the way through the out phase, after the last 
 });
 
 // The compositor-driven move (2026-10-29): a move sampled in advance on a
-// fixed grid, with the same maths the per-frame engine used.
-test("sampleMove: the eased travel on a fixed grid, speed and level as the engine had them", () => {
-  const s = sampleMove(1.3, 0, 0.7);
-  expect(s[0]).toEqual({ t: 0, y: 1.3, speed: 0, level: 0 });
+// fixed grid, for the Web Animations API.
+test("sampleMove: the eased travel on a fixed grid, with its speed", () => {
+  const s = sampleMove(1, 0, 0.7);
+  expect(s[0]).toEqual({ t: 0, y: 1, speed: 0 });
   // 0.7 s at 120 Hz: 84 steps, plus the still frame after the move.
   expect(s).toHaveLength(86);
-  expect(s.at(-1)).toMatchObject({ t: 0.7, y: 0, speed: 0 });
+  expect(s.at(-1)).toEqual({ t: 0.7, y: 0, speed: 0 });
   expect(s.at(-2).y).toBeCloseTo(0, 9);
   for (let i = 1; i < s.length - 1; i++) {
-    expect(s[i].y).toBeCloseTo(1.3 + (0 - 1.3) * ease(s[i].t / 0.7), 9);
+    expect(s[i].y).toBeCloseTo(1 - ease(s[i].t / 0.7), 9);
     expect(s[i].speed).toBeGreaterThanOrEqual(0); // upwards positive
-    expect(s[i].level).toBeGreaterThanOrEqual(0);
-    expect(s[i].level).toBeLessThanOrEqual(1);
   }
-  // Fastest in the middle; the level follows it and drains by the end.
+  // Fastest in the middle, so the edge light is brightest there.
   const mid = s[Math.floor(s.length / 2)];
   expect(mid.speed).toBeGreaterThan(s[5].speed);
-  expect(mid.level).toBeGreaterThan(0.5);
-  expect(s.at(-1).level).toBeLessThan(mid.level);
-  // The still frame keeps the level it ended with, as draw(0) did.
-  expect(s.at(-1).level).toBe(s.at(-2).level);
-  // A lift carries the level over from the cover's end.
-  expect(sampleMove(0, -1.3, 0.85, 0.3)[0].level).toBeCloseTo(0.3, 9);
+  expect(edgeLight(mid.speed)).toBe(1);
+  expect(edgeLight(s[1].speed)).toBeLessThan(0.01);
 });
