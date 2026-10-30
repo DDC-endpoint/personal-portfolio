@@ -93,13 +93,12 @@ test("Aloys Travels points at its own domain", () => {
   expect(aloys.domain).toBe("aloys-travels.com");
 });
 
-test("upcoming cards have no link, screenshot or full capture", () => {
+test("upcoming cards have no link or screenshot", () => {
   const upcoming = PROJECTS.filter((p) => p.status === "upcoming");
   expect(upcoming.map((p) => p.title)).toEqual(["Interact District 3220", "ai-studio"]);
   for (const p of upcoming) {
     expect(p.href).toBeNull();
     expect(p.shot).toBeNull();
-    expect(p.full).toBeNull();
     expect(p.skeleton).toBeNull();
     expect(p.cats).toContain("upcoming");
   }
@@ -117,14 +116,13 @@ test("live cards link out over https, except This Portfolio, which goes Home", (
   }
 });
 
-test("live cards carry a screenshot and a full-page capture named after their slug", () => {
+test("live cards carry a screenshot named after their slug", () => {
   const live = PROJECTS.filter((p) => p.status === "live");
   expect(live.map((p) => p.slug)).toEqual([
     "aloys-travels", "danella-de-cruz", "spades-solutions", "kahatagaha-graphite", "portfolio", "personal-dashboard",
   ]);
   for (const p of live) {
     expect(p.shot).toBe(`/projects/${p.slug}.webp`);
-    expect(p.full).toBe(`/projects/full/${p.slug}.webp`);
     expect(p.cats).not.toContain("upcoming");
   }
 });

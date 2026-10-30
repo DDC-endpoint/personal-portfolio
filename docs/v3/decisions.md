@@ -351,6 +351,7 @@ Damian asked for "a few minor changes before the perf pass", which grew into Pha
 **From the `/portfolio` mock (Damian, 2026-10-28)**
 - **No decode on `/portfolio`:** the cards rise in already showing their screenshots ("leave them as is"). The address bar still types as each card lands.
 - **The scroll-through preview is slower, "more browsable":** 1.5× the mock's first timing, so 3.9 s minimum and 13.5 s maximum to reach the bottom, a 1.35 s hold, 2.1 s back up.
+- **Superseded (Damian, 2026-10-30): no scroll-through preview.** Its swap to the full-page capture flashed in the cards, so a live card shows its site's top screenshot only. The full-page captures and `capture-projects --full` are gone.
 - **Clicking a card opens the live site** in a new tab; This Portfolio goes to Home (with the curtain); upcoming cards aren't links. Same as the home strip.
 - **Grid tiles keep the one-line description.**
 - Damian asked to see Home with his curation (`spike/home-curation.html`) before approving the phase.
