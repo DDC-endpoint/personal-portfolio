@@ -193,31 +193,38 @@ test.describe("the curtain", () => {
   // stops (lib/motion.js → onCover): on a mid-range phone one of its frames
   // there cost 134 ms while the next page was being built (2026-10-29).
   test("the departing portrait stops drawing under the full curtain", async ({ page }) => {
-    await page.addInitScript(() => {
-      window.__blits = 0;
-      const draw = CanvasRenderingContext2D.prototype.drawImage;
-      CanvasRenderingContext2D.prototype.drawImage = function (...args) {
-        if (this.canvas?.hasAttribute("data-lens")) window.__blits++;
-        return draw.apply(this, args);
-      };
-    });
     await page.goto("/");
     await settle(page);
     await expect(page.locator("[data-portrait]")).toHaveAttribute("data-state", /^(static|skipped)$/, { timeout: 10000 });
+    // The renderer counts its loop's frames (lib/portraitRenderer.js), on the
+    // page or in its worker. At the cover: the loop has stopped, and a moment
+    // later (if Home is still there to ask) it hasn't drawn since.
     await page.evaluate(() => {
-      window.__at = {};
-      new MutationObserver(() => {
-        const s = document.querySelector("[data-curtain]").dataset.curtain;
-        if (s === "covered" && window.__at.covered === undefined) window.__at.covered = window.__blits;
-        if (s === "lifting" && window.__at.lifting === undefined) window.__at.lifting = window.__blits;
-      }).observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] });
+      const cv = document.querySelector("[data-portrait] canvas");
+      window.__under = new Promise((resolve) => {
+        const mo = new MutationObserver(async () => {
+          if (document.querySelector("[data-curtain]").dataset.curtain !== "covered") return;
+          mo.disconnect();
+          // The cover's state is set a moment before the page hears of it
+          // (lib/motion.js → coverStarts, in the same task).
+          await new Promise((r) => setTimeout(r, 0));
+          const at = await cv.portraitSnapshot();
+          const later = await Promise.race([
+            new Promise((r) => setTimeout(r, 150)).then(() => cv.portraitSnapshot()),
+            new Promise((r) => setTimeout(() => r(null), 600)),
+          ]);
+          resolve({ frames: at.frames, running: at.running, later: later?.frames ?? null });
+        });
+        mo.observe(document.querySelector("[data-curtain]"), { attributes: true, attributeFilter: ["data-curtain"] });
+      });
     });
     await clickNav(page, "Services");
     await expect(page).toHaveURL(/\/services$/);
     await idle(page);
-    const at = await page.evaluate(() => window.__at);
-    expect(at.covered).toBeGreaterThan(0); // it was drawing up to the cover
-    expect(at.lifting).toBe(at.covered); // and not once under it
+    const under = await page.evaluate(() => window.__under);
+    expect(under.frames).toBeGreaterThan(0); // it was drawing up to the cover
+    expect(under.running).toBe(false); // and stopped there
+    if (under.later !== null) expect(under.later).toBe(under.frames);
   });
 
   test("the cursor stays behind the curtain and lives through the page change", async ({ page, isMobile }) => {

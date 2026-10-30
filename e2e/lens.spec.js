@@ -15,11 +15,16 @@ async function face(page) {
 // Counts warm (skin-tone) pixels in a 10×10 block of the canvas around a
 // viewport point. The blue glyphs never have r > g; the photo does.
 const warmAt = (page, { x, y }) =>
-  page.locator("[data-portrait] canvas").evaluate((c, p) => {
+  page.locator("[data-portrait] canvas").evaluate(async (c, p) => {
     const r = c.getBoundingClientRect(), k = c.width / r.width;
-    const d = c.getContext("2d").getImageData((p.x - r.left) * k - 5, (p.y - r.top) * k - 5, 10, 10).data;
+    const { width, data } = await c.portraitSnapshot();
+    const x0 = Math.round((p.x - r.left) * k - 5), y0 = Math.round((p.y - r.top) * k - 5);
     let n = 0;
-    for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 0 && d[i] > d[i + 1] + 10) n++;
+    for (let y = y0; y < y0 + 10; y++)
+      for (let x = x0; x < x0 + 10; x++) {
+        const i = (y * width + x) * 4;
+        if (data[i + 3] > 0 && data[i] > data[i + 1] + 10) n++;
+      }
     return n;
   }, { x, y });
 

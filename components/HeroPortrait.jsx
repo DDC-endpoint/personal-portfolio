@@ -1,19 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { preload } from "react-dom";
-import {
-  RAMP, cellSize, fadeAt, glyphIndex, buildField, density, shadeRGB, glyphAlpha,
-  scanBand, bandWeight, flickerCount, revealTime, cellPhase, FACE, LOADER_S,
-  LENS_R, LENS_SOLID, FOLLOW, STRENGTH_EASE, HOLD_MS, HOLD_SLOP,
-} from "@/lib/portrait";
-import { noiseChar } from "@/lib/decode";
+import { HOLD_MS, HOLD_SLOP } from "@/lib/portrait";
+import { createRenderer } from "@/lib/portraitRenderer";
 import { shouldPlayIntro, onReveal, onCover, isRevealed } from "@/lib/motion";
 import { ring, customCursorShown } from "@/lib/cursor";
 import { asset } from "@/lib/assets";
 
 // The V3 hero: Damian's studio headshot redrawn as an electric-blue ASCII
 // portrait on a canvas. Spec: docs/v3/hero-portrait.md. All maths lives in
-// lib/portrait.js — this file only samples pixels, draws, and runs the loop.
+// lib/portrait.js and the drawing and its loop in lib/portraitRenderer.js,
+// which runs in a worker (lib/portrait.worker.js) where the browser can hand
+// it the canvas: there its frames don't queue with the page's (on a phone,
+// Home's scroll effects ran at ~36 fps behind it, 55 without). This file is
+// the page side: the pointer, the observers, the curtain.
 //
 // The finished portrait is pre-rendered once into an offscreen "rest" canvas;
 // each idle frame blits it, then adds the scan band and the flicker on top.
@@ -34,332 +34,188 @@ import { asset } from "@/lib/assets";
 // or without the custom cursor, it follows the pointer and draws its own rim.
 
 const SRC = asset("/hero/portrait.webp");
-const SUPERSAMPLE = 3;
 const LATE_MS = 2500; // an image or font later than this into the arrival skips the wave
+const WORKER_MS = 2000; // a worker that hasn't answered by then: the page draws it
 
 const rgbVar = (styles, name) => styles.getPropertyValue(name).trim().split(/\s+/).map(Number);
-const css = ([r, g, b]) => `rgb(${r},${g},${b})`;
+const firstFamily = (family) => family.split(",")[0].trim().replace(/^['"]|['"]$/g, "");
 
-function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, waveAt, onWaveStart, onWaveEnd }) {
-  const ctx = canvas.getContext("2d");
+function readTheme() {
+  const styles = getComputedStyle(document.documentElement);
+  return {
+    electric: rgbVar(styles, "--c-electric"),
+    bg: rgbVar(styles, "--c-ivory"),
+    faint: rgbVar(styles, "--c-ink-faint"),
+    dark: document.documentElement.classList.contains("dark"),
+  };
+}
+
+// A worker that can draw the portrait (lib/portrait.worker.js), or null: the
+// browser can't hand a canvas to a worker, or the worker lacks something the
+// portrait needs, or didn't answer in time.
+function startWorker() {
+  if (!("transferControlToOffscreen" in HTMLCanvasElement.prototype) || typeof Worker !== "function") return Promise.resolve(null);
+  let worker;
+  try {
+    worker = new Worker(new URL("../lib/portrait.worker.js", import.meta.url), { type: "module" });
+  } catch {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    const done = (ok) => {
+      clearTimeout(timer);
+      worker.onmessage = worker.onerror = null;
+      if (!ok) worker.terminate();
+      resolve(ok ? worker : null);
+    };
+    const timer = setTimeout(() => done(false), WORKER_MS);
+    worker.onmessage = ({ data }) => done(data.result === true);
+    worker.onerror = () => done(false);
+    worker.postMessage({ call: "probe", id: -1 });
+  });
+}
+
+// The page's @font-face rules for `name`, with absolute URLs, for the worker
+// to load the same files (it can't see the page's fonts).
+function fontFaces(name) {
+  const faces = [];
+  for (const sheet of document.styleSheets) {
+    let rules;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue; // another origin's sheet
+    }
+    for (const rule of rules) {
+      if (!(rule instanceof CSSFontFaceRule)) continue;
+      const get = (k) => rule.style.getPropertyValue(k).trim();
+      if (get("font-family").replace(/^['"]|['"]$/g, "") !== name) continue;
+      const base = sheet.href || location.href;
+      const src = get("src").replace(/url\((['"]?)([^)'"]+)\1\)/g, (_, q, u) => `url("${new URL(u, base).href}")`);
+      const descriptors = {};
+      for (const [k, d] of [["font-weight", "weight"], ["font-style", "style"], ["font-stretch", "stretch"], ["unicode-range", "unicodeRange"]]) {
+        if (get(k)) descriptors[d] = get(k);
+      }
+      faces.push({ src, descriptors });
+    }
+  }
+  return faces;
+}
+
+// The renderer in the worker, called as though it were here. Every call is a
+// message, sent once the worker has its canvas; the ones whose answer
+// matters (a layout, a snapshot) return a promise of it.
+function remoteRenderer(worker, init, emit) {
+  let seq = 0;
+  const waiting = new Map();
+  worker.onmessage = ({ data }) => {
+    if (data.event) return emit(data.event, data.data);
+    waiting.get(data.id)?.(data.result);
+    waiting.delete(data.id);
+  };
+  const send = (call, args, transfer = []) =>
+    new Promise((resolve) => {
+      const id = ++seq;
+      waiting.set(id, resolve);
+      worker.postMessage({ call, args, id }, transfer);
+    });
+  const ready = send("init", [init], [init.canvas, init.photo]);
+  const ask = (call, ...args) => ready.then(() => send(call, args));
+  const tell = (call, ...args) => ready.then(() => worker.postMessage({ call, args }));
+  return {
+    theme: (t) => tell("theme", t),
+    layout: (width, height, ratio) => ask("layout", width, height, ratio),
+    firstRest: () => tell("firstRest"),
+    rebuild: () => tell("rebuild"),
+    run: (should) => tell("run", should),
+    startWave: () => tell("startWave"),
+    lens: (state) => tell("lens", state),
+    host: (state) => tell("host", state),
+    snapshot: () => ask("snapshot"),
+    destroy: () => worker.terminate(),
+  };
+}
+
+function createPortrait({ wrapper, canvas, blob, photo, family, worker, onLayout, wave, onWaveStart, onWaveEnd }) {
   // Reduced motion and forced colours (high contrast) both get the finished
   // portrait, drawn once: no loop, no lens.
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active)").matches;
-  const { font, cw, ch } = cellSize();
-  let W = 0, H = 0, dpr = 1, cols = 0, rows = 0, n = 0;
-  let field = null, fade = null, rest = null, reveal = null, fadeMask = null;
-  let electric, bg, faint, dark;
-  // own: the lens follows the pointer itself (touch / no custom cursor)
-  const lens = { x: 0, y: 0, tx: 0, ty: 0, s: 0, on: false, own: true };
-  const lensCv = document.createElement("canvas");
-  const lensCtx = lensCv.getContext("2d");
-  const flickUntil = new Map(); // cell → [expiry ms, glyph]
-  let idleStart = performance.now();
-  let waveStart = performance.now();
-  let waving = wave, waveStarted = false;
-  // Before its wave the skeleton is still (time holds at −1), so the loop
-  // draws it once, not every frame under the curtain; a new rest canvas (a
-  // resize or a theme change) draws it again.
-  let stillDrawn = false;
-  let raf = 0, running = false, onScreen = true, destroyed = false, layoutToken = 0;
-
-  const setFont = (c) => {
-    c.font = `700 ${font}px ${family}`;
-    c.textBaseline = "top";
+  const emit = (event, data) => {
+    if (event === "layout") onLayout(data.cols, data.rows);
+    else if (event === "waveStart") onWaveStart();
+    else if (event === "waveEnd") onWaveEnd();
   };
+  let theme = readTheme();
+  // The drawing (lib/portraitRenderer.js): in a worker where the browser can
+  // hand it the canvas, so its frames never wait in the page's queue; else
+  // here. In the worker, what it needs of the page (the curtain's reveal,
+  // the custom cursor's ring) is sent to it when it changes.
+  const r = worker
+    ? remoteRenderer(
+        worker,
+        {
+          canvas: canvas.transferControlToOffscreen(),
+          faces: fontFaces(firstFamily(family)),
+          name: firstFamily(family),
+          family,
+          blob,
+          photo,
+          wave,
+          theme,
+          shown: isRevealed(),
+        },
+        emit
+      )
+    : createRenderer({
+        canvas,
+        makeCanvas: (w, h) => Object.assign(document.createElement("canvas"), { width: w, height: h }),
+        family,
+        blob,
+        photo,
+        wave,
+        host: {
+          revealed: isRevealed,
+          ringAt: () => {
+            const b = canvas.getBoundingClientRect();
+            return { x: ring.x - b.left, y: ring.y - b.top };
+          },
+        },
+        emit,
+      });
+  if (!worker) r.theme(theme);
+  // For the tests and the probes: what the stage shows, wherever it's drawn
+  // (a canvas handed to a worker can't be read here).
+  canvas.portraitSnapshot = () => Promise.resolve(r.snapshot());
 
-  function readTheme() {
-    const styles = getComputedStyle(document.documentElement);
-    electric = rgbVar(styles, "--c-electric");
-    bg = rgbVar(styles, "--c-ivory");
-    faint = rgbVar(styles, "--c-ink-faint");
-    dark = document.documentElement.classList.contains("dark");
-  }
-
-  // Samples the image at SUPERSAMPLE× the cell grid and builds the field.
-  // The downscale happens in createImageBitmap, off the main thread — doing
-  // it with drawImage made the pixel readback a ~65 ms task on a slow phone.
-  // Resolves false when the stage size hasn't changed or a newer layout won.
-  async function layout() {
-    const r = wrapper.getBoundingClientRect();
-    if (!r.width || !r.height || (r.width === W && r.height === H)) return false;
-    const token = ++layoutToken;
-    const c = Math.floor(r.width / cw), rw = Math.floor(r.height / ch);
-    const bitmap = await createImageBitmap(blob, {
-      resizeWidth: c * SUPERSAMPLE,
-      resizeHeight: rw * SUPERSAMPLE,
-      resizeQuality: "high",
-    });
-    if (token !== layoutToken || destroyed) {
-      bitmap.close();
-      return false;
+  // The worker's copy of the reveal; and the cursor ring's position, sent
+  // each frame while the lens follows the ring (and as it fades after).
+  const shown = (v) => worker && r.host({ shown: v });
+  const lensNow = { on: false, own: true, off: 0 };
+  let ringRaf = 0;
+  const sendRing = () => {
+    ringRaf = 0;
+    if (lensNow.own || (!lensNow.on && performance.now() - lensNow.off > 1000)) return;
+    const b = canvas.getBoundingClientRect();
+    r.host({ ring: { x: ring.x - b.left, y: ring.y - b.top } });
+    ringRaf = requestAnimationFrame(sendRing);
+  };
+  const lens = (state) => {
+    if (state.on !== undefined) {
+      if (lensNow.on && !state.on) lensNow.off = performance.now();
+      lensNow.on = state.on;
     }
-    dpr = Math.min(2, window.devicePixelRatio || 1);
-    W = r.width;
-    H = r.height;
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-    fontSet = false; // a resize resets the context's state
-    lensCv.width = canvas.width;
-    lensCv.height = canvas.height;
-    cols = c;
-    rows = rw;
-    n = cols * rows;
-    // Sized to the grid, not the bitmap: a browser that ignores the resize
-    // options hands back the full image, which drawImage then scales.
-    const sample = document.createElement("canvas");
-    sample.width = c * SUPERSAMPLE;
-    sample.height = rw * SUPERSAMPLE;
-    const sx = sample.getContext("2d", { willReadFrequently: true });
-    sx.drawImage(bitmap, 0, 0, sample.width, sample.height);
-    bitmap.close();
-    field = buildField(sx.getImageData(0, 0, sample.width, sample.height).data, cols, rows, SUPERSAMPLE);
-    fade = new Float32Array(n);
-    reveal = new Float32Array(n);
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        fade[y * cols + x] = fadeAt(x / cols, y / rows);
-        reveal[y * cols + x] = revealTime(x, y, cols, rows, ch / cw, Math.random());
-      }
-    }
-    fadeMask = document.createElement("canvas");
-    fadeMask.width = cols;
-    fadeMask.height = rows;
-    const fm = fadeMask.getContext("2d"), fd = fm.createImageData(cols, rows);
-    for (let i = 0; i < n; i++) fd.data[i * 4 + 3] = fade[i] * 255;
-    fm.putImageData(fd, 0, 0);
-    flickUntil.clear();
-    onLayout(cols, rows);
-    return true;
-  }
-
-  // One cell of the finished portrait.
-  function mark(c, i, d, alpha, x, y) {
-    if (alpha < 0.01) return;
-    c.fillStyle = css(shadeRGB(d, electric, bg));
-    c.globalAlpha = alpha;
-    c.fillText(RAMP[glyphIndex(d)], x * cw, y * ch);
-  }
-
-  function buildRest() {
-    stillDrawn = false;
-    rest = document.createElement("canvas");
-    rest.width = canvas.width;
-    rest.height = canvas.height;
-    const c = rest.getContext("2d");
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    setFont(c);
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const i = y * cols + x, d = density(field, i, dark);
-        if (d > 0.02) mark(c, i, d, glyphAlpha(d, fade[i]), x, y);
-      }
-    }
-  }
-
-  // The context keeps its font between frames; setting it parses the family
-  // list each time (measured at a frame's worth of script on a mid-range
-  // phone over a page change), so it's set only after a resize or the
-  // lens's readout changed it.
-  let fontSet = false;
-  function blitRest() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (rest?.width && rest.height) ctx.drawImage(rest, 0, 0);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (!fontSet) {
-      setFont(ctx);
-      fontSet = true;
-    }
-  }
-
-  // Idle: scan band every 6 s (cells in it draw one step denser at up to 0.3
-  // opacity) plus a sparse flicker of noise glyphs.
-  function drawIdle(now) {
-    blitRest();
-    const band = scanBand((now - idleStart) / 1000, rows);
-    if (band !== null) {
-      for (let y = Math.max(0, Math.floor(band - 5)); y < Math.min(rows, band + 5); y++) {
-        const k = bandWeight(y, band);
-        for (let x = 0; x < cols; x++) {
-          const i = y * cols + x, d = density(field, i, dark);
-          if (d > 0.02) mark(ctx, i, Math.min(1, d + 0.3 * k), 0.3 * k * fade[i], x, y);
-        }
-      }
-    }
-    for (let k = 0; k < flickerCount(cols, rows); k++) {
-      const i = (Math.random() * n) | 0;
-      if (field.alpha[i] > 0.3) flickUntil.set(i, [now + 90 + Math.random() * 90, noiseChar()]);
-    }
-    ctx.fillStyle = css(electric);
-    for (const [i, [until, glyph]] of flickUntil) {
-      if (until <= now) {
-        flickUntil.delete(i);
-        continue;
-      }
-      const x = (i % cols) * cw, y = ((i / cols) | 0) * ch;
-      ctx.globalAlpha = 1;
-      ctx.clearRect(x, y, cw, ch);
-      ctx.globalAlpha = 0.85 * fade[i];
-      ctx.fillText(glyph, x, y);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // Loader: the finished portrait is blitted, then every cell the wave hasn't
-  // reached yet is cleared and redrawn as a shimmering skeleton block or, in
-  // the last 0.25 s before it lands, a noise glyph.
-  //
-  // Row by row: the row's unrevealed cells are cleared in one path, then
-  // drawn. One clearRect per cell, interleaved with the draws, broke the
-  // GPU's batching on every cell (a wave frame was 18-21 ms of script on a
-  // desktop, 7-10 after; Damian approved it 2026-10-29: the GPU's clearRect
-  // is antialiased, so a cleared seam keeps a trace of the old glyph that
-  // one path doesn't, up to 4/255, invisible). A row at a time keeps what
-  // the per-cell order did for a glyph's descender: it spills into the row
-  // below, which is cleared before it's drawn.
-  function drawWave(t) {
-    blitRest();
-    const inside = field.inside;
-    let k = 0;
-    while (k < inside.length) {
-      const row = (inside[k] / cols) | 0, py = row * ch;
-      let end = k, any = false;
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.beginPath();
-      for (; end < inside.length && ((inside[end] / cols) | 0) === row; end++) {
-        const i = inside[end];
-        if (t >= reveal[i]) continue;
-        ctx.rect((i % cols) * cw, py, cw, ch);
-        any = true;
-      }
-      if (any) ctx.fill();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = css(electric);
-      for (let j = k; j < end; j++) {
-        const i = inside[j], tr = reveal[i];
-        if (t >= tr) continue;
-        const x = i % cols, px = x * cw;
-        if (cellPhase(t, tr) === "skeleton") {
-          ctx.globalAlpha = (0.1 + 0.05 * Math.sin(t * 6 + x * 0.3 + row * 0.2)) * fade[i];
-          ctx.fillRect(px + cw * 0.3, py + ch * 0.3, cw * 0.4, ch * 0.4);
-        } else {
-          ctx.globalAlpha = 0.9 * fade[i];
-          ctx.fillText(noiseChar(), px, py);
-        }
-      }
-      k = end;
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // Soft-edged disc: solid to LENS_SOLID of the radius, gone at the radius.
-  function lensGradient(c) {
-    const g = c.createRadialGradient(lens.x, lens.y, 0, lens.x, lens.y, LENS_R);
-    g.addColorStop(0, `rgba(0,0,0,${lens.s})`);
-    g.addColorStop(LENS_SOLID, `rgba(0,0,0,${lens.s})`);
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    return g;
-  }
-
-  function drawLens() {
-    // Strength first: with the lens off, nothing below runs (no layout reads).
-    // The intro curtain lets the pointer through, so the lens waits for the
-    // reveal; a pointer already resting on the portrait gets it then.
-    lens.s += ((lens.on && isRevealed() ? 1 : 0) - lens.s) * STRENGTH_EASE;
-    if (lens.s < 0.01) return;
-    if (lens.own) {
-      lens.x += (lens.tx - lens.x) * FOLLOW;
-      lens.y += (lens.ty - lens.y) * FOLLOW;
-    } else {
-      const r = canvas.getBoundingClientRect();
-      lens.x = ring.x - r.left;
-      lens.y = ring.y - r.top;
-    }
-    // clear the glyphs under the lens
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.fillStyle = lensGradient(ctx);
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalCompositeOperation = "source-over";
-    // the photo, masked by the portrait fade and the lens disc
-    lensCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    lensCtx.globalCompositeOperation = "source-over";
-    lensCtx.clearRect(0, 0, W, H);
-    lensCtx.drawImage(photo, 0, 0, W, H);
-    lensCtx.globalCompositeOperation = "destination-in";
-    lensCtx.drawImage(fadeMask, 0, 0, W, H);
-    lensCtx.fillStyle = lensGradient(lensCtx);
-    lensCtx.fillRect(0, 0, W, H);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(lensCv, 0, 0);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (lens.own) {
-      ctx.globalAlpha = 0.5 * lens.s;
-      ctx.strokeStyle = css(electric);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(lens.x, lens.y, LENS_R * 0.98, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 0.8 * lens.s;
-    ctx.fillStyle = css(faint);
-    ctx.font = `400 9px ${family}`;
-    fontSet = false;
-    ctx.fillText(`x ${Math.round(lens.x)} · y ${Math.round(lens.y)}`, lens.x + LENS_R * 0.72, lens.y + LENS_R * 0.78);
-    ctx.globalAlpha = 1;
-  }
-
-  function drawFrame(now) {
-    if (!field) return; // no layout yet (e.g. a zero-size stage)
-    if (waving) {
-      // Before waveStart (curtain still down) every cell is still skeleton.
-      // Until the reveal, waveStart is Infinity: hold t at the skeleton
-      // phase rather than −∞, where the skeleton's alpha is NaN (ignored by
-      // the canvas) and the finished glyphs would show through.
-      const t = Math.max(-1, (now - waveStart) / 1000);
-      // Still before the wave: nothing moves. The lens waits for the reveal
-      // too (drawLens), so there's nothing else to draw.
-      if (t < 0) {
-        if (!stillDrawn) {
-          drawWave(-1);
-          stillDrawn = true;
-        }
-        return;
-      }
-      if (!waveStarted) {
-        waveStarted = true;
-        onWaveStart();
-      }
-      if (t < LOADER_S) drawWave(t);
-      else {
-        waving = false;
-        idleStart = now;
-        onWaveEnd();
-      }
-    }
-    if (!waving) drawIdle(now);
-    drawLens();
-  }
+    if (state.own !== undefined) lensNow.own = state.own;
+    r.lens(state);
+    if (worker && !ringRaf) sendRing();
+  };
 
   // Pointer → lens target, in canvas coordinates.
-  function aim(e) {
-    lens.own = !(e.pointerType === "mouse" && customCursorShown());
-    const r = canvas.getBoundingClientRect();
-    lens.tx = e.clientX - r.left;
-    lens.ty = e.clientY - r.top;
-    if (lens.s < 0.01) {
-      lens.x = lens.tx;
-      lens.y = lens.ty;
-    }
+  function aim(e, on) {
+    const b = canvas.getBoundingClientRect();
+    lens({ on, own: !(e.pointerType === "mouse" && customCursorShown()), tx: e.clientX - b.left, ty: e.clientY - b.top });
   }
-  const lensOn = (e) => {
-    lens.on = true;
-    aim(e);
-  };
-  const lensOff = () => (lens.on = false);
+  const lensOn = (e) => aim(e, true);
+  const lensOff = () => lens({ on: false });
   // Touch (Damian, 2026-10-29): a finger on the portrait must still scroll
   // the page, so the lens opens only after a hold (HOLD_MS) with the finger
   // still. A finger that moves first, or that the browser takes for a
@@ -387,7 +243,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
   };
   const touchEnd = () => {
     endHold();
-    lens.on = false;
+    lens({ on: false });
   };
   const mouse = (e) => e.pointerType === "mouse";
   const pointerEvents = {
@@ -403,82 +259,60 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     contextmenu: (e) => (hold.timer || hold.held) && e.preventDefault(),
   };
 
-  // The next frame is booked before drawing, so one bad frame can never
-  // stop the loop for the rest of the page's life.
-  const tick = (now) => {
-    raf = requestAnimationFrame(tick);
-    drawFrame(now);
-  };
   // Under a full curtain (a page change away from Home, or Back before it
   // cleared) nothing of the portrait shows: the loop stops until the page
   // is revealed again or gone (lib/motion.js → onCover).
-  let covered = false;
+  let covered = false, onScreen = true, destroyed = false;
+  const offShown = onReveal(() => shown(true));
   const offCover = onCover(() => {
     covered = true;
+    shown(false);
     sync();
     onReveal(() => {
       if (destroyed) return;
       covered = false;
+      shown(true);
       sync();
     });
   });
   function sync() {
-    const should = !reduced && onScreen && !covered && document.visibilityState === "visible";
-    if (should && !running) {
-      running = true;
-      raf = requestAnimationFrame(tick);
-    } else if (!should && running) {
-      running = false;
-      cancelAnimationFrame(raf);
-    }
+    r.run(!reduced && onScreen && !covered && document.visibilityState === "visible");
   }
-  // Before its wave starts, the portrait is skeleton only: the finished
-  // glyphs (the rest canvas) must not flash first.
-  const beforeWave = () => waving && !waveStarted;
-  const drawStill = () => (beforeWave() ? drawWave(-1) : blitRest());
-  // Redraw now (theme or size changed); the loop picks up from here.
-  const redraw = () => (running ? drawFrame(performance.now()) : drawStill());
 
   // ---- lifecycle ------------------------------------------------------------
-  let pending = 0, restTimer = 0;
+  let pending = 0;
+  const layout = () => {
+    const b = wrapper.getBoundingClientRect();
+    return r.layout(b.width, b.height, window.devicePixelRatio || 1);
+  };
   const ro = new ResizeObserver(() => {
     cancelAnimationFrame(pending);
     pending = requestAnimationFrame(async () => {
-      if (!(await layout())) return;
-      buildRest();
-      redraw();
+      if (await layout()) r.rebuild();
     });
   });
   // Only a real theme flip rebuilds — other <html> class changes (the
   // cursor's js-cursor) must not.
   const mo = new MutationObserver(() => {
-    const wasDark = dark;
-    readTheme();
-    if (dark === wasDark) return;
-    buildRest();
-    redraw();
+    const wasDark = theme.dark;
+    theme = readTheme();
+    r.theme(theme);
+    if (theme.dark !== wasDark) r.rebuild();
   });
   const io = new IntersectionObserver(([e]) => {
     onScreen = e.isIntersecting;
     sync();
   });
 
-  // First layout, then the rest canvas in a task of its own (a timeout, not a
-  // rAF — rAF callbacks share one task with the loop's first frame), so no
-  // single task blocks the main thread for long on a slow phone. The loop,
+  // First layout, then the rest canvas in a task of its own. The loop,
   // observers and pointer listeners only start once there is a field.
   const ready = (async () => {
-    readTheme();
     // Watch the theme from the start: a switch during the async first layout
     // must still land in the rest canvas.
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     await layout();
     if (destroyed) return;
-    waveStart = Math.max(performance.now(), waveAt);
-    restTimer = setTimeout(() => {
-      buildRest();
-      if (!running) drawStill();
-    }, 0);
+    r.firstRest();
     ro.observe(wrapper);
     io.observe(wrapper);
     document.addEventListener("visibilitychange", sync);
@@ -487,10 +321,7 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
       // A pointer that came in before the listeners (a slow photo) sent no
       // pointerenter: pick it up now. Only with the custom cursor, whose ring
       // gives the lens its position; without it, the next move does.
-      if (canvas.matches(":hover") && customCursorShown()) {
-        lens.own = false;
-        lens.on = true;
-      }
+      if (canvas.matches(":hover") && customCursorShown()) lens({ on: true, own: false });
     }
     sync();
   })();
@@ -499,20 +330,20 @@ function createPortrait({ wrapper, canvas, blob, photo, family, onLayout, wave, 
     ready,
     // The curtain has cleared: the wave starts now.
     startWave() {
-      waveStart = performance.now();
+      r.startWave();
       sync();
     },
     destroy() {
       destroyed = true;
-      photo.close();
-      cancelAnimationFrame(raf);
+      r.destroy();
       cancelAnimationFrame(pending);
-      clearTimeout(restTimer);
+      cancelAnimationFrame(ringRaf);
       clearTimeout(hold.timer);
       ro.disconnect();
       mo.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", sync);
+      offShown();
       offCover();
       for (const [type, fn] of Object.entries(pointerEvents)) canvas.removeEventListener(type, fn);
     },
@@ -549,10 +380,13 @@ export default function HeroPortrait({ className = "" }) {
     // fonts.load() rejects for the whole list (every Android phone showed a
     // blank stage). The canvas falls back down the family list on its own.
     const font = document.fonts.load(`700 6px ${family}`).catch(() => []);
-    Promise.all([blob, blob.then((b) => createImageBitmap(b)), font])
-      .then(async ([b, photo]) => {
+    // The worker starts with the fetch, so it's ready by the time they are.
+    const worker = startWorker();
+    Promise.all([blob, blob.then((b) => createImageBitmap(b)), font, worker])
+      .then(async ([b, photo, , w]) => {
         if (cancelled) {
           photo.close();
+          w?.terminate();
           return;
         }
         // Nobody would see the wave from a background tab or a landing below
@@ -569,9 +403,9 @@ export default function HeroPortrait({ className = "" }) {
           blob: b,
           photo,
           family,
+          worker: w,
           onLayout: (cols, rows) => setGrid(`${cols} × ${rows}`),
           wave,
-          waveAt: Infinity,
           onWaveStart: () => setState("wave"),
           onWaveEnd: () => setState("static"),
         });

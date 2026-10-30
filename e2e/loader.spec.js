@@ -234,11 +234,12 @@ test.describe("every load (timing-dependent)", () => {
     const sample = () => {
       window.__early = 0;
       window.__waveInk = null;
-      const tick = () => {
+      const tick = async () => {
         const p = document.querySelector("[data-portrait]");
         const cv = p?.querySelector("canvas");
-        if (cv?.width) {
-          const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+        const shot = cv?.portraitSnapshot && (await cv.portraitSnapshot());
+        if (shot?.width) {
+          const d = shot.data;
           let ink = 0;
           for (let i = 3; i < d.length; i += 4 * 97) if (d[i] > 20) ink++;
           if (p.dataset.state === "loading") window.__early = Math.max(window.__early, ink);

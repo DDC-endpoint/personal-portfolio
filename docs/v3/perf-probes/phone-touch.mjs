@@ -15,10 +15,14 @@ await page.waitForTimeout(1500);
 const cdp = await ctx.newCDPSession(page);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const face = () => page.evaluate(() => { const b = document.querySelector("[data-portrait]").getBoundingClientRect(); return { x: b.left + b.width * 0.5, y: b.top + b.height * 0.38 }; });
-const warm = (p) => page.evaluate((p) => {
-  const c = document.querySelector("[data-portrait] canvas"), r = c.getBoundingClientRect(), k = c.width / r.width;
-  const d = c.getContext("2d").getImageData((p.x - r.left) * k - 5, (p.y - r.top) * k - 5, 10, 10).data;
-  let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 0 && d[i] > d[i + 1] + 10) n++; return n;
+// Read through the portrait's snapshot: it may be drawn in a worker.
+const warm = (p) => page.evaluate(async (p) => {
+  const c = document.querySelector("[data-portrait] canvas"), r = c.getBoundingClientRect();
+  const { width, data } = await c.portraitSnapshot(), k = width / r.width;
+  const x0 = Math.round((p.x - r.left) * k - 5), y0 = Math.round((p.y - r.top) * k - 5);
+  let n = 0;
+  for (let y = y0; y < y0 + 10; y++) for (let x = x0; x < x0 + 10; x++) { const i = (y * width + x) * 4; if (data[i + 3] > 0 && data[i] > data[i + 1] + 10) n++; }
+  return n;
 }, p);
 const scrollY = () => page.evaluate(() => Math.round(window.scrollY));
 const touch = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
