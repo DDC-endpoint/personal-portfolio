@@ -24,8 +24,9 @@ await page.addInitScript(() => {
   window.__probeCover = () => {
     const p = document.querySelector('[data-panel="2"]');
     const r = p.getBoundingClientRect();
-    const m = p.querySelector("[data-shape]").style.clipPath.match(/L [\d.]+ ([\d.]+)/);
-    const bot = m ? Number(m[1]) : NaN;
+    const e = p.querySelector('[data-end-over="bottom"]');
+    const m = e.querySelector("[data-end-shape]").style.clipPath.match(/L [\d.]+ ([\d.]+) Q/);
+    const bot = m ? new DOMMatrix(getComputedStyle(e).transform).m42 + Number(m[1]) : NaN;
     return { innerHeight: innerHeight, cssVh: +(r.height / 1.3).toFixed(1), panelTop: +r.top.toFixed(1), clipBottomOnScreen: +(r.top + bot).toFixed(1), clientHeight: document.documentElement.clientHeight, gap: +(innerHeight - (r.top + bot)).toFixed(1) };
   };
 });

@@ -18,6 +18,10 @@ const browser = await chromium.launch({ channel: "chromium", args: ["--enable-gp
 async function capture(base, tag, dark) {
   const ctx = await browser.newContext({ viewport: { width: 1536, height: 864 }, deviceScaleFactor: 1, colorScheme: dark ? "dark" : "light" });
   await ctx.addInitScript(() => {
+    // The engine's per-frame loop places each frame from the move's start on
+    // document.timeline, which the fake clock doesn't drive: read it from the
+    // fake clock too, or each run picks different frames.
+    Object.defineProperty(document.timeline, "currentTime", { get: () => performance.now(), configurable: true });
     const animate = Element.prototype.animate;
     Element.prototype.animate = function (...args) {
       const a = animate.apply(this, args);
