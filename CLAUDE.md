@@ -31,6 +31,12 @@ Merged to `main` by PR #7 (`2c7556f`, 2026-10-30) and deployed; the live site wa
 
 **New development starts on `v5`**, branched off `main` at the PR #7 merge (`2c7556f`), pushed (2026-10-30). A push to `main` auto-deploys the live site, so work reaches `main` by PR only, after the e2e comparison with `main` and the visual checks (`docs/v3/perf-probes/visual-check.mjs`).
 
+**Keep `v5` level with `main`.** After any PR merges to `main` (including a small fix from its own branch), fast-forward `v5` to `main` and push both. `v5` commits that aren't on `main` yet, docs included, go to `main` by PR, not by resetting `v5`. As of 2026-10-31, `v5` and `main` are the same commit.
+
+## GitHub username: `DDC-endpoint`
+
+On 2026-10-31 the GitHub account was renamed from `EnderGuardian25` to **`DDC-endpoint`**: PR #8 (`4896c22`) moved every link to it. `github.com` redirects the old name, but GitHub Pages does not, so `enderguardian25.github.io/...` is a 404. Project links use `ddc-endpoint.github.io/...`, and the repo is `DDC-endpoint/personal-portfolio`. Don't reintroduce the old name.
+
 ## Build / verify
 
 - Dev: `npm run dev` (http://localhost:3000). Use `lab.localhost:3000` to exercise the lab subdomain locally.

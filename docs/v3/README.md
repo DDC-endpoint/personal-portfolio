@@ -2,7 +2,7 @@
 
 This folder is the living record of the V3 redesign of damiandc.com. Everything decided is written here, so the work survives a lost session. **Starting cold? Read this file first, then [`design.md`](design.md).**
 
-## Where we are (2026-10-30: V3 and the performance pass are on `main` and live; new work starts on `v5`)
+## Where we are (2026-10-31: V3, the performance pass and the GitHub rename are on `main` and live; new work starts on `v5`, level with `main`)
 
 | Track | State |
 |---|---|
@@ -18,9 +18,11 @@ This folder is the living record of the V3 redesign of damiandc.com. Everything 
 | **Phase 6**: four-page nav, `/portfolio`, the Home carousel, the morph loader and curtain, the 404 board | **Done and merged into `v3` (2026-10-28), then merged to `main` by PR #4 (`da83fc0`, 2026-10-28); `v3` was fast-forwarded to the same commit and pushed** (Damian approved the gate after five late fixes: the nav underline, the lens under the curtain, the progress bar, the cursor behind the curtain, the nav's entrance). See "What Phase 6 built" and `decisions.md` → "Phase 6 gate fixes". Designed from four spikes (`spike/home-curation.html`, `portfolio-page.html`, `loader-curtain.html`, `strip-carousel.html`); every answer is in `decisions.md` → "Phase 6 planning". Plan: [`plan-phase-6.md`](plan-phase-6.md). Branch `v3-portfolio`. The performance pass moves after it. |
 | **Performance and mobile pass** | **Done, merged to `main` by PR #7 (`2c7556f`, 2026-10-30) and live.** The record is [`perf-2026-10-29.md`](perf-2026-10-29.md). On Damian's phone the main thread went from 45.5 to 53 fps averaged over the pages, with 59-60 fps shown. |
 
-### Start here (2026-10-30): branch `v5`
+### Start here (2026-10-31): branch `v5`
 
-**New development starts on `v5`**, branched off `main` at the PR #7 merge (`2c7556f`) and pushed. A push to `main` auto-deploys the live site, so `v5` work reaches `main` by PR, after the e2e comparison with `main` and the visual checks (`perf-probes/visual-check.mjs`). Gate questions 6, 7 and 9 below are still open; 8 is moot (the preview is gone).
+**New development starts on `v5`**, branched off `main` at the PR #7 merge (`2c7556f`) and pushed. A push to `main` auto-deploys the live site, so `v5` work reaches `main` by PR, after the e2e comparison with `main` and the visual checks (`perf-probes/visual-check.mjs`). **Keep `v5` level with `main`:** after any merge to `main`, fast-forward `v5` and push both. As of 2026-10-31 they are the same commit.
+
+**GitHub username.** On 2026-10-31 the GitHub account was renamed from `EnderGuardian25` to **`DDC-endpoint`**: PR #8 (`4896c22`) moved every link to it. `github.com` redirects the old name, but GitHub Pages does not, so `enderguardian25.github.io/...` is a 404. Project links use `ddc-endpoint.github.io/...`, and the repo is `DDC-endpoint/personal-portfolio`. Gate questions 6, 7 and 9 below are still open; 8 is moot (the preview is gone).
 
 ### The performance pass as it stood on 2026-10-29 (history; finished and merged since, see the table above)
 
@@ -446,7 +448,7 @@ The deploy and post-deploy checks below were overtaken: V3 was deployed (CI auto
 ## Repo state at hand-off
 
 - **Branches:**
-  - `main` is at PR #7's merge (`2c7556f`, 2026-10-30), deployed. **`v5`** branches off it for new development, pushed. `v3` stays at PR #4 (`da83fc0`); `perf/curtain-portrait` is merged.
+  - `main` has PR #7's merge (`2c7556f`, 2026-10-30), PR #8's GitHub rename (`4896c22`, 2026-10-31) and the docs PR after it, deployed. **`v5`** is for new development and is at the same commit as `main` (fast-forwarded after each merge), pushed. `v3` stays at PR #4 (`da83fc0`); `perf/curtain-portrait` and `fix/github-username` are merged and deleted.
   - `v3-portfolio` (local only): Phase 6, merged into `v3` and so into `main`; safe to delete. `v3-phase-1` to `v3-phase-5` and `v3-timeline-circuit` are merged and deleted.
   - `upgrade/deps` is merged (PR #3).
 - **Dev server:** `next dev` on :3000, restarted at the end of the 2026-10-28 session. Never stop it for builds; use the scratchpad-worktree route in "Testing". In a new session, check it's up (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`) before starting another. A long-running `next dev` slows down and makes timing tests flaky: restart it (with Damian's OK) before chasing flakes.
