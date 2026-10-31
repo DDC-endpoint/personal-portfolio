@@ -21,11 +21,21 @@ The `.gitignore` already excludes `assets/private/`, `assets/photography-origina
 
 ## V3 redesign
 
-The V3 redesign (Phases 1–6) is merged to `main` (PR #4, `da83fc0`, 2026-10-28), and `v3` sits at the same commit; both are pushed. **Resuming V3 work (the performance pass, the open gate questions)? Start at `docs/v3/README.md`**: it holds the status, the next step, the testing procedure and how Damian likes to work. Remaining V3 work branches off `v3`, merges into `v3`, and reaches `main` by PR.
+The V3 redesign (Phases 1–6) is merged to `main` (PR #4, `da83fc0`, 2026-10-28), and `v3` sits at the same commit; both are pushed. **Resuming V3 work (the open gate questions)? Start at `docs/v3/README.md`**: it holds the status, the next step, the testing procedure and how Damian likes to work. Remaining V3 work branches off `v3`, merges into `v3`, and reaches `main` by PR.
 
-## Performance and mobile pass (in progress)
+## Performance and mobile pass (done, live)
 
-**Resuming the lag / Android-portrait / slow-loader work? Start at `docs/v3/perf-2026-10-29.md`.** Branch `perf/curtain-portrait` (pushed, not merged). Damian's rule: a lag-only fix, so nothing in the design or the animations may change; prove "looks the same" with frame-matched screenshots or pixel diffs, not by reasoning. A push to `main` auto-deploys the live site, so merge by PR only after the e2e comparison with `main` and the visual checks in that doc. Probe scripts are in `docs/v3/perf-probes/`. Their `headed` mode opens a visible browser window on the user's screen, so ask before using it.
+Merged to `main` by PR #7 (`2c7556f`, 2026-10-30) and deployed; the live site was smoke-tested after the deploy. The full record, the measurements and the probe scripts are in `docs/v3/perf-2026-10-29.md` and `docs/v3/perf-probes/`. Carry its rule into later perf work: a lag-only fix must not change the design or the animations, and "looks the same" is proven with frame-matched screenshots or pixel diffs, not by reasoning. The probes' `headed` mode opens a visible browser window on the user's screen, so ask before using it.
+
+## Where new work starts: branch `v5`
+
+**New development starts on `v5`**, branched off `main` at the PR #7 merge (`2c7556f`), pushed (2026-10-30). A push to `main` auto-deploys the live site, so work reaches `main` by PR only, after the e2e comparison with `main` and the visual checks (`docs/v3/perf-probes/visual-check.mjs`).
+
+**Keep `v5` level with `main`.** After any PR merges to `main` (including a small fix from its own branch), fast-forward `v5` to `main` and push both. `v5` commits that aren't on `main` yet, docs included, go to `main` by PR, not by resetting `v5`. As of 2026-10-31, `v5` and `main` are the same commit.
+
+## GitHub username: `DDC-endpoint`
+
+On 2026-10-31 the GitHub account was renamed from `EnderGuardian25` to **`DDC-endpoint`**: PR #8 (`4896c22`) moved every link to it. `github.com` redirects the old name, but GitHub Pages does not, so `enderguardian25.github.io/...` is a 404. Project links use `ddc-endpoint.github.io/...`, and the repo is `DDC-endpoint/personal-portfolio`. Don't reintroduce the old name.
 
 ## Build / verify
 
