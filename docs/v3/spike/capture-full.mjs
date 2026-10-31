@@ -15,9 +15,9 @@ const OUT = "docs/v3/spike/proj/full";
 const SITES = {
   "aloys-travels": "https://aloys-travels.com/",
   "danella-de-cruz": "https://danelladc.com",
-  "spades-solutions": "https://enderguardian25.github.io/spades-solutions/index.html",
-  "kahatagaha-graphite": "https://enderguardian25.github.io/kgll-website/",
-  "personal-dashboard": "https://enderguardian25.github.io/personal-dashboard/",
+  "spades-solutions": "https://ddc-endpoint.github.io/spades-solutions/index.html",
+  "kahatagaha-graphite": "https://ddc-endpoint.github.io/kgll-website/",
+  "personal-dashboard": "https://ddc-endpoint.github.io/personal-dashboard/",
   portfolio: "http://localhost:3000/",
 };
 
