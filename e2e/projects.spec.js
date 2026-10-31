@@ -177,7 +177,7 @@ test.describe("desktop", () => {
     await page.goto("/");
     await card(page, 3).focus();
     const [popup] = await Promise.all([page.context().waitForEvent("page"), page.keyboard.press("Enter")]);
-    await popup.waitForURL(/^https:\/\/enderguardian25\.github\.io\/spades-solutions/, { timeout: 20000 });
+    await popup.waitForURL(/^https:\/\/ddc-endpoint\.github\.io\/spades-solutions/, { timeout: 20000 });
   });
 
   test("end card types and links", async ({ page }) => {

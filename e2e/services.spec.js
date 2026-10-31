@@ -242,7 +242,7 @@ test("recent work: four rows in order with the right links", async ({ page }) =>
   await expect(cards).toHaveCount(4);
   await expect(cards.locator("[data-row-n]")).toHaveText(["01", "02", "03", "04"]);
   await expect(cards.locator("[data-row-title]")).toHaveText(["This Portfolio", "Spades Solutions", "Aloys Travels", "Danella De Cruz"]);
-  const HREFS = ["/", "https://enderguardian25.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"];
+  const HREFS = ["/", "https://ddc-endpoint.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"];
   const links = rowLinks(page);
   expect(await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")))).toEqual(HREFS);
   await expect(links.first()).not.toHaveAttribute("target", /.*/);

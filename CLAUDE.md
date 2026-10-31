@@ -4,7 +4,7 @@ Project guidance for Claude Code. See `README.md` for setup/customize and `HANDO
 
 ## ⚠️ This is a PUBLIC repository — no personal information
 
-The GitHub repo (`EnderGuardian25/personal-portfolio`) and the `main` branch are public. Anything committed — **including anything in git history** — is world-readable forever. Before committing, make sure none of the following ever lands in a tracked file:
+The GitHub repo (`DDC-endpoint/personal-portfolio`) and the `main` branch are public. Anything committed — **including anything in git history** — is world-readable forever. Before committing, make sure none of the following ever lands in a tracked file:
 
 **Never commit:**
 - **The full CV/résumé** — it contains home address, date of birth, personal email, and third-party referees' phone numbers/emails. The real PDF lives in `assets/private/` (gitignored). The site's Résumé section uses a `mailto:` "Request CV" button instead of serving a file. If a résumé must be published, publish only a **sanitized** version (no address, no DOB, no referee contact details).
