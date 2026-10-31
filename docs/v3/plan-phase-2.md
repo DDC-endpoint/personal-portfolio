@@ -119,7 +119,7 @@
     - `nearestToCentre([100, 420, 900], 844) === 1` and `nearestToCentre([-900, 1900], 844) === -1`.
 - [ ] **Step 2:** Run `npm test`. Expected: FAIL (modules missing).
 - [ ] **Step 3:** Implement both modules to the interfaces above. Copy the blurbs and domains from `copy.md`. Keep the existing tags from `components/Projects.jsx` for the six live cards. Interact District 3220's tags are `["Client Work"]`.
-  - Domains for the GitHub Pages sites: `enderguardian25.github.io/personal-dashboard`, `…/spades-solutions` and `…/kgll-website`.
+  - Domains for the GitHub Pages sites: `ddc-endpoint.github.io/personal-dashboard`, `…/spades-solutions` and `…/kgll-website`.
 - [ ] **Step 4:** Run `npm test`. Expected: PASS.
 - [ ] **Step 5:** Commit: `feat(v3): project data and diagonal strip geometry`.
 
@@ -293,7 +293,7 @@
     - `live cards open in a new tab`: `[data-card="2"]` has `target="_blank"` and `rel` contains `noopener`.
     - `resting pointer decodes the card the strip brings to it` (Review Focus 1): park the mouse at 30% of the width and 55% of the height. Scroll with `mouse.wheel` until a different `[data-card]` lies under that point. That card reaches `shot` without a mouse move, and the previous card reaches `skeleton`.
     - `tab reaches off-screen cards` (Review Focus 2): focus card 0 and press Tab 5 times. The focused `[data-card="5"]` box lies inside the viewport. `[data-strip-viewport]` has `scrollLeft === 0`. Its state reaches `shot`.
-    - `enter opens the site`: on focused card 3, `context.waitForEvent("page")` after Enter gives a URL that starts with `https://enderguardian25.github.io/spades-solutions`.
+    - `enter opens the site`: on focused card 3, `context.waitForEvent("page")` after Enter gives a URL that starts with `https://ddc-endpoint.github.io/spades-solutions`.
     - `end card types and links`: the address bar text becomes `your-site.com`, and the link's `href` is `#contact`.
     - `resize mid-pin keeps the leading card on screen`: pinned at 50%, set the viewport to 1280×720. The card at `progressForCard` lies fully inside the viewport.
     - `no console errors through the pin` (`trackErrors`).
