@@ -53,3 +53,32 @@ test("aim: a tile and a point in it give board coordinates, clamped", () => {
   expect(aim(0, 0, -5, 99, 40, 40)).toEqual({ x: 0, y: 1 });
   expect(aim(2, 2, 0, 0, 0, 0)).toEqual({ x: 2.5, y: 2.5 });
 });
+
+test("tour: loops seamlessly, stays in 0–1, livelier than idle, glides over the board", async () => {
+  const { LOOP, glide, tour, tourLifts } = await import("@/lib/isoBoard");
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      expect(tour(r, c, LOOP)).toBeCloseTo(tour(r, c, 0), 9);
+      for (let t = 0; t < LOOP; t += 0.23) {
+        const v = tour(r, c, t);
+        expect(v).toBeGreaterThanOrEqual(0);
+        expect(v).toBeLessThanOrEqual(1);
+      }
+    }
+  }
+  // livelier than the idle wave: some tile clears the idle's 0.24 cap by far
+  let peak = 0;
+  for (let t = 0; t < LOOP; t += 0.5) peak = Math.max(peak, tour(2, 2, t));
+  expect(peak).toBeGreaterThan(0.6);
+  // the glide stays over the board
+  for (let t = 0; t < LOOP; t += 0.3) {
+    const p = glide(t);
+    expect(p.x).toBeGreaterThanOrEqual(0.5);
+    expect(p.x).toBeLessThanOrEqual(4.5);
+    expect(p.y).toBeGreaterThanOrEqual(0.5);
+    expect(p.y).toBeLessThanOrEqual(4.5);
+  }
+  const lifts = tourLifts(1, 3, 10);
+  expect(lifts).toHaveLength(11);
+  expect(lifts[10]).toBeCloseTo(lifts[0], 9);
+});

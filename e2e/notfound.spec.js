@@ -95,14 +95,30 @@ test("hovering lifts the tile under the pointer, and it holds", async ({ page, i
   expect(await lift(face)).toBeGreaterThan(20);
 });
 
-test("phones: a tap lifts the tile under it", async ({ page, isMobile }) => {
+// Phones don't follow touch (a tap held a tile, and the JS loop lagged
+// while scrolling): the board tours on its own, as Web Animations the
+// compositor runs, livelier than the desktop idle.
+test("phones: the board tours on its own, on the compositor", async ({ page, isMobile }) => {
   test.skip(!isMobile, "phones");
   await page.goto("/no-such-page");
   await expect(page.locator(".morph-loader")).toHaveCount(0, { timeout: 9000 });
-  const tile = board(page).locator('[data-tile="6"]');
-  const box = await tile.boundingBox();
+  // 25 tiles × face, edge and shadow × rise and loop
+  await expect.poll(() => page.evaluate(() => document.querySelector("[data-iso-board]").getAnimations({ subtree: true }).length)).toBe(150);
+  const lifts = () => board(page).locator("[data-face]").evaluateAll((els) => els.map((el) => new DOMMatrix(getComputedStyle(el).transform).m43));
+  // over a few seconds some tile rises well past the idle wave's 0.24 × 26 px
+  let peak = 0;
+  for (let k = 0; k < 12; k++) {
+    peak = Math.max(peak, ...(await lifts()));
+    await page.waitForTimeout(250);
+  }
+  expect(peak).toBeGreaterThan(12);
+  // a tap doesn't hold a tile: no pointer handlers, the tour carries on
+  const box = await board(page).locator('[data-tile="6"]').boundingBox();
   await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-  await expect.poll(() => lift(tile.locator("[data-face]")), { timeout: 3000 }).toBeGreaterThan(18);
+  const a = await lifts();
+  await page.waitForTimeout(500);
+  const b = await lifts();
+  expect(Math.max(...b.map((v, i) => Math.abs(v - a[i])))).toBeGreaterThan(0.5);
 });
 
 test("idle, the wave drifts", async ({ page }) => {
