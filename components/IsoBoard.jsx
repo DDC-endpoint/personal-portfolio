@@ -1,7 +1,18 @@
 "use client";
-import { useEffect, useRef } from "react";
-import { N, LIFT, falloff, ambient, smoothing, settled, aim } from "@/lib/isoBoard";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { N, LIFT, LOOP, falloff, ambient, smoothing, settled, aim, tourLifts } from "@/lib/isoBoard";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+
+// Phones and tablets: no hover. Server and hydration render read `false`
+// (the desktop board), then React re-renders with the real value.
+const NO_HOVER = "(hover: none)";
+const subscribeHover = (onChange) => {
+  const media = window.matchMedia(NO_HOVER);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+};
+const useNoHover = () =>
+  useSyncExternalStore(subscribeHover, () => window.matchMedia(NO_HOVER).matches, () => false);
 
 // The Isometric Board (Phase 6, from the lab; maths in lib/isoBoard.js),
 // re-coloured to the site. On the 404 page (tone "page"): faces in paper and
@@ -12,9 +23,12 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 // both: the ivory token in light mode is the ink token in dark.) Hovering lifts the
 // tile under the pointer and its neighbours with a Gaussian falloff, and
 // holds while the pointer rests; idle, a slow diagonal wave drifts. On phones
-// a tap lifts the tile under it. Reduced motion: a settled cluster. The loop
-// runs only while the board is on screen. Decorative: hidden from screen
-// readers.
+// (no hover) the board doesn't listen to touch: taps held a tile and the
+// per-frame JS loop lagged while scrolling. It tours on its own instead
+// (lib/isoBoard.js → tour), sampled once into Web Animations on transform
+// and opacity, so the compositor runs it with no JS per frame. Reduced
+// motion: a settled cluster. The motion runs only while the board is on
+// screen. Decorative: hidden from screen readers.
 
 const TONES = {
   page: {
@@ -45,19 +59,58 @@ export default function IsoBoard({
   const shadows = useRef([]);
   const pointer = useRef({ x: 0, y: 0, on: false });
   const reduced = useReducedMotion();
+  const noHover = useNoHover();
 
   useEffect(() => {
+    // A lift (0 → 1) as each layer's styles, shared by every mode.
+    const face = (l) => `translateZ(${(l * LIFT).toFixed(2)}px)`;
+    const shadow = (l) => `scale(${(1 + l * 0.25).toFixed(3)})`;
     const apply = (i, l) => {
       if (!faces.current[i] || !edges.current[i] || !shadows.current[i]) return;
-      faces.current[i].style.transform = `translateZ(${(l * LIFT).toFixed(2)}px)`;
+      faces.current[i].style.transform = face(l);
       edges.current[i].style.opacity = l.toFixed(3);
       shadows.current[i].style.opacity = (l * 0.8).toFixed(3);
-      shadows.current[i].style.transform = `scale(${(1 + l * 0.25).toFixed(3)})`;
+      shadows.current[i].style.transform = shadow(l);
     };
 
     if (reduced) {
       for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) apply(r * N + c, settled(r, c));
       return;
+    }
+
+    if (noHover) {
+      // The tour, on the compositor: each layer eases up from flat over
+      // RISE ms, then loops. Linear between samples (12 a second).
+      const RISE = 700;
+      const anims = [];
+      // `toFrame` turns a lift into one layer's keyframe; lift 0 is at rest.
+      const run = (el, toFrame, lifts) => {
+        anims.push(el.animate([toFrame(0), toFrame(lifts[0])], { duration: RISE, easing: "ease-out", fill: "forwards" }));
+        anims.push(el.animate(lifts.map(toFrame), { duration: LOOP * 1000, delay: RISE, iterations: Infinity, easing: "linear" }));
+      };
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const i = r * N + c;
+          if (!faces.current[i] || !edges.current[i] || !shadows.current[i]) continue;
+          const lifts = tourLifts(r, c);
+          run(faces.current[i], (l) => ({ transform: face(l) }), lifts);
+          run(edges.current[i], (l) => ({ opacity: +l.toFixed(3) }), lifts);
+          run(shadows.current[i], (l) => ({ opacity: +(l * 0.8).toFixed(3), transform: shadow(l) }), lifts);
+        }
+      }
+      // Off screen, pause; back on, resume only what was paused (play() on a
+      // finished rise would replay it).
+      const io = new IntersectionObserver(([e]) =>
+        anims.forEach((a) => {
+          if (!e.isIntersecting) a.pause();
+          else if (a.playState === "paused") a.play();
+        })
+      );
+      io.observe(rootRef.current);
+      return () => {
+        io.disconnect();
+        anims.forEach((a) => a.cancel());
+      };
     }
 
     const lift = new Float32Array(N * N);
@@ -90,13 +143,15 @@ export default function IsoBoard({
       io.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [reduced]);
+  }, [reduced, noHover]);
 
   const point = (r, c) => (e) => {
     const el = e.currentTarget;
     pointer.current = { ...aim(r, c, e.nativeEvent.offsetX, e.nativeEvent.offsetY, el.offsetWidth, el.offsetHeight), on: true };
   };
-  // A tap holds its tile; a mouse lets go when it leaves the board.
+  // Reduced motion and phones ignore the pointer. On a hover device with a
+  // touchscreen, a tap holds its tile; a mouse lets go when it leaves.
+  const deaf = reduced || noHover;
   const leave = (e) => {
     if (e.pointerType !== "touch") pointer.current.on = false;
   };
@@ -105,14 +160,14 @@ export default function IsoBoard({
     <div ref={rootRef} aria-hidden="true" data-iso-board className={`flex items-center justify-center ${className}`}>
       <div style={{ perspective: "1100px" }}>
         <div
-          onPointerLeave={reduced ? undefined : leave}
+          onPointerLeave={deaf ? undefined : leave}
           className={`grid grid-cols-5 ${gridClassName}`}
           style={{ aspectRatio: "1 / 1", transform: "rotateX(54deg) rotateZ(45deg)", transformStyle: "preserve-3d" }}
         >
           {Array.from({ length: N * N }, (_, i) => {
             const r = Math.floor(i / N);
             const c = i % N;
-            const on = reduced ? undefined : point(r, c);
+            const on = deaf ? undefined : point(r, c);
             return (
               <div
                 key={i}
