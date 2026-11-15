@@ -5,6 +5,11 @@
 // it.
 //
 // Usage: node scripts/capture-projects.mjs [slug…]   (no slugs = every live card)
+//
+// A resolver that hands out a stale Cloudflare IP gets Error 1034, a page
+// that prints this machine's public IP: never commit a shot like that. Pin
+// the host to a good IP for Chromium with CAPTURE_RESOLVE, e.g.
+//   CAPTURE_RESOLVE="MAP www.example.org 203.0.113.10" node scripts/capture-projects.mjs example
 
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
@@ -28,6 +33,10 @@ const PREP = {
     );
     await page.waitForTimeout(2500);
   },
+  // Its custom cursor dot rests at the screen centre, over the hero title.
+  "interact-district-3220": async (page) => {
+    await page.addStyleTag({ content: ".morph-cursor { display: none !important; }" });
+  },
   portfolio: async (page) => {
     // No custom cursor ring, first-load cover or Next dev badge in the shot.
     await page.addStyleTag({
@@ -43,11 +52,16 @@ const PREP = {
 const wanted = process.argv.slice(2);
 const targets = PROJECTS.filter((p) => p.status === "live" && (!wanted.length || wanted.includes(p.slug)));
 
-const browser = await chromium.launch();
+const resolve = process.env.CAPTURE_RESOLVE;
+const browser = await chromium.launch(resolve ? { args: [`--host-resolver-rules=${resolve}`] } : {});
 try {
   for (const p of targets) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: "light" });
     await page.goto(p.self ? LOCAL : p.href, { waitUntil: "networkidle", timeout: 60000 });
+    // A page that reserves the scrollbar's room (scrollbar-gutter: stable)
+    // would show it as an empty strip down the right edge: headless Chromium
+    // draws no scrollbar.
+    await page.addStyleTag({ content: "html, body { scrollbar-gutter: auto !important; }" });
     await page.waitForTimeout(4000);
     await PREP[p.slug]?.(page);
     const name = `${p.slug}.webp`;

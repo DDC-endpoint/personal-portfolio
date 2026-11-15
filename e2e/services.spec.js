@@ -236,17 +236,17 @@ test.describe("How it works without JS", () => {
 const workCards = (page) => page.locator("#recent [data-card]");
 const rowLinks = (page) => page.locator("#recent [data-row-link]");
 
-test("recent work: four rows in order with the right links", async ({ page }) => {
+test("recent work: five rows in order with the right links", async ({ page }) => {
   await page.goto("/services");
   const cards = workCards(page);
-  await expect(cards).toHaveCount(4);
-  await expect(cards.locator("[data-row-n]")).toHaveText(["01", "02", "03", "04"]);
-  await expect(cards.locator("[data-row-title]")).toHaveText(["This Portfolio", "Spades Solutions", "Aloys Travels", "Danella De Cruz"]);
-  const HREFS = ["/", "https://ddc-endpoint.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"];
+  await expect(cards).toHaveCount(5);
+  await expect(cards.locator("[data-row-n]")).toHaveText(["01", "02", "03", "04", "05"]);
+  await expect(cards.locator("[data-row-title]")).toHaveText(["This Portfolio", "Interact District 3220", "Spades Solutions", "Aloys Travels", "Danella De Cruz"]);
+  const HREFS = ["/", "https://www.interactdistrict3220.org/", "https://ddc-endpoint.github.io/spades-solutions/index.html", "https://aloys-travels.com/", "https://danelladc.com"];
   const links = rowLinks(page);
   expect(await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")))).toEqual(HREFS);
   await expect(links.first()).not.toHaveAttribute("target", /.*/);
-  for (const i of [1, 2, 3]) {
+  for (const i of [1, 2, 3, 4]) {
     await expect(links.nth(i)).toHaveAttribute("target", "_blank");
     await expect(links.nth(i)).toHaveAttribute("rel", /noopener/);
   }
@@ -259,14 +259,14 @@ test("recent work: four rows in order with the right links", async ({ page }) =>
     await expect(a).toHaveAttribute("aria-hidden", "true");
   }
   // The rows themselves aren't links.
-  expect(await cards.evaluateAll((els) => els.map((el) => el.tagName))).toEqual(Array(4).fill("ARTICLE"));
+  expect(await cards.evaluateAll((els) => els.map((el) => el.tagName))).toEqual(Array(5).fill("ARTICLE"));
 });
 
 test("recent work: reduced motion shows the screenshots", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/services");
   const ops = await workCards(page).locator("img").evaluateAll((els) => els.map((el) => getComputedStyle(el).opacity));
-  expect(ops).toEqual(["1", "1", "1", "1"]);
+  expect(ops).toEqual(["1", "1", "1", "1", "1"]);
 });
 
 test.describe("recent work (desktop)", () => {
@@ -277,7 +277,7 @@ test.describe("recent work (desktop)", () => {
     // The page's width: the window less the scrollbar's room (globals.css →
     // scrollbar-gutter).
     const vw = await page.evaluate(() => document.body.getBoundingClientRect().width);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const row = workCards(page).nth(i);
       const box = await row.boundingBox();
       expect(Math.round(box.x)).toBe(40);
@@ -293,7 +293,7 @@ test.describe("recent work (desktop)", () => {
 
   test("the text side shows without hover, and hover doesn't lift or shadow", async ({ page }) => {
     await page.goto("/services");
-    const row = workCards(page).nth(2);
+    const row = workCards(page).nth(3);
     await row.scrollIntoViewIfNeeded();
     await page.mouse.move(5, 5);
     await expect(row.locator("[data-row-blurb]")).toBeVisible();
@@ -311,7 +311,7 @@ test.describe("recent work (desktop)", () => {
 
   test("only the screenshot decodes on hover, under a still pointer", async ({ page }) => {
     await page.goto("/services");
-    const card = workCards(page).nth(2);
+    const card = workCards(page).nth(3);
     await card.scrollIntoViewIfNeeded();
     // Over the text side: nothing.
     const title = await card.locator("[data-row-title]").boundingBox();
@@ -322,12 +322,12 @@ test.describe("recent work (desktop)", () => {
     const frame = await card.locator("[data-shot-area]").boundingBox();
     await page.mouse.move(frame.x + frame.width / 2, frame.y + frame.height / 2);
     await expect(card).toHaveAttribute("data-decode", "shot", { timeout: 2500 });
-    for (const i of [0, 1, 3]) await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "false");
+    for (const i of [0, 1, 2, 4]) await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "false");
   });
 
   test("the Visit link draws its underline and nudges its arrow on hover", async ({ page }) => {
     await page.goto("/services");
-    const link = rowLinks(page).nth(2);
+    const link = rowLinks(page).nth(3);
     await link.scrollIntoViewIfNeeded();
     await page.mouse.move(5, 5);
     const look = () =>
@@ -337,7 +337,7 @@ test.describe("recent work (desktop)", () => {
     await link.hover();
     await expect.poll(look).toMatch(/^100% 1px \| (?!none)/);
     // Hovering the link doesn't decode the screenshot.
-    await expect(workCards(page).nth(2)).toHaveAttribute("data-active", "false");
+    await expect(workCards(page).nth(3)).toHaveAttribute("data-active", "false");
   });
 
   test("keyboard reaches every row's link in order, decoding its row, and Enter opens it", async ({ page }) => {
@@ -345,7 +345,7 @@ test.describe("recent work (desktop)", () => {
     // hydrated: the decode controller marks each card (house rule for key tests)
     await page.locator('#recent [data-card="0"][data-decode]').waitFor({ state: "attached" });
     await page.locator("#recent a.link-line").first().focus();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       await page.keyboard.press("Tab");
       await expect(rowLinks(page).nth(i)).toBeFocused();
       await expect(workCards(page).nth(i)).toHaveAttribute("data-active", "true");
@@ -359,7 +359,7 @@ test.describe("recent work (desktop)", () => {
 test("on phones each row is its frame, then its text", async ({ page, isMobile }) => {
   test.skip(!isMobile);
   await page.goto("/services");
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     const row = workCards(page).nth(i);
     const frame = await row.locator("[data-shot-area]").boundingBox();
     const title = await row.locator("[data-row-title]").boundingBox();
@@ -489,7 +489,7 @@ test.describe("DDC Web Services on /services", () => {
   test("Spades is labelled a client design that hasn't launched", async ({ page }) => {
     await page.goto("/services");
     // visible, not only present: no-JS visitors see the tags (nothing starts hidden without JS)
-    await expect(page.locator("#recent [data-card]").nth(1).getByText("Client design · not launched")).toBeVisible();
+    await expect(page.locator("#recent [data-card]").nth(2).getByText("Client design · not launched")).toBeVisible();
   });
 });
 

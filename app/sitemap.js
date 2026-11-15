@@ -3,9 +3,9 @@
 // on every deploy. changeFrequency and priority are left out; Google ignores
 // both.
 const PAGES = [
-  { path: "", updated: "2026-10-31" },
-  { path: "/portfolio", updated: "2026-10-31" },
-  { path: "/services", updated: "2026-10-31" },
+  { path: "", updated: "2026-11-15" },
+  { path: "/portfolio", updated: "2026-11-15" },
+  { path: "/services", updated: "2026-11-15" },
   { path: "/privacy", updated: "2026-10-27" },
 ];
 

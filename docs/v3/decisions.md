@@ -351,6 +351,10 @@ Damian asked for "a few minor changes before the perf pass", which grew into Pha
 **From the `/portfolio` mock (Damian, 2026-10-28)**
 - **No decode on `/portfolio`:** the cards rise in already showing their screenshots ("leave them as is"). The address bar still types as each card lands.
 - **The scroll-through preview is slower, "more browsable":** 1.5× the mock's first timing, so 3.9 s minimum and 13.5 s maximum to reach the bottom, a 1.35 s hold, 2.1 s back up.
+- **Interact District 3220 launched (Damian, 2026-11-15).** It is a live card (blurb from the site's own description; tags Client Work, Next.js, Nonprofit; a hand-traced skeleton) at the top of `/portfolio` as 01. It replaces Kahatagaha in the home strip in the same slot (Aloys, Danella, Interact, Spades, Dashboard), and joins `/services` Recent work as the second row (tag "Nonprofit site"). ai-studio is now the only In progress card. Spades Solutions relaunched with a dark three-card hero on the same day; its screenshot and skeleton were redone.
+- **Grid hover (Damian, 2026-11-15):** on a pointer device, hovering or focusing a linked grid card lifts its window 6 px on a deeper shadow and turns the name electric. The screenshot stays still (Damian dropped a 1.04 zoom the same day). Upcoming cards don't lift. Reduced motion keeps only the colour change.
+- **A blue scrollbar (Damian, 2026-11-15):** plain CSS, no package (a JS scrollbar would fight Lenis and the curtain's `scrollbar-gutter`). The page's bar is a slim electric pill on the ivory track, a shade deeper on hover; the tokens recolour it in dark mode. Main site only; the lab keeps its own. Firefox gets the colours without the pill shape, and phones keep their overlay bars.
+- **The home stack below md is centred (Damian, 2026-11-15).** Every card has the same width and is centred; the left/right zig-zag (builder's call 3) read as off.
 - **Superseded (Damian, 2026-10-30): no scroll-through preview.** Its swap to the full-page capture flashed in the cards, so a live card shows its site's top screenshot only. The full-page captures and `capture-projects --full` are gone.
 - **Clicking a card opens the live site** in a new tab; This Portfolio goes to Home (with the curtain); upcoming cards aren't links. Same as the home strip.
 - **Grid tiles keep the one-line description.**
@@ -496,7 +500,7 @@ As of 2026-10-28, all six phases, the Timeline circuit and the SEO/GEO upgrade a
 - **Builder's calls, all 10 confirmed by Damian on 2026-10-26** with the design approval (they are listed in `design.md`):
   1. Custom canvas renderer for the portrait, not `ascii-reveal`.
   2. Client-side page transitions with a persistent overlay, which also cover links like `/#work`.
-  3. Mobile Projects uses an alternating sideways offset.
+  3. Mobile Projects uses an alternating sideways offset. (Superseded 2026-11-15: centred.)
   4. `/services` "How it works" becomes one column.
   5. Project screenshots are WebP captures at 1440×900.
   6. Keyboard focus decodes a project card, and Enter opens the site.

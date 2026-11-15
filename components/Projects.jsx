@@ -60,7 +60,9 @@ const WIDE = "(min-width: 768px)";
 // The track: one screen of sticky viewport plus PIN_SCREENS of scroll.
 const TRACK_STYLE = { "--pin-track": `${(1 + STRIP.PIN_SCREENS) * 100}svh` };
 const REST_MS = 150; // the stack's scroll has rested this long: back to plain paint
-const STACK_ITEM ="w-[86%] even:ml-auto md:w-full md:max-w-3xl md:ml-[25%] md:even:ml-[25%]";
+// Below md every card is centred at one width (Damian, 2026-11-15: the old
+// left/right zig-zag read as off).
+const STACK_ITEM = "mx-auto w-[86%] md:w-full md:max-w-3xl md:ml-[25%]";
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 
 // Clears what the frame loop wrote, when the mode changes.
