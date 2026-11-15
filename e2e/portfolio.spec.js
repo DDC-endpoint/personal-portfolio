@@ -3,13 +3,13 @@ import { trackErrors } from "./helpers";
 
 // /portfolio (docs/v3/plan-phase-6.md → Task 5).
 const TITLES = [
+  "Interact District 3220",
   "Aloys Travels",
   "Danella De Cruz",
   "Spades Solutions",
   "Kahatagaha Graphite",
   "This Portfolio",
   "Personal Dashboard",
-  "Interact District 3220",
   "ai-studio",
 ];
 const CHIPS = [
@@ -17,7 +17,7 @@ const CHIPS = [
   ["Client", 4],
   ["Concept", 1],
   ["Personal", 3],
-  ["In progress", 2],
+  ["In progress", 1],
 ];
 
 const cards = (page) => page.locator("[data-work-card]");
@@ -57,7 +57,7 @@ test("rows further down still rise when reached, however long the visitor waits"
 
 test("hero: the count, the title and the lede", async ({ page }) => {
   await page.goto("/portfolio");
-  await expect(page.locator("[data-work-count]")).toHaveText("06 live · 02 on the way");
+  await expect(page.locator("[data-work-count]")).toHaveText("07 live · 01 on the way");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("All work.");
   await expect(page.getByText("Client sites, concepts and my own tools, newest first.")).toBeVisible();
 });
@@ -73,10 +73,10 @@ test("each filter shows the right cards", async ({ page }) => {
   await page.goto("/portfolio");
   await ready(page);
   const expected = {
-    Client: ["Aloys Travels", "Danella De Cruz", "Spades Solutions", "Interact District 3220"],
+    Client: ["Interact District 3220", "Aloys Travels", "Danella De Cruz", "Spades Solutions"],
     Concept: ["Kahatagaha Graphite"],
     Personal: ["This Portfolio", "Personal Dashboard", "ai-studio"],
-    "In progress": ["Interact District 3220", "ai-studio"],
+    "In progress": ["ai-studio"],
     All: TITLES,
   };
   for (const [name, titles] of Object.entries(expected)) {
@@ -128,17 +128,16 @@ test("live cards open in a new tab, This Portfolio goes Home, upcoming cards are
   await expect(self).toHaveAttribute("href", "/");
   await expect(self).not.toHaveAttribute("target", /.*/);
   await expect(cardOf(page, "ai-studio").locator("a")).toHaveCount(0);
-  await expect(cardOf(page, "Interact District 3220").locator("a")).toHaveCount(0);
 });
 
 test("the address bar types; the live dot only on live cards", async ({ page }) => {
   await page.goto("/portfolio");
-  const address = cardOf(page, "Aloys Travels").locator("[data-address]");
+  const address = cardOf(page, "Interact District 3220").locator("[data-address]");
   // It starts empty and types in once the card lands.
-  await expect.poll(() => address.textContent(), { timeout: 4000 }).toMatch(/^.{1,16}$/);
-  await expect(address).toHaveText("aloys-travels.com", { timeout: 4000 });
+  await expect.poll(() => address.textContent(), { timeout: 4000 }).toMatch(/^.{1,23}$/);
+  await expect(address).toHaveText("interactdistrict3220.org", { timeout: 4000 });
   for (const t of TITLES) {
-    const live = !["Interact District 3220", "ai-studio"].includes(t);
+    const live = t !== "ai-studio";
     await expect(cardOf(page, t).locator("[data-status]")).toHaveAttribute("data-live", String(live));
   }
 });
@@ -182,6 +181,7 @@ test("a card's screenshot stays its top shot, still, under a resting pointer or 
   }
   await page.waitForTimeout(1500);
   await expect(img).toHaveAttribute("src", /^\/projects\/aloys-travels\.webp(\?v=\w+)?$/);
+  // No pan and no zoom: the card lifts, its shot stays still (Damian, 2026-11-15).
   expect(await img.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
 });
 
@@ -230,7 +230,31 @@ test("SEO: title, canonical and the CollectionPage", async ({ page }) => {
   );
   const graphs = await page.locator('script[type="application/ld+json"]').evaluateAll((els) => els.map((e) => JSON.parse(e.textContent)));
   const page_ = graphs.flatMap((g) => g["@graph"] ?? [g]).find((n) => n["@type"] === "CollectionPage");
-  expect(page_.mainEntity.itemListElement).toHaveLength(6);
+  expect(page_.mainEntity.itemListElement).toHaveLength(7);
+});
+
+// Grid hover (Damian, 2026-11-15): a linked card's window lifts on a deeper
+// shadow and its name turns electric; upcoming cards stay.
+test("grid hover lifts a live card, not an upcoming one", async ({ page, isMobile }) => {
+  test.skip(isMobile, "pointer hover");
+  await page.goto("/portfolio");
+  await ready(page);
+  const look = (t) =>
+    cardOf(page, t).evaluate((el) => ({
+      lift: getComputedStyle(el.querySelector("[data-frame] > div")).transform,
+      title: getComputedStyle(el.querySelector("h3")).color,
+    }));
+  expect((await look("Aloys Travels")).lift).toBe("none");
+  const box = await cardOf(page, "Aloys Travels").locator("[data-frame]").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect.poll(async () => (await look("Aloys Travels")).lift).toBe("matrix(1, 0, 0, 1, 0, -6)");
+  await expect.poll(async () => (await look("Aloys Travels")).title).toBe("rgb(37, 99, 235)");
+  const up = cardOf(page, "ai-studio");
+  await up.scrollIntoViewIfNeeded();
+  const ub = await up.locator("[data-frame]").boundingBox();
+  await page.mouse.move(ub.x + ub.width / 2, ub.y + ub.height / 2);
+  await page.waitForTimeout(700);
+  expect((await look("ai-studio")).lift).toBe("none");
 });
 
 test("no console errors", async ({ page }) => {

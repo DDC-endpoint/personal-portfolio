@@ -65,7 +65,7 @@ test("steps", () => {
 });
 
 test("recent work", () => {
-  expect(WORK.map((w) => w.slug)).toEqual(["portfolio", "spades-solutions", "aloys-travels", "danella-de-cruz"]);
+  expect(WORK.map((w) => w.slug)).toEqual(["portfolio", "interact-district-3220", "spades-solutions", "aloys-travels", "danella-de-cruz"]);
   for (const w of WORK) expect(PROJECTS.some((p) => p.slug === w.slug)).toBe(true);
   const by = Object.fromEntries(WORK.map((w) => [w.slug, w]));
   expect(by.portfolio.href).toBe("/");
@@ -73,6 +73,10 @@ test("recent work", () => {
   expect(by["spades-solutions"].note).toBe("A sharp, professional web presence for a growing solutions company.");
   expect(by["aloys-travels"].href).toBe("https://aloys-travels.com/");
   expect(by["aloys-travels"].note).toBe("Website for a travel company, with clean booking flows and a journey-led design.");
+  expect(by["interact-district-3220"]).toMatchObject({
+    tag: "Nonprofit site",
+    href: "https://www.interactdistrict3220.org/",
+  });
   expect(by["danella-de-cruz"]).toMatchObject({
     tag: "Artist site",
     href: "https://danelladc.com",

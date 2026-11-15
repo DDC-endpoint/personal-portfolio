@@ -19,7 +19,7 @@ import {
 const LABELS = [
   "01 — Aloys Travels — 2026",
   "02 — Danella De Cruz — 2026",
-  "03 — Kahatagaha Graphite — 2026",
+  "03 — Interact District 3220 — 2026",
   "04 — Spades Solutions — 2026",
   "05 — Personal Dashboard — 2026",
 ];
@@ -247,13 +247,23 @@ test.describe("desktop", () => {
 test.describe("mobile", () => {
   test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "mobile stack"));
 
-  test("stacked, no pin, alternating offset", async ({ page }) => {
+  // Centred, one width (Damian, 2026-11-15: the left/right zig-zag read as off).
+  test("stacked, no pin, every card centred", async ({ page }) => {
     await page.goto("/");
     const pos = await page.locator("[data-strip-viewport]").evaluate((el) => getComputedStyle(el).position);
     expect(pos).not.toBe("sticky");
-    const a = await card(page, 0).boundingBox();
-    const b = await card(page, 1).boundingBox();
-    expect(b.x).toBeGreaterThan(a.x);
+    const items = await page.locator("#work [data-strip] > *").evaluateAll((els) =>
+      els.map((el) => {
+        const p = el.parentElement;
+        const s = getComputedStyle(p);
+        const inner = p.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+        return { centre: el.offsetLeft - parseFloat(s.paddingLeft) + el.offsetWidth / 2, half: inner / 2, width: el.offsetWidth };
+      })
+    );
+    for (const { centre, half, width } of items) {
+      expect(Math.abs(centre - half)).toBeLessThanOrEqual(1);
+      expect(width).toBe(items[0].width);
+    }
   });
 
   test("card nearest centre decodes; the others dim and shrink, with no blur", async ({ page }) => {

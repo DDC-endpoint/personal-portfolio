@@ -9,27 +9,28 @@ import {
   upcomingCount,
 } from "@/lib/projects";
 
-// Newest first (Damian, 2026-10-28: decisions.md → "Phase 6 planning").
+// Newest first (Damian, 2026-10-28: decisions.md → "Phase 6 planning";
+// Interact District 3220 launched and went to the top, 2026-11-15).
 const ORDER = [
+  "Interact District 3220",
   "Aloys Travels",
   "Danella De Cruz",
   "Spades Solutions",
   "Kahatagaha Graphite",
   "This Portfolio",
   "Personal Dashboard",
-  "Interact District 3220",
   "ai-studio",
 ];
 
 // Verbatim from docs/v3/copy.md → § 04 Selected Work, in ORDER.
 const BLURBS = [
+  "Website for Interact District 3220: about 3,500 students in more than 100 school clubs across Sri Lanka and the Maldives.",
   "Website for a travel company: clean booking flows and a design that sells the journey.",
   "Portfolio and booking site for a Colombo cover artist, putting her music, story and performance schedule on one clean stage.",
   "Website for a growing solutions company, built to look sharp and turn visitors into enquiries.",
   "Two homepage concepts for a Sri Lankan crystalline graphite producer, one dark and technical, one light and editorial, built from the same content and eleven material grades.",
   "The site you're on: Next.js, Tailwind and Framer Motion, kept as a living journal of my work.",
   "A self-updating homepage I open every morning, with RSS feeds, a reading queue and quick links.",
-  "New website for Interact District 3220, in progress.",
   "In the works · 2026",
 ];
 
@@ -49,7 +50,7 @@ test("Home's strip is Damian's five, strongest first, numbered by the strip", ()
   expect(HOME_STRIP).toEqual([
     "aloys-travels",
     "danella-de-cruz",
-    "kahatagaha-graphite",
+    "interact-district-3220",
     "spades-solutions",
     "personal-dashboard",
   ]);
@@ -57,19 +58,19 @@ test("Home's strip is Damian's five, strongest first, numbered by the strip", ()
   expect(strip.map((p) => p.slug)).toEqual(HOME_STRIP);
   expect(strip.map((p) => p.n)).toEqual(["01", "02", "03", "04", "05"]);
   // The strip's numbering never leaks back into PROJECTS.
-  expect(byTitle("Kahatagaha Graphite").n).toBe("04");
+  expect(byTitle("Interact District 3220").n).toBe("01");
 });
 
 test("categories, as in the demo", () => {
   const cats = Object.fromEntries(PROJECTS.map((p) => [p.title, p.cats]));
   expect(cats).toEqual({
+    "Interact District 3220": ["client"],
     "Aloys Travels": ["client"],
     "Danella De Cruz": ["client"],
     "Spades Solutions": ["client"],
     "Kahatagaha Graphite": ["concept"],
     "This Portfolio": ["personal"],
     "Personal Dashboard": ["personal"],
-    "Interact District 3220": ["client", "upcoming"],
     "ai-studio": ["personal", "upcoming"],
   });
 });
@@ -82,9 +83,9 @@ test("filters and their counts", () => {
     { id: "personal", label: "Personal" },
     { id: "upcoming", label: "In progress" },
   ]);
-  expect(FILTERS.map((f) => countFor(f.id))).toEqual([8, 4, 1, 3, 2]);
-  expect(liveCount).toBe(6);
-  expect(upcomingCount).toBe(2);
+  expect(FILTERS.map((f) => countFor(f.id))).toEqual([8, 4, 1, 3, 1]);
+  expect(liveCount).toBe(7);
+  expect(upcomingCount).toBe(1);
 });
 
 test("Aloys Travels points at its own domain", () => {
@@ -95,7 +96,7 @@ test("Aloys Travels points at its own domain", () => {
 
 test("upcoming cards have no link or screenshot", () => {
   const upcoming = PROJECTS.filter((p) => p.status === "upcoming");
-  expect(upcoming.map((p) => p.title)).toEqual(["Interact District 3220", "ai-studio"]);
+  expect(upcoming.map((p) => p.title)).toEqual(["ai-studio"]);
   for (const p of upcoming) {
     expect(p.href).toBeNull();
     expect(p.shot).toBeNull();
@@ -103,8 +104,17 @@ test("upcoming cards have no link or screenshot", () => {
     expect(p.cats).toContain("upcoming");
   }
   expect(byTitle("ai-studio").tags).toEqual([]);
-  expect(byTitle("Interact District 3220").domain).toBe("interactdistrict3220.org");
   expect(byTitle("ai-studio").domain).toBe("ai-studio");
+});
+
+test("Interact District 3220 is live on its own domain", () => {
+  expect(byTitle("Interact District 3220")).toMatchObject({
+    status: "live",
+    href: "https://www.interactdistrict3220.org/",
+    domain: "interactdistrict3220.org",
+    skeleton: "interact",
+    tags: ["Client Work", "Next.js", "Nonprofit"],
+  });
 });
 
 test("live cards link out over https, except This Portfolio, which goes Home", () => {
@@ -119,7 +129,7 @@ test("live cards link out over https, except This Portfolio, which goes Home", (
 test("live cards carry a screenshot named after their slug", () => {
   const live = PROJECTS.filter((p) => p.status === "live");
   expect(live.map((p) => p.slug)).toEqual([
-    "aloys-travels", "danella-de-cruz", "spades-solutions", "kahatagaha-graphite", "portfolio", "personal-dashboard",
+    "interact-district-3220", "aloys-travels", "danella-de-cruz", "spades-solutions", "kahatagaha-graphite", "portfolio", "personal-dashboard",
   ]);
   for (const p of live) {
     expect(p.shot).toBe(`/projects/${p.slug}.webp`);

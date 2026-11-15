@@ -127,36 +127,52 @@ function Aloys() {
 const SPADE =
   "M0 -105 C40 -55 105 -20 100 30 C96 70 50 80 18 55 C25 85 35 100 50 108 L-50 108 C-35 100 -25 85 -18 55 C-50 80 -96 70 -100 30 C-105 -20 -40 -55 0 -105 Z";
 
+// Traced from the dark three-card relaunch (re-captured 2026-11-15).
 function Spades() {
+  // A playing card: its frame, corner index and title, list rows and button.
+  const card = (flip) => (
+    <>
+      <Block x={0} y={0} w={360} h={540} r={14} />
+      <Outline x={14} y={14} w={332} h={512} r={8} />
+      <Bar x={30} y={32} w={20} h={24} heavy />
+      <path d={SPADE} transform="translate(40 76) scale(0.08)" className="fill-electric/45" />
+      <Bar x={30} y={104} w={flip ? 220 : 130} h={34} heavy />
+      {!flip && <Bar x={30} y={146} w={170} h={34} heavy />}
+      <Bar x={30} y={flip ? 156 : 196} w={290} h={11} />
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i}>
+          <path d={SPADE} transform={`translate(40 ${(flip ? 210 : 260) + i * 50}) scale(0.05)`} className="fill-electric/45" />
+          <Bar x={58} y={(flip ? 203 : 253) + i * 50} w={[124, 112, 150, 118][i]} h={13} heavy />
+          <rect x={30} y={(flip ? 228 : 278) + i * 50} width={300} height={2} className="fill-ink/12" />
+        </g>
+      ))}
+      <rect x={30} y={472} width={200} height={46} rx={23} className="fill-paper" />
+      <Bar x={56} y={489} w={148} h={12} tone="fill-electric/45" />
+    </>
+  );
   return (
     <Svg k="spades">
-      <circle cx={1330} cy={320} r={170} className="fill-electric/8" />
-      <path d={SPADE} transform="translate(150 44) scale(0.17)" className="fill-electric/45" />
-      <Bar x={173} y={30} w={68} h={11} heavy />
-      <Bar x={173} y={46} w={68} h={8} />
-      <Bar x={605} y={38} w={38} h={11} heavy />
-      <Solid x={605} y={59} w={38} h={2} r={0} />
-      <Bar x={676} y={38} w={55} h={11} />
-      <Bar x={765} y={38} w={52} h={11} />
-      <Solid x={1179} y={18} w={131} h={54} r={27} />
-      <rect x={0} y={92} width={1440} height={2} className="fill-ink/8" />
-      <path d={SPADE} transform="translate(139 214) scale(0.06)" className="fill-electric/45" />
-      <Bar x={155} y={209} w={365} h={9} />
-      <Bar x={130} y={265} w={515} h={58} heavy />
-      <Bar x={130} y={342} w={395} h={56} tone="fill-electric/35" />
-      <Bar x={130} y={420} w={265} h={56} tone="fill-electric/35" />
-      {[[515, 550], [552, 520], [589, 548], [626, 250]].map(([y, w]) => (
-        <Bar key={y} x={130} y={y} w={w} h={16} />
-      ))}
-      <Solid x={130} y={687} w={219} h={63} r={31} />
-      <Outline x={365} y={687} w={196} h={63} r={31} />
-      <Bar x={130} y={780} w={400} h={10} />
-      <circle cx={1073} cy={500} r={237} strokeWidth="2" className="fill-none stroke-electric/40" />
-      <circle cx={1073} cy={500} r={213} strokeWidth="4" strokeDasharray="1 14" strokeLinecap="round" className="fill-none stroke-electric/40" />
-      <circle cx={888} cy={500} r={5} className="fill-electric/40" />
-      <circle cx={1258} cy={500} r={5} className="fill-electric/40" />
-      <path d={SPADE} transform="translate(1073 500)" className="fill-electric/35" />
-      <rect x={0} y={893} width={1440} height={2} className="fill-ink/8" />
+      <rect width="1440" height="900" className="fill-electric/10" />
+      <ellipse cx={720} cy={300} rx={560} ry={300} className="fill-electric/8" />
+      <path d={SPADE} transform="translate(114 31) scale(0.13)" className="fill-electric/45" />
+      <Bar x={141} y={24} w={194} h={14} heavy />
+      <Bar x={980} y={27} w={41} h={11} heavy />
+      <Solid x={980} y={42} w={41} h={2} r={0} />
+      <Bar x={1049} y={27} w={58} h={11} />
+      <Bar x={1134} y={27} w={56} h={11} />
+      <rect x={1218} y={12} width={122} height={40} rx={20} className="fill-paper" />
+      <Bar x={1237} y={26} w={84} h={12} tone="fill-electric/45" />
+      <Bar x={350} y={114} w={740} h={58} heavy />
+      <Bar x={411} y={186} w={619} h={58} heavy />
+      <Bar x={335} y={274} w={770} h={14} />
+      <Bar x={541} y={306} w={358} h={14} />
+      <g transform="rotate(-5 140 384) translate(140 384)">{card(false)}</g>
+      <g transform="rotate(5 940 384) translate(940 384)">{card(true)}</g>
+      <Block x={540} y={346} w={360} h={527} r={14} />
+      <Outline x={552} y={358} w={336} h={503} r={8} />
+      <path d={SPADE} transform="translate(720 585) scale(0.8)" className="fill-paper" />
+      <path d={SPADE} transform="translate(720 585) scale(0.8)" strokeWidth="3" className="fill-none stroke-electric/40" />
+      <Bar x={618} y={706} w={206} h={11} tone="fill-electric/45" />
     </Svg>
   );
 }
@@ -260,6 +276,43 @@ function Portfolio() {
   );
 }
 
+// Traced from the launched site (captured 2026-11-15): a full-bleed photo
+// hero under the nav, the district name over a giant 3220, two buttons.
+function Interact() {
+  const nav = [[507, 40], [577, 57], [664, 118], [811, 35], [877, 54], [961, 75], [1065, 52]];
+  const digits = [[402, 153], [563, 155], [727, 155], [893, 147]];
+  return (
+    <Svg k="interact">
+      <Photo x={0} y={0} w={1440} h={900} />
+      <ellipse cx={1180} cy={10} rx={360} ry={90} className="fill-electric/20" />
+      <ellipse cx={300} cy={860} rx={520} ry={70} className="fill-electric/20" />
+      {/* Traced with the page's scrollbar gutter; the shot has none, so the content sits 7 px right. */}
+      <g transform="translate(7 0)">
+        <Bar x={64} y={22} w={82} h={20} heavy />
+        <Bar x={64} y={48} w={84} h={11} />
+        <circle cx={173} cy={34} r={20} strokeWidth="4" strokeDasharray="5 4" className="fill-none stroke-ink/30" />
+        <Bar x={439} y={30} w={38} h={11} heavy />
+        <Solid x={439} y={53} w={38} h={3} r={1} />
+        {nav.map(([x, w]) => (
+          <Bar key={x} x={x} y={30} w={w} h={11} heavy />
+        ))}
+        <Bar x={652} y={337} w={80} h={20} heavy />
+        <rect x={738} y={330} width={2} height={32} className="fill-ink/25" />
+        <Bar x={745} y={330} w={48} h={28} tone="fill-ink/18" />
+        <Bar x={469} y={372} w={502} h={42} heavy />
+        {digits.map(([x, w]) => (
+          <rect key={x} x={x} y={428} width={w} height={140} rx={34} className="fill-paper/85" />
+        ))}
+        <Bar x={422} y={585} w={602} h={18} tone="fill-paper/60" />
+        <rect x={569} y={802} width={118} height={50} rx={25} className="fill-paper" />
+        <Bar x={594} y={821} w={68} h={12} heavy />
+        <Outline x={699} y={802} w={157} h={50} r={25} />
+        <Bar x={724} y={821} w={107} h={12} heavy />
+      </g>
+    </Svg>
+  );
+}
+
 function Empty() {
   return <Svg k="empty" />;
 }
@@ -271,5 +324,6 @@ export const SKELETONS = {
   spades: Spades,
   danella: Danella,
   kahatagaha: Kahatagaha,
+  interact: Interact,
   empty: Empty,
 };

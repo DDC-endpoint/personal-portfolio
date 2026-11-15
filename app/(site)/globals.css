@@ -224,6 +224,27 @@ html.ddc-seen .morph-loader [data-orb],
    viewport's width) is as wide on a page too short to scroll, the 404, as on
    the page it hands over to; without it the panels jumped sideways. */
 html { scrollbar-gutter: stable; }
+/* The page's scrollbar (Damian, 2026-11-15): a slim electric pill on the
+   page's own background, a shade deeper while hovered or dragged; the theme
+   tokens recolour it in dark mode. Plain CSS, so Lenis and the gutter above
+   are untouched. Chrome, Edge and Safari draw the pill from the
+   ::-webkit-scrollbar parts (Chrome ignores them once scrollbar-color is set,
+   so that is for Firefox only, which has colours but no shape). Phones keep
+   their own overlay bars. Only the page's bar: the lab styles its own. */
+html::-webkit-scrollbar { width: 14px; height: 14px; }
+html::-webkit-scrollbar-track { background: rgb(var(--c-ivory)); }
+html::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-electric)) padding-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  min-height: 48px;
+}
+html::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:active { background-color: color-mix(in srgb, rgb(var(--c-electric)) 78%, rgb(var(--c-ink))); }
+html::-webkit-scrollbar-corner { background: rgb(var(--c-ivory)); }
+@supports not selector(::-webkit-scrollbar) {
+  html { scrollbar-color: rgb(var(--c-electric)) rgb(var(--c-ivory)); }
+}
 .curtain[data-curtain="idle"] { visibility: hidden; }
 .curtain:not([data-curtain="idle"]):not([data-curtain="intro"]):not([data-intro]) { pointer-events: auto; }
 /* The label's dot shows only with a destination. */
@@ -288,6 +309,24 @@ main[tabindex="-1"]:focus-visible { outline: none; }
 /* List view: the frame is a bare thumbnail, with no window bar or shadow. */
 [data-work][data-view="list"] [data-chrome] { display: none; }
 [data-work][data-view="list"] [data-frame] > div { box-shadow: none; }
+/* Grid view, hover or keyboard focus (2026-11-15): the window lifts on a
+   deeper shadow and the name turns electric (the arrow's nudge is
+   WorkCard's); the screenshot stays still (Damian: no zoom). The lift is on the window, not [data-frame]:
+   framer writes that one's transform for the View Morph. Pointer devices
+   only; a tap goes straight to the site. */
+@media (hover: hover) and (pointer: fine) {
+  [data-work][data-view="grid"] [data-frame] > div { transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+  [data-work][data-view="grid"] [data-meta] h3 { transition: color 0.3s ease; }
+  [data-work][data-view="grid"] [data-work-card]:has(> a):is(:hover, :has(> a:focus-visible)) [data-frame] > div {
+    transform: translateY(-6px);
+    box-shadow: 0 40px 80px -34px rgb(11 31 58 / 0.5);
+  }
+  .dark [data-work][data-view="grid"] [data-work-card]:has(> a):is(:hover, :has(> a:focus-visible)) [data-frame] > div { box-shadow: 0 40px 80px -34px rgb(0 0 0 / 0.75); }
+  [data-work][data-view="grid"] [data-work-card]:has(> a):is(:hover, :has(> a:focus-visible)) [data-meta] h3 { color: rgb(var(--c-electric)); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: reduce) {
+  [data-work][data-view="grid"] [data-work-card]:has(> a):is(:hover, :has(> a:focus-visible)) [data-frame] > div { transform: none; }
+}
 
 /* The address bar's caret blinks while the domain types, then twice more,
    and goes. Reduced motion and no JS: no caret. */

@@ -117,7 +117,7 @@ test.describe("snippet hygiene and alt text", () => {
     // /portfolio's upcoming cards: "loading…"
     await page.goto("/portfolio");
     const loading = page.locator("[data-build] [data-nosnippet]", { hasText: "loading…" });
-    await expect(loading).toHaveCount(2);
+    await expect(loading).toHaveCount(1);
   });
 
   test("the name in the H1 is spelt as the entity", async ({ page }) => {
