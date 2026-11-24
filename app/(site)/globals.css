@@ -120,6 +120,22 @@
   }
 }
 
+/* The ink flood (ThemeToggle): the old theme stays put as a still snapshot,
+   and the new one floods over it through an ink-blot mask that grows out of
+   the toggle (the mask's size and position are animated from JS). The colour
+   transitions are frozen meanwhile, so the new snapshot is the final theme
+   instead of a 0.45s fade happening inside the ink. */
+html.ink-switch *,
+html.ink-switch *::before,
+html.ink-switch *::after { transition: none !important; }
+html.ink-switch::view-transition-old(root),
+html.ink-switch::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.ink-switch::view-transition-new(root) {
+  mask-image: var(--ink-mask);
+  mask-repeat: no-repeat;
+  mask-size: 0 0;
+}
+
 ::selection { background: rgb(var(--c-ink)); color: rgb(var(--c-ivory)); }
 
 /* Keyboard focus ring — electric token works in both light and dark themes */

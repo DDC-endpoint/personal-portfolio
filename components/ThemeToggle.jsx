@@ -1,7 +1,26 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { EASE } from "@/lib/motion";
+import { inkCoverSize, inkMask } from "@/lib/inkMask";
+
+// The ink flood: the new theme spreads out of the toggle through an ink-blot
+// mask on the View Transition's new snapshot (globals.css, html.ink-switch).
+const INK_MS = 1400;
+const INK_EASE = "cubic-bezier(0.5, 0.1, 0.3, 1)";
+
+// Parse the blot's SVG ahead of the first click, so the first flood
+// doesn't pay for it on its opening frame.
+let warmed = false;
+function warmInk() {
+  if (warmed || typeof document === "undefined" || !document.startViewTransition) return;
+  warmed = true;
+  const { url } = inkMask();
+  document.documentElement.style.setProperty("--ink-mask", url);
+  const img = new Image();
+  img.src = url.slice(5, -2); // url("…") → …
+  img.decode?.().catch(() => {});
+}
 
 // Run before the browser paints on the client (avoids a one-frame icon flash
 // where dark-mode visitors briefly see the sun), but fall back to useEffect on
@@ -19,21 +38,59 @@ export default function ThemeToggle() {
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
+  const button = useRef(null);
+
   const toggle = () => {
-    const next = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", next);
-    try {
-      localStorage.setItem("theme", next ? "dark" : "light");
-    } catch {}
-    setDark(next);
+    const root = document.documentElement;
+    const next = !root.classList.contains("dark");
+    const apply = () => {
+      root.classList.toggle("dark", next);
+      try {
+        localStorage.setItem("theme", next ? "dark" : "light");
+      } catch {}
+      setDark(next);
+    };
+
+    // No View Transitions, or reduced motion: the plain 0.45s cross-fade.
+    if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      apply();
+      return;
+    }
+
+    warmInk();
+    const b = button.current.getBoundingClientRect();
+    const x = b.left + b.width / 2;
+    const y = b.top + b.height / 2;
+    const reach = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    const size = inkCoverSize(reach);
+
+    // ink-switch: freezes the colour transitions so the new snapshot is
+    // already the final theme, and hands the root pseudos to the mask.
+    root.classList.add("ink-switch");
+    const vt = document.startViewTransition(apply);
+    vt.ready
+      .then(() => {
+        root.animate(
+          {
+            maskSize: ["0px 0px", `${size}px ${size}px`],
+            maskPosition: [`${x}px ${y}px`, `${x - size / 2}px ${y - size / 2}px`],
+          },
+          { duration: INK_MS, easing: INK_EASE, fill: "forwards", pseudoElement: "::view-transition-new(root)" }
+        );
+      })
+      .catch(() => {});
+    vt.finished.finally(() => root.classList.remove("ink-switch"));
   };
 
   const showMoon = mounted && dark;
 
   return (
     <motion.button
+      ref={button}
       type="button"
       onClick={toggle}
+      onPointerEnter={warmInk}
+      onFocus={warmInk}
       whileTap={{ scale: 0.88 }}
       aria-label={showMoon ? "Switch to light mode" : "Switch to dark mode"}
       title={showMoon ? "Light mode" : "Dark mode"}
